@@ -1,22 +1,21 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <title>لوحة قياس سرعة الإنترنت</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مقياس السرعة الاحترافي</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>قياس سرعة الإنترنت</h1>
-
-  <button id="runTestBtn">ابدأ القياس</button>
-
-  <div id="results">
-    <p>Ping: <span id="ping">-</span> ms</p>
-    <p>Download: <span id="download">-</span> Mbps</p>
-    <p>Upload: <span id="upload">-</span> Mbps</p>
-    <p>السيرفر: <span id="server">-</span></p>
-  </div>
-
-  <script src="app.js"></script>
+    <div class="container">
+        <h1>قياس سرعة الإنترنت</h1>
+        <div class="gauge">
+            <div class="speed-value" id="speed">0.0</div>
+            <div class="unit">Mbps</div>
+        </div>
+        <button onclick="startTest()" id="btn-start">ابدأ الاختبار</button>
+        <p id="status">جاهز للفحص</p>
+    </div>
+    <script src="script.js"></script>
 </body>
 </html>
