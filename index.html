@@ -3,57 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum Speed | كوانتوم سبيد</title>
+    <title>G-Force Speedtest | القوة القصوى</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Cairo:wght@400;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <div class="background-animate"></div>
-
-    <div class="glass-wrapper">
-        <header>
-            <div class="status-box">
-                <span class="pulse-icon"></span>
-                <span id="network-status">متصل بالشبكة العالمية</span>
+    <div class="nebula"></div>
+    
+    <div class="test-container">
+        <div class="glass-shield">
+            <div class="header-status">
+                <div class="live-indicator"></div>
+                <span id="system-ready">نظام القياس جاهز</span>
             </div>
-            <h2 class="brand">QUANTUM<span>TEST</span></h2>
-        </header>
 
-        <div class="main-display">
-            <div class="gauge-box">
-                <svg viewBox="0 0 200 200" class="svg-gauge">
-                    <circle class="base-ring" cx="100" cy="100" r="85"></circle>
-                    <circle id="meter-fill" class="active-ring" cx="100" cy="100" r="85"></circle>
+            <div class="speed-master">
+                <svg viewBox="0 0 200 200" class="gauge-svg">
+                    <circle class="track" cx="100" cy="100" r="90"></circle>
+                    <circle id="progress" class="fill" cx="100" cy="100" r="90"></circle>
                 </svg>
-                <div class="speed-content">
-                    <h1 id="speed-text">0</h1>
-                    <span class="unit">MBPS</span>
+                <div class="speed-value-box">
+                    <h1 id="mbps-count">0</h1>
+                    <span class="mbps-label">Mbps</span>
                 </div>
             </div>
-        </div>
 
-        <div class="metrics-container">
-            <div class="metric">
-                <p>LATENCY</p>
-                <h3 id="ping">--</h3>
-                <small>ms</small>
+            <div class="dynamic-results">
+                <div class="res-card">
+                    <small>LATENCY</small>
+                    <span id="ping-ms">--</span>
+                </div>
+                <div class="res-card">
+                    <small>BANDWIDTH</small>
+                    <span id="bandwidth-level">STABLE</span>
+                </div>
             </div>
-            <div class="divider"></div>
-            <div class="metric">
-                <p>STABILITY</p>
-                <h3 id="jitter">--</h3>
-                <small>%</small>
-            </div>
-        </div>
 
-        <div class="footer-action">
-            <button id="start-btn" onclick="runProfessionalTest()">
-                <span>ابدأ الفحص الخارق</span>
-                <div class="btn-glitch"></div>
+            <button id="trigger-btn" onclick="startSupremeTest()">
+                <span class="btn-text">بدء الفحص الخارق</span>
+                <div class="shimmer"></div>
             </button>
-            <div id="user-ip">IP: جاري الفحص...</div>
         </div>
+        
+        <div id="location-tag" class="location-tag">جاري تحديد السيرفر العالمي...</div>
     </div>
 
     <script src="script.js"></script>
