@@ -3,47 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Speed Pro Max | السرعة القصوى</title>
+    <title>G-SPEED ULTIMATE | أداة القياس العالمية</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Cairo:wght@300;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <div class="main-wrapper">
-        <div class="speed-card">
-            <div class="header">
-                <div class="status-dot" id="status-dot"></div>
-                <span id="network-type">اتصال آمن</span>
-            </div>
+    <div class="stars"></div>
+    
+    <main class="app-container">
+        <nav class="top-nav">
+            <div class="logo">G-<span>SPEED</span></div>
+            <div id="ip-info" class="ip-badge">جاري تحديد الهوية...</div>
+        </nav>
 
-            <div class="gauge-container">
-                <svg viewBox="0 0 200 200">
-                    <circle class="bg" cx="100" cy="100" r="90"></circle>
-                    <circle class="meter" id="meter" cx="100" cy="100" r="90"></circle>
+        <section class="speedometer-section">
+            <div class="speed-gauge">
+                <svg class="progress-ring" width="320" height="320">
+                    <circle class="progress-ring__background" stroke="#1a1a2e" stroke-width="12" fill="transparent" r="145" cx="160" cy="160"/>
+                    <circle id="progress-bar" class="progress-ring__circle" stroke="url(#gradient)" stroke-width="14" stroke-dasharray="911" stroke-dashoffset="911" fill="transparent" r="145" cx="160" cy="160"/>
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#00d2ff" />
+                            <stop offset="100%" stop-color="#3a7bd5" />
+                        </linearGradient>
+                    </defs>
                 </svg>
-                <div class="speed-data">
-                    <h1 id="mbps">0.0</h1>
-                    <p>Mbps</p>
+                
+                <div class="data-overlay">
+                    <span id="speed-num">0</span>
+                    <small>Mbps</small>
                 </div>
             </div>
 
-            <div class="results-bar">
-                <div class="res-item">
-                    <i class="fas fa-arrow-down"></i>
-                    <small>التحميل</small>
-                    <span id="dl-result">-</span>
-                </div>
-                <div class="res-item">
-                    <i class="fas fa-bolt"></i>
-                    <small>البينج</small>
-                    <span id="ping-result">-</span>
-                </div>
+            <div class="action-zone">
+                <button id="main-btn" onclick="initiateTest()">
+                    <span class="btn-text">ابدأ الاختبار</span>
+                    <div class="btn-loader"></div>
+                </button>
             </div>
+        </section>
 
-            <button id="test-btn" onclick="startUltraTest()">ابدأ فحص السرعة</button>
-            <div id="ip-addr">جاري فحص العنوان...</div>
-        </div>
-    </div>
+        <section class="stats-footer">
+            <div class="stat-card">
+                <label>PING</label>
+                <div class="value"><span id="ping-val">0</span><small>ms</small></div>
+            </div>
+            <div class="stat-card active">
+                <label>DOWNLOAD</label>
+                <div class="value"><span id="dl-val">0.0</span><small>Mbps</small></div>
+            </div>
+            <div class="stat-card">
+                <label>JITTER</label>
+                <div class="value"><span id="jitter-val">0</span><small>ms</small></div>
+            </div>
+        </section>
+    </main>
 
     <script src="script.js"></script>
 </body>
