@@ -3,49 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G-Force Speedtest | القوة القصوى</title>
+    <title>Quantum Speed | المحرك الخارق</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <div class="nebula"></div>
-    
-    <div class="test-container">
-        <div class="glass-shield">
-            <div class="header-status">
-                <div class="live-indicator"></div>
-                <span id="system-ready">نظام القياس جاهز</span>
-            </div>
+    <div class="visual-background"></div>
 
-            <div class="speed-master">
-                <svg viewBox="0 0 200 200" class="gauge-svg">
-                    <circle class="track" cx="100" cy="100" r="90"></circle>
-                    <circle id="progress" class="fill" cx="100" cy="100" r="90"></circle>
+    <div class="app-card">
+        <header>
+            <div class="logo">QUANTUM<span>TEST</span></div>
+            <div id="network-info" class="badge">جاري فحص الشبكة...</div>
+        </header>
+
+        <div class="gauge-section">
+            <div class="gauge-container">
+                <svg viewBox="0 0 200 200">
+                    <circle class="gauge-bg" cx="100" cy="100" r="90"></circle>
+                    <circle id="gauge-fill" class="gauge-fill" cx="100" cy="100" r="90"></circle>
                 </svg>
-                <div class="speed-value-box">
-                    <h1 id="mbps-count">0</h1>
-                    <span class="mbps-label">Mbps</span>
+                <div class="speed-readout">
+                    <h1 id="mbps-val">0</h1>
+                    <p>Mbps</p>
                 </div>
             </div>
-
-            <div class="dynamic-results">
-                <div class="res-card">
-                    <small>LATENCY</small>
-                    <span id="ping-ms">--</span>
-                </div>
-                <div class="res-card">
-                    <small>BANDWIDTH</small>
-                    <span id="bandwidth-level">STABLE</span>
-                </div>
-            </div>
-
-            <button id="trigger-btn" onclick="startSupremeTest()">
-                <span class="btn-text">بدء الفحص الخارق</span>
-                <div class="shimmer"></div>
-            </button>
         </div>
-        
-        <div id="location-tag" class="location-tag">جاري تحديد السيرفر العالمي...</div>
+
+        <div class="stats-row">
+            <div class="stat-unit">
+                <small>الاستجابة</small>
+                <div class="val"><span id="ping-val">--</span><span class="u">ms</span></div>
+            </div>
+            <div class="stat-unit">
+                <small>الحالة</small>
+                <div class="val" id="status-text">جاهز</div>
+            </div>
+        </div>
+
+        <button id="action-btn" onclick="runQuantumTest()">
+            <span id="btn-label">ابدأ الفحص الحقيقي</span>
+            <div class="btn-shine"></div>
+        </button>
     </div>
 
     <script src="script.js"></script>
