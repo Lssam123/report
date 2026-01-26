@@ -1,119 +1,100 @@
 :root {
-    --neon-blue: #00f2fe;
-    --neon-pink: #ff007f;
-    --glass: rgba(255, 255, 255, 0.03);
+    --primary: #00ffcc;
+    --secondary: #0066ff;
+    --dark: #020617;
 }
 
 body {
-    margin: 0;
+    background: var(--dark);
     height: 100vh;
-    background: #000;
+    margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-family: 'Cairo', sans-serif;
+    font-family: 'Segoe UI', Roboto, sans-serif;
     overflow: hidden;
 }
 
-/* خلفية متحركة */
-.background-animate {
+.nebula {
     position: absolute;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, #050505, #111, #050505);
+    width: 100%; height: 100%;
+    background: radial-gradient(circle at 50% 50%, #1e293b 0%, #020617 100%);
     z-index: -1;
 }
 
-.glass-wrapper {
-    background: var(--glass);
-    backdrop-filter: blur(25px);
+.glass-shield {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(30px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 50px;
-    padding: 50px;
-    width: 420px;
+    border-radius: 60px;
+    padding: 60px;
+    width: 450px;
     text-align: center;
-    box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+    box-shadow: 0 50px 100px rgba(0,0,0,0.7);
+    transition: 0.5s ease;
+}
+
+.speed-master {
     position: relative;
+    width: 300px; height: 300px;
+    margin: 40px auto;
 }
 
-.brand {
-    font-family: 'Syncopate', sans-serif;
-    font-size: 1.2rem;
-    letter-spacing: 5px;
-    margin: 20px 0;
-}
-.brand span { color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); }
+.gauge-svg { transform: rotate(-90deg); }
 
-/* العداد */
-.gauge-box {
-    position: relative;
-    width: 280px;
-    height: 280px;
-    margin: 0 auto;
-}
+.track { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 8; }
 
-.svg-gauge { transform: rotate(-90deg); }
-
-.base-ring { fill: none; stroke: #1a1a1a; stroke-width: 10; }
-
-.active-ring {
+.fill {
     fill: none;
-    stroke: var(--neon-blue);
-    stroke-width: 12;
+    stroke: var(--primary);
+    stroke-width: 10;
     stroke-linecap: round;
-    stroke-dasharray: 534;
-    stroke-dashoffset: 534;
-    transition: all 0.4s cubic-bezier(0.1, 0.7, 1.0, 0.1);
-    filter: drop-shadow(0 0 15px var(--neon-blue));
+    stroke-dasharray: 565;
+    stroke-dashoffset: 565;
+    transition: stroke-dashoffset 0.1s linear;
+    filter: drop-shadow(0 0 15px var(--primary));
 }
 
-.speed-content {
+#mbps-count {
+    font-size: 6rem;
+    font-weight: 900;
+    margin: 0;
+    color: #fff;
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.mbps-label { font-size: 1.2rem; color: var(--primary); letter-spacing: 5px; font-weight: bold; }
+
+.speed-value-box {
     position: absolute;
-    top: 50%; left: 50%;
+    top: 55%; left: 50%;
     transform: translate(-50%, -50%);
 }
 
-/* تكبير الرقم تلقائياً */
-#speed-text {
-    font-size: 5rem;
-    font-weight: 900;
-    margin: 0;
-    transition: transform 0.2s ease, font-size 0.2s ease;
-    background: linear-gradient(to bottom, #fff, #888);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-/* زر الفحص الاحترافي */
-#start-btn {
+#trigger-btn {
     width: 100%;
-    padding: 22px;
-    border-radius: 20px;
+    padding: 25px;
+    border-radius: 30px;
     border: none;
-    background: #fff;
-    color: #000;
-    font-weight: 900;
-    font-size: 1.1rem;
+    background: linear-gradient(90deg, var(--secondary), var(--primary));
+    color: var(--dark);
+    font-size: 1.3rem;
+    font-weight: 800;
     cursor: pointer;
-    text-transform: uppercase;
-    transition: 0.4s;
     position: relative;
+    overflow: hidden;
+    transition: 0.3s;
 }
 
-#start-btn:hover {
-    background: var(--neon-blue);
-    box-shadow: 0 0 30px var(--neon-blue);
-    transform: scale(1.05);
+#trigger-btn:hover {
+    transform: scale(1.03) translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 255, 204, 0.3);
 }
 
-.metrics-container {
-    display: flex;
-    justify-content: space-around;
-    margin: 40px 0;
+.res-card {
     background: rgba(255,255,255,0.02);
     padding: 20px;
-    border-radius: 30px;
+    border-radius: 25px;
+    flex: 1;
+    margin: 0 5px;
 }
-
-.metric p { font-size: 0.6rem; color: #666; margin: 0; }
-.metric h3 { font-size: 1.5rem; margin: 5px 0; color: #fff; }
