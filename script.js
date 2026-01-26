@@ -1,70 +1,81 @@
-const progressCircle = document.getElementById('progress');
-const speedDisplay = document.getElementById('mbps-count');
-const btn = document.getElementById('trigger-btn');
+const fill = document.getElementById('gauge-fill');
+const mbpsDisplay = document.getElementById('mbps-val');
+const btn = document.getElementById('action-btn');
 
-function updateUI(speed) {
-    // 1. تحديث العداد (SVG)
+// تحديث العداد والتأثيرات البصرية
+function updateDisplay(speed) {
+    // تحديث الدائرة
     const limit = 565;
     const offset = limit - (limit * (Math.min(speed, 100) / 100));
-    progressCircle.style.strokeDashoffset = offset;
+    fill.strokeDashoffset = offset;
 
-    // 2. تحديث الرقم وتضخيمه (Kinetic Scaling)
-    speedDisplay.innerText = Math.floor(speed);
-    const scaleValue = 1 + (speed / 250); // الرقم يكبر مع السرعة
-    speedDisplay.style.transform = `scale(${scaleValue})`;
-    
-    // تغيير اللون عند السرعات العالية
-    if(speed > 70) {
-        progressCircle.style.stroke = "#ff0066";
-        progressCircle.style.filter = "drop-shadow(0 0 20px #ff0066)";
+    // تحديث الرقم
+    mbpsDisplay.innerText = Math.floor(speed);
+
+    // تطوير: تكبير الحكم (Dynamic Scaling)
+    const scale = 1 + (speed / 300); 
+    mbpsDisplay.style.transform = `scale(${scale})`;
+
+    // تغيير اللون عند تخطي سرعة 60 Mbps
+    if (speed > 60) {
+        fill.style.stroke = "#ff006e";
+        fill.style.filter = "drop-shadow(0 0 15px #ff006e)";
     } else {
-        progressCircle.style.stroke = "#00ffcc";
+        fill.style.stroke = "#00f2fe";
+        fill.style.filter = "drop-shadow(0 0 12px #00f2fe)";
     }
 }
 
-async function startSupremeTest() {
+async function runQuantumTest() {
     btn.disabled = true;
-    btn.style.filter = "grayscale(1)";
-    document.querySelector('.btn-text').innerText = "جاري الحَقن والقياس...";
+    document.getElementById('btn-label').innerText = "جاري سحب البيانات...";
+    document.getElementById('status-text').innerText = "تحميل...";
+
+    // 1. قياس Ping حقيقي
+    const pStart = performance.now();
+    try {
+        await fetch('https://www.cloudflare.com/cdn-cgi/trace', { mode: 'no-cors' });
+        document.getElementById('ping-val').innerText = Math.floor(performance.now() - pStart);
+    } catch(e) { console.log("Ping error"); }
+
+    // 2. محرك القياس الحقيقي (25MB Stream)
+    // هذا الرابط يدعم CORS عالمياً ويضمن عمل الزر
+    const testURL = "https://speed.cloudflare.com/__down?bytes=25000000";
+    const startTime = performance.now();
+    let receivedBytes = 0;
 
     try {
-        // فحص الاستجابة الحقيقية (Ping)
-        const pingStart = Date.now();
-        await fetch('https://www.cloudflare.com/cdn-cgi/trace', { mode: 'no-cors' });
-        document.getElementById('ping-ms').innerText = (Date.now() - pingStart) + "ms";
+        const response = await fetch(testURL + "&nocache=" + Math.random());
+        const reader = response.body.getReader();
 
-        // المحرك الخارق: يجمع بين قياس زمن الاستجابة الفعلي ومحاكاة تدفق البيانات
-        // هذا يضمن أن الزر سيعمل في كل مرة ولا يتأثر بـ CORS
-        let currentSpeed = 0;
-        let maxTarget = Math.random() * 80 + 20; // توليد سرعة عشوائية ذكية بناءً على جودة اتصالك
+        while(true) {
+            const {done, value} = await reader.read();
+            if (done) break;
 
-        const testCycle = setInterval(() => {
-            currentSpeed += (maxTarget - currentSpeed) / 15; // حركة انسيابية جداً
-            updateUI(currentSpeed);
+            receivedBytes += value.length;
+            const now = performance.now();
+            const duration = (now - startTime) / 1000; // بالثواني
+            
+            // حساب السرعة الحقيقية Mbps
+            const mbps = ((receivedBytes * 8) / (duration * 1024 * 1024)).toFixed(1);
+            
+            updateDisplay(parseFloat(mbps));
+        }
 
-            if (Math.floor(currentSpeed) >= Math.floor(maxTarget - 1)) {
-                clearInterval(testCycle);
-                finalizeTest(maxTarget);
-            }
-        }, 50);
+        document.getElementById('status-text').innerText = "اكتمل";
+        document.getElementById('btn-label').innerText = "إعادة الفحص";
+        btn.disabled = false;
 
-    } catch (error) {
-        console.log("Network restricted, switching to safe mode...");
-        simulateFallBack();
+    } catch (err) {
+        alert("خطأ في الاتصال بالسيرفر. تأكد من جودة الإنترنت.");
+        btn.disabled = false;
+        document.getElementById('btn-label').innerText = "حاول مرة أخرى";
     }
 }
 
-function finalizeTest(finalSpeed) {
-    updateUI(finalSpeed);
-    btn.disabled = false;
-    btn.style.filter = "none";
-    document.querySelector('.btn-text').innerText = "إعادة الفحص الخارق";
-    document.getElementById('system-ready').innerText = "اكتمل الاختبار بنجاح";
-}
-
-// جلب معلومات الموقع والسيرفر
-fetch('https://ipapi.co/json/')
-    .then(r => r.json())
+// جلب الـ IP والموقع تلقائياً
+fetch('https://api.ipify.org?format=json')
+    .then(res => res.json())
     .then(data => {
-        document.getElementById('location-tag').innerText = `الموقع الحالي: ${data.country_name} | IP: ${data.ip}`;
+        document.getElementById('network-info').innerText = "SERVER: GLOBAL | IP: " + data.ip;
     });
