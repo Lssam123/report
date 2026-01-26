@@ -1,70 +1,60 @@
-// إعداد العداد البياني
-const ctx = document.getElementById('speedGauge').getContext('2d');
-let speedChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-        datasets: [{
-            data: [0, 100],
-            backgroundColor: ['#00f2fe', '#1e293b'],
-            borderWidth: 0,
-            circumference: 270,
-            rotation: 225,
-            cutout: '85%'
-        }]
-    },
-    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
-});
+const meter = document.getElementById('meter');
+const mbpsDisplay = document.getElementById('mbps');
 
-async function runTest() {
-    const startBtn = document.getElementById('start-btn');
-    startBtn.disabled = true;
-    startBtn.innerText = "جاري الفحص...";
+function updateGauge(speed) {
+    const maxSpeed = 100; // يمكنك تغييره لـ 1000 إذا كان النت سريع جداً
+    const percentage = Math.min(speed / maxSpeed, 1);
+    const offset = 565 - (565 * percentage);
+    meter.style.strokeDashoffset = offset;
+    mbpsDisplay.innerText = speed;
+}
+
+async function startUltraTest() {
+    const btn = document.getElementById('test-btn');
+    btn.disabled = true;
+    btn.innerText = "جاري التحليل...";
 
     try {
-        // 1. قياس الـ Ping
+        // 1. فحص البينج
         const startPing = Date.now();
-        await fetch('https://www.google.com', { mode: 'no-cors' });
+        await fetch('https://www.cloudflare.com/cdn-cgi/trace', { mode: 'no-cors' });
         const ping = Date.now() - startPing;
-        document.getElementById('ping').innerText = ping;
+        document.getElementById('ping-result').innerText = ping + " ms";
 
-        // 2. قياس السرعة (تحميل ملف 10MB افتراضي)
-        const testFile = "https://cachefly.cachefly.net/10mb.test?r=" + Math.random();
+        // 2. فحص التحميل (استخدام ملف كبير لضمان الدقة)
+        // سنستخدم رابط عشوائي من صور عالية الدقة لتجنب الكاش
+        const downloadUrl = "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070";
         const startTime = Date.now();
-        const response = await fetch(testFile);
+        const response = await fetch(downloadUrl + "&t=" + startTime);
         const reader = response.body.getReader();
-        let receivedLength = 0;
+        let loaded = 0;
 
         while(true) {
             const {done, value} = await reader.read();
             if (done) break;
-            receivedLength += value.length;
+            loaded += value.length;
             
-            // تحديث الواجهة أثناء التحميل
-            const currentTime = (Date.now() - startTime) / 1000;
-            const currentMbps = ((receivedLength * 8) / (currentTime * 1024 * 1024)).toFixed(1);
-            updateUI(currentMbps);
+            const duration = (Date.now() - startTime) / 1000;
+            const mbps = ((loaded * 8) / (duration * 1024 * 1024)).toFixed(1);
+            
+            if (duration > 0.1) updateGauge(mbps);
         }
 
-        const duration = (Date.now() - startTime) / 1000;
-        const finalMbps = ((receivedLength * 8) / (duration * 1024 * 1024)).toFixed(1);
+        const finalDuration = (Date.now() - startTime) / 1000;
+        const finalMbps = ((loaded * 8) / (finalDuration * 1024 * 1024)).toFixed(1);
         
-        document.getElementById('download').innerText = finalMbps;
-        startBtn.disabled = false;
-        startBtn.innerText = "إعادة الفحص";
+        document.getElementById('dl-result').innerText = finalMbps + " Mbps";
+        btn.innerText = "فحص جديد";
+        btn.disabled = false;
 
-    } catch (error) {
-        alert("فشل الاختبار. تأكد من اتصالك بالإنترنت.");
-        startBtn.disabled = false;
+    } catch (e) {
+        console.error(e);
+        btn.innerText = "خطأ في الاتصال";
+        btn.disabled = false;
     }
 }
 
-function updateUI(speed) {
-    document.getElementById('speed-value').innerText = speed;
-    speedChart.data.datasets[0].data = [speed, 100 - speed];
-    speedChart.update('none'); // تحديث بدون أنيميشن بطيء للسلاسة
-}
-
-// جلب الـ IP بشكل بسيط
+// جلب الـ IP
 fetch('https://api.ipify.org?format=json')
-    .then(res => res.json())
-    .then(data => document.getElementById('ip-display').innerText = "IP: " + data.ip);
+    .then(r => r.json())
+    .then(d => document.getElementById('ip-addr').innerText = "IP: " + d.ip);
