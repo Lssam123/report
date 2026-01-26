@@ -3,19 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مقياس السرعة الاحترافي</title>
+    <title>SpeedTest Pro | مقياس السرعة العالمي</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>قياس سرعة الإنترنت</h1>
-        <div class="gauge">
-            <div class="speed-value" id="speed">0.0</div>
-            <div class="unit">Mbps</div>
+
+    <div class="glass-card">
+        <header>
+            <div class="logo">SPEED<span>PRO</span></div>
+            <div id="ip-display">جاري تحديد الموقع...</div>
+        </header>
+
+        <div class="main-display">
+            <canvas id="speedGauge"></canvas>
+            <div class="speed-info">
+                <span id="speed-value">0</span>
+                <small>Mbps</small>
+            </div>
         </div>
-        <button onclick="startTest()" id="btn-start">ابدأ الاختبار</button>
-        <p id="status">جاهز للفحص</p>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <label>PING</label>
+                <p id="ping">-</p>
+                <span>ms</span>
+            </div>
+            <div class="stat-box">
+                <label>DOWNLOAD</label>
+                <p id="download">-</p>
+                <span>Mbps</span>
+            </div>
+        </div>
+
+        <button id="start-btn" onclick="runTest()">ابدأ الفحص</button>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
