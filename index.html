@@ -3,40 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpeedTest Pro | مقياس السرعة العالمي</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Speed Pro Max | السرعة القصوى</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 
-    <div class="glass-card">
-        <header>
-            <div class="logo">SPEED<span>PRO</span></div>
-            <div id="ip-display">جاري تحديد الموقع...</div>
-        </header>
-
-        <div class="main-display">
-            <canvas id="speedGauge"></canvas>
-            <div class="speed-info">
-                <span id="speed-value">0</span>
-                <small>Mbps</small>
+    <div class="main-wrapper">
+        <div class="speed-card">
+            <div class="header">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="network-type">اتصال آمن</span>
             </div>
+
+            <div class="gauge-container">
+                <svg viewBox="0 0 200 200">
+                    <circle class="bg" cx="100" cy="100" r="90"></circle>
+                    <circle class="meter" id="meter" cx="100" cy="100" r="90"></circle>
+                </svg>
+                <div class="speed-data">
+                    <h1 id="mbps">0.0</h1>
+                    <p>Mbps</p>
+                </div>
+            </div>
+
+            <div class="results-bar">
+                <div class="res-item">
+                    <i class="fas fa-arrow-down"></i>
+                    <small>التحميل</small>
+                    <span id="dl-result">-</span>
+                </div>
+                <div class="res-item">
+                    <i class="fas fa-bolt"></i>
+                    <small>البينج</small>
+                    <span id="ping-result">-</span>
+                </div>
+            </div>
+
+            <button id="test-btn" onclick="startUltraTest()">ابدأ فحص السرعة</button>
+            <div id="ip-addr">جاري فحص العنوان...</div>
         </div>
-
-        <div class="stats-grid">
-            <div class="stat-box">
-                <label>PING</label>
-                <p id="ping">-</p>
-                <span>ms</span>
-            </div>
-            <div class="stat-box">
-                <label>DOWNLOAD</label>
-                <p id="download">-</p>
-                <span>Mbps</span>
-            </div>
-        </div>
-
-        <button id="start-btn" onclick="runTest()">ابدأ الفحص</button>
     </div>
 
     <script src="script.js"></script>
