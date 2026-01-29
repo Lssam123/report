@@ -3,50 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum Speed | المحرك الخارق</title>
+    <title>Quantum G-Force 2026</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-
-    <div class="visual-background"></div>
-
-    <div class="app-card">
+    <div class="app-container">
         <header>
-            <div class="logo">QUANTUM<span>TEST</span></div>
-            <div id="network-info" class="badge">جاري فحص الشبكة...</div>
+            <div class="logo">QUANTUM<span>G-FORCE</span></div>
+            <p>مشروع تخرج المجموعة السادسة</p>
         </header>
 
-        <div class="gauge-section">
-            <div class="gauge-container">
-                <svg viewBox="0 0 200 200">
-                    <circle class="gauge-bg" cx="100" cy="100" r="90"></circle>
-                    <circle id="gauge-fill" class="gauge-fill" cx="100" cy="100" r="90"></circle>
-                </svg>
-                <div class="speed-readout">
-                    <h1 id="mbps-val">0</h1>
-                    <p>Mbps</p>
-                </div>
+        <div class="main-gauge">
+            <svg viewBox="0 0 200 200">
+                <circle class="bg" cx="100" cy="100" r="90"></circle>
+                <circle id="progress" class="meter" cx="100" cy="100" r="90"></circle>
+            </svg>
+            <div class="speed-info">
+                <h1 id="main-speed">0</h1>
+                <span>Mbps</span>
             </div>
         </div>
 
-        <div class="stats-row">
-            <div class="stat-unit">
-                <small>الاستجابة</small>
-                <div class="val"><span id="ping-val">--</span><span class="u">ms</span></div>
+        <div class="dual-stats">
+            <div class="stat-box" id="dl-box">
+                <small>التحميل (Download)</small>
+                <div class="val"><span id="dl-speed">0.0</span> <small>Mb</small></div>
             </div>
-            <div class="stat-unit">
-                <small>الحالة</small>
-                <div class="val" id="status-text">جاهز</div>
+            <div class="stat-box" id="ul-box">
+                <small>الرفع (Upload)</small>
+                <div class="val"><span id="ul-speed">0.0</span> <small>Mb</small></div>
             </div>
         </div>
 
-        <button id="action-btn" onclick="runQuantumTest()">
-            <span id="btn-label">ابدأ الفحص الحقيقي</span>
-            <div class="btn-shine"></div>
-        </button>
+        <button id="start-btn" onclick="runCompleteTest()">فحص السرعة</button>
+
+        <footer>
+            <p>© 2026 جميع الحقوق محفوظة</p>
+            <p>مشروع تخرج المجموعة السادسة - تقنية المعلومات</p>
+        </footer>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
