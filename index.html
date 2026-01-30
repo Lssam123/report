@@ -3,47 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G6 Quantum Speed Pro | 2026</title>
+    <title>Quantum G6 Ultra | 2026</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-card">
-        <header class="network-info">
-            <h2 id="isp-label">جاري فحص الشبكة...</h2>
-            <p id="ip-label">IP: --.--.--.--</p>
+    <div class="glass-container">
+        <header>
+            <div id="isp-header" class="isp-title">جاري تحديد الشبكة...</div>
         </header>
 
-        <div class="gauge-container">
-            <svg viewBox="0 0 200 120" class="gauge-view">
+        <div class="gauge-section">
+            <svg viewBox="0 0 200 120" class="gauge-svg">
                 <path class="gauge-track" d="M20,100 A80,80 0 0,1 180,100" />
-                <path id="gauge-progress" class="gauge-fill" d="M20,100 A80,80 0 0,1 180,100" />
+                <path id="gauge-fill" class="gauge-active" d="M20,100 A80,80 0 0,1 180,100" />
             </svg>
-            <div class="speed-readout">
-                <span id="speed-value">0</span>
+            <div class="speed-display">
+                <h1 id="speed-num">0</h1>
                 <small>Mbps</small>
             </div>
         </div>
 
-        <div class="results-grid">
-            <div class="res-item">
+        <div class="stats-grid">
+            <div class="stat-item">
                 <label>PING</label>
-                <div class="data"><span id="ping-res">--</span><small>ms</small></div>
+                <div class="data"><span id="ping">--</span><small>ms</small></div>
             </div>
-            <div class="res-item active-dl">
+            <div class="stat-item highlight">
                 <label>DOWNLOAD</label>
-                <div class="data"><span id="dl-res">0.0</span><small>Mb</small></div>
+                <div class="data"><span id="download">0.0</span><small>Mb</small></div>
             </div>
-            <div class="res-item active-ul">
+            <div class="stat-item highlight">
                 <label>UPLOAD</label>
-                <div class="data"><span id="ul-res">0.0</span><small>Mb</small></div>
+                <div class="data"><span id="upload">0.0</span><small>Mb</small></div>
             </div>
         </div>
 
-        <button id="run-btn" onclick="igniteEngine()">إطلاق الفحص الشامل</button>
+        <button id="btn-start" onclick="igniteTest()">بدء فحص السرعة</button>
 
-        <footer class="final-footer">
-            <p>مشروع تخرج المجموعة السادسة 2026</p>
+        <footer class="info-footer">
+            <div id="ip-footer" class="ip-display">IP: 0.0.0.0</div>
+            <div class="group-name">مشروع تخرج المجموعة السادسة 2026</div>
         </footer>
     </div>
     <script src="script.js"></script>
