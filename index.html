@@ -3,50 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G6 Quantum Platinum | 2026</title>
+    <title>G6 Quantum Max | 2026</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="pro-container">
-        <header>
-            <h1 class="glow-text">TEST</h1>
-        </header>
+    <div class="glass-container">
+        <h1 class="main-title">NETWORK TEST</h1>
 
-        <div class="gauge-section">
-            <svg viewBox="0 0 200 120">
+        <div class="main-display">
+            <svg viewBox="0 0 200 120" class="gauge-svg">
                 <path class="gauge-track" d="M20,100 A80,80 0 0,1 180,100" />
                 <path id="gauge-fill" class="gauge-fill" d="M20,100 A80,80 0 0,1 180,100" />
             </svg>
-            <div class="speed-center">
-                <span id="speed-display">0</span>
-                <small>Mbps</small>
+            
+            <div class="speed-info">
+                <div class="mode-label" id="current-mode">READY</div>
+                <div class="speed-number" id="speed-num">0.0</div>
+                <div class="unit">Speed Mbps</div>
             </div>
+            
+            <canvas id="liveGraph" class="live-graph"></canvas>
         </div>
 
-        <div class="dashboard-grid">
-            <div class="db-item">
+        <div class="stats-grid">
+            <div class="stat-box">
                 <label>PING</label>
-                <div class="value"><span id="ping-res">--</span><small>ms</small></div>
+                <div class="val-group"><span id="ping">0.0</span> <small>ms</small></div>
             </div>
-            <div class="db-item download-glow">
+            <div class="stat-box">
                 <label>DOWNLOAD</label>
-                <div class="value"><span id="dl-res">0.0</span><small>Mb</small></div>
+                <div class="val-group"><span id="download">0.0</span> <small>Mbps</small></div>
             </div>
-            <div class="db-item upload-glow">
+            <div class="stat-box">
                 <label>UPLOAD</label>
-                <div class="value"><span id="ul-res">0.0</span><small>Mb</small></div>
+                <div class="val-group"><span id="upload">0.0</span> <small>Mbps</small></div>
             </div>
         </div>
 
-        <button id="main-btn" onclick="startHeavyTest()">بدء الفحص الشامل</button>
+        <button id="startBtn" onclick="igniteTest()">START TEST</button>
 
-        <footer>
-            <div class="network-card">
-                <div id="isp-info" class="isp-name">جاري التعرف على المزود...</div>
-                <div id="ip-info" class="ip-address">IPv4: --.--.--.--</div>
-            </div>
-            <div class="team-brand">مشروع تخرج المجموعة السادسة 2026</div>
+        <footer class="footer-bar">
+            <div class="isp-badge">ISP: <span id="isp-name">Detecting...</span></div>
+            <div class="group-badge">G6 QUANTUM 2026</div>
         </footer>
     </div>
     <script src="script.js"></script>
