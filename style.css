@@ -14,47 +14,52 @@ body {
 
 .glass-container {
     background: var(--glass);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(25px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 40px;
-    padding: 40px;
+    padding: 35px;
     width: 440px;
     text-align: center;
-    box-shadow: 0 40px 80px rgba(0,0,0,0.6);
 }
 
-.logo { font-family: 'Orbitron'; font-size: 1.4rem; letter-spacing: 2px; }
-.logo span { color: var(--neon); text-shadow: 0 0 10px var(--neon); }
+.isp-tag {
+    color: var(--neon);
+    font-weight: bold;
+    margin-top: 10px;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    height: 20px; /* ضمان عدم تحرك العناصر عند التحميل */
+}
 
-.badge { font-size: 0.75rem; color: var(--neon); opacity: 0.8; margin-bottom: 10px; }
-
-/* تصميم العداد النصف دائري */
-.gauge-section { position: relative; margin: 20px 0; }
-.gauge-svg { width: 300px; height: 180px; }
+.gauge-section { position: relative; margin: 10px 0; }
+.gauge-svg { width: 300px; height: 160px; }
 .gauge-bg { fill: none; stroke: #161b22; stroke-width: 14; stroke-linecap: round; }
 .gauge-active {
     fill: none; stroke: var(--neon); stroke-width: 16; stroke-linecap: round;
     stroke-dasharray: 251.3; stroke-dashoffset: 251.3;
-    transition: stroke-dashoffset 0.4s cubic-bezier(0.1, 0.7, 1.0, 0.1);
-    filter: drop-shadow(0 0 8px var(--neon));
+    transition: stroke-dashoffset 0.3s ease-out;
 }
 
 .speed-display {
-    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
 }
-#speed-num { font-family: 'Orbitron'; font-size: 4.5rem; font-weight: 900; display: block; line-height: 1; }
 
-.results-panel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 30px 0; }
-.res-box { background: rgba(255, 255, 255, 0.02); padding: 15px 5px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
-.res-box label { font-size: 0.65rem; color: #8b949e; display: block; }
-.res-box .val { font-size: 1.2rem; font-weight: bold; margin-top: 5px; }
+/* تثبيت حجم الرقم لمنع الاهتزاز */
+#speed-num { 
+    font-family: 'Orbitron'; 
+    font-size: 4.5rem; 
+    font-weight: 900; 
+    display: inline-block;
+    min-width: 180px; 
+}
+
+.results-panel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 25px 0; }
+.res-box { background: rgba(255, 255, 255, 0.02); padding: 12px 5px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); }
 
 #action-btn {
-    width: 100%; padding: 22px; border-radius: 50px; border: none;
+    width: 100%; padding: 20px; border-radius: 50px; border: none;
     background: var(--neon); color: #000; font-weight: 900; font-size: 1.2rem;
     cursor: pointer; transition: 0.3s;
 }
-#action-btn:hover { transform: scale(1.02); box-shadow: 0 0 30px var(--neon); }
-#action-btn:disabled { opacity: 0.4; cursor: wait; }
 
-footer { margin-top: 25px; font-size: 0.75rem; color: #484f58; }
+#action-btn:disabled { opacity: 0.4; }
