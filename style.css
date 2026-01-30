@@ -1,50 +1,41 @@
-:root { --neon: #00f2fe; --bg: #020617; }
-body { background: var(--bg); color: white; font-family: 'Cairo', sans-serif; height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+:root { --main: #00f2fe; --dark: #020617; }
+body { background: var(--dark); color: white; font-family: 'Cairo', sans-serif; height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; }
 
-.glass-card { 
-    background: rgba(255, 255, 255, 0.02); 
-    backdrop-filter: blur(20px); 
-    border: 1px solid rgba(255, 255, 255, 0.1); 
-    border-radius: 45px; 
-    padding: 40px; 
-    width: 420px; 
-    text-align: center; 
-    box-shadow: 0 40px 100px rgba(0,0,0,0.7); 
+.main-card {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 45px;
+    padding: 40px;
+    width: 440px;
+    text-align: center;
 }
 
-.isp-header { 
-    color: var(--neon); 
-    font-weight: 900; 
-    font-size: 1.2rem; 
-    text-transform: uppercase; 
-    letter-spacing: 1px;
-    margin-bottom: 20px;
-}
+.isp-header { color: var(--main); font-weight: 900; font-size: 1.3rem; margin-bottom: 25px; text-shadow: 0 0 10px rgba(0,242,254,0.3); }
 
-.gauge-section { position: relative; margin: 10px 0; }
+.gauge-box { position: relative; margin: 10px 0; }
 .gauge-svg { width: 100%; height: auto; }
-.gauge-bg { fill: none; stroke: #1e293b; stroke-width: 12; stroke-linecap: round; }
-.gauge-active { 
-    fill: none; stroke: var(--neon); stroke-width: 14; stroke-linecap: round; 
-    stroke-dasharray: 251.3; stroke-dashoffset: 251.3; 
-    transition: stroke-dashoffset 0.5s cubic-bezier(0.2, 0.5, 0.3, 1); 
-    filter: drop-shadow(0 0 10px var(--neon));
+.gauge-track { fill: none; stroke: #1e293b; stroke-width: 14; stroke-linecap: round; }
+.gauge-value {
+    fill: none; stroke: var(--main); stroke-width: 16; stroke-linecap: round;
+    stroke-dasharray: 251.3; stroke-dashoffset: 251.3;
+    transition: stroke-dashoffset 0.4s ease-out;
+    filter: drop-shadow(0 0 12px var(--main));
 }
 
 .speed-info { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); }
-#speed-num { font-family: 'Orbitron'; font-size: 5rem; font-weight: 900; margin: 0; line-height: 1; display: inline-block; min-width: 160px; }
+#main-speed { font-family: 'Orbitron'; font-size: 4.8rem; font-weight: 900; margin: 0; min-width: 180px; }
 
-.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 35px 0; }
-.stat-box { background: rgba(255,255,255,0.03); padding: 15px 5px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
-.stat-box label { font-size: 0.6rem; color: #64748b; font-weight: bold; }
-.stat-box .val { font-size: 1.1rem; font-weight: 700; margin-top: 5px; }
+.grid-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 35px 0; }
+.stat { background: rgba(255,255,255,0.03); padding: 15px 5px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
+.stat label { font-size: 0.65rem; color: #94a3b8; font-weight: 700; display: block; }
+.stat .val { font-size: 1.2rem; font-weight: 800; margin-top: 5px; }
 
-button { 
-    width: 100%; padding: 22px; border-radius: 50px; border: none; 
-    background: var(--neon); color: #000; font-weight: 900; font-size: 1.2rem; 
-    cursor: pointer; transition: 0.3s; 
+#start-btn {
+    width: 100%; padding: 22px; border-radius: 50px; border: none;
+    background: var(--main); color: #000; font-weight: 900; font-size: 1.2rem;
+    cursor: pointer; transition: 0.3s;
 }
-button:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(0, 242, 254, 0.3); }
-button:disabled { opacity: 0.4; cursor: wait; }
+#start-btn:hover { transform: scale(1.02); box-shadow: 0 0 25px var(--main); }
 
-footer { margin-top: 30px; font-size: 0.85rem; color: #475569; font-weight: bold; }
+.team-tag { margin-top: 30px; font-size: 0.9rem; font-weight: bold; color: #475569; letter-spacing: 1px; }
