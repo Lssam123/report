@@ -3,49 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G6 Quantum Speed Pro | 2026</title>
+    <title>Quantum G6 Pro | 2026</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="main-card">
-        <div class="header">
-            <span class="badge">مشروع تخرج المجموعة السادسة 2026</span>
-            <h2 class="title">QUANTUM <span>SPEED</span></h2>
-        </div>
+    <div class="glass-container">
+        <header>
+            <div class="badge">مشروع تخرج المجموعة السادسة 2026</div>
+            <h1 class="logo">G-FORCE <span>QUANTUM</span></h1>
+        </header>
 
-        <div class="gauge-container">
-            <svg viewBox="0 0 200 200">
-                <circle class="gauge-track" cx="100" cy="100" r="85"></circle>
-                <circle id="gauge-progress" class="gauge-fill" cx="100" cy="100" r="85"></circle>
+        <div class="gauge-section">
+            <svg viewBox="0 0 200 120" class="gauge-svg">
+                <path class="gauge-bg" d="M20,100 A80,80 0 0,1 180,100" />
+                <path id="gauge-fill" class="gauge-active" d="M20,100 A80,80 0 0,1 180,100" />
             </svg>
-            <div class="speed-box">
-                <h1 id="speed-num">0</h1>
+            <div class="speed-display">
+                <span id="speed-num">0</span>
                 <small>Mbps</small>
             </div>
         </div>
 
-        <div class="metrics-grid">
-            <div class="metric">
+        <div class="results-panel">
+            <div class="res-box">
                 <label>PING</label>
-                <div class="val"><span id="ping">--</span><small>ms</small></div>
+                <div class="val"><span id="ping-val">--</span><small>ms</small></div>
             </div>
-            <div class="metric">
+            <div class="res-box">
                 <label>DOWNLOAD</label>
-                <div class="val"><span id="download">0.0</span><small>Mb</small></div>
+                <div class="val"><span id="dl-val">0.0</span><small>Mb</small></div>
             </div>
-            <div class="metric">
+            <div class="res-box">
                 <label>UPLOAD</label>
-                <div class="val"><span id="upload">0.0</span><small>Mb</small></div>
+                <div class="val"><span id="ul-val">0.0</span><small>Mb</small></div>
             </div>
         </div>
 
-        <button id="test-btn" onclick="runAdvancedTest()">بدء الفحص (15 ثانية)</button>
+        <button id="action-btn" onclick="startEngine()">بدء الفحص</button>
 
-        <div class="footer">
-            <p>تم التطوير بواسطة المجموعة السادسة - تقنية المعلومات</p>
-            <p id="ip-display">جاري تحديد السيرفر...</p>
-        </div>
+        <footer>
+            <p>IT Department | Group 6 | Graduation Project</p>
+            <p id="ip-info">تحديد الموقع والسيرفر...</p>
+        </footer>
     </div>
     <script src="script.js"></script>
 </body>
