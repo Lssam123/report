@@ -1,50 +1,47 @@
-:root { --neon: #00f2fe; --accent: #05ffa1; --bg: #010409; }
+:root { --neon: #00f2fe; --accent: #05ffa1; --dark: #010409; }
+body { background: var(--dark); color: white; font-family: 'Cairo', sans-serif; height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; overflow: hidden; }
 
-body { 
-    background: var(--bg); color: white; font-family: 'Cairo', sans-serif; 
-    height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; 
-}
-
-.glass-shield {
-    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
-    backdrop-filter: blur(40px); border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 60px; padding: 45px; width: 440px; text-align: center;
+.main-frame {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(40px); border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 55px; padding: 40px; width: 440px; text-align: center;
     box-shadow: 0 50px 100px rgba(0,0,0,0.9);
 }
 
-.master-title { 
-    font-family: 'Orbitron'; font-size: 3.5rem; color: var(--neon); 
-    letter-spacing: 15px; margin: 0 0 30px 0; animation: pulse 2s infinite;
+.neon-test { 
+    font-family: 'Orbitron'; font-size: 3.5rem; letter-spacing: 12px;
+    background: linear-gradient(to right, var(--neon), var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(0, 242, 254, 0.5));
+    margin: 0 0 20px 0;
 }
 
-@keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; text-shadow: 0 0 20px var(--neon); } 100% { opacity: 0.8; } }
-
-.gauge-box { position: relative; }
-.gauge-canvas { width: 100%; height: auto; }
-.gauge-track { fill: none; stroke: #1e293b; stroke-width: 12; stroke-linecap: round; }
-.gauge-active {
-    fill: none; stroke: var(--neon); stroke-width: 14; stroke-linecap: round;
+.gauge-container { position: relative; margin-top: -20px; }
+.gauge-svg { width: 100%; height: auto; }
+.gauge-track { fill: none; stroke: #161b22; stroke-width: 10; stroke-linecap: round; }
+.gauge-fill {
+    fill: none; stroke: url(#grad); stroke-width: 12; stroke-linecap: round;
     stroke-dasharray: 251.3; stroke-dashoffset: 251.3;
-    transition: stroke-dashoffset 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-    filter: drop-shadow(0 0 10px var(--neon));
+    transition: stroke-dashoffset 0.5s cubic-bezier(0.17, 0.67, 0.83, 0.67);
 }
 
-.speed-readout { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); }
-#speed-display { font-family: 'Orbitron'; font-size: 5.5rem; font-weight: 900; line-height: 1; }
+.speed-box { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); }
+#speed-val { font-family: 'Orbitron'; font-size: 5.5rem; font-weight: 900; line-height: 1; }
 
-.metrics-dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 35px 0; }
-.m-card { background: rgba(255,255,255,0.02); padding: 15px 5px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.05); }
-.m-card.special { border-color: rgba(0, 242, 254, 0.2); }
-.m-card label { font-size: 0.65rem; color: #64748b; font-weight: 900; display: block; }
-.m-card .value { font-size: 1.2rem; font-weight: 800; color: var(--neon); margin-top: 5px; }
+.results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 30px 0; }
+.card { background: rgba(255,255,255,0.02); padding: 15px 5px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
+.card label { font-size: 0.6rem; color: #64748b; font-weight: bold; display: block; margin-bottom: 5px; }
+.card .val { font-size: 1.2rem; font-weight: 800; color: var(--neon); }
 
-#ignite-btn {
+#main-btn {
     width: 100%; padding: 22px; border-radius: 50px; border: none;
     background: linear-gradient(45deg, var(--neon), var(--accent));
-    color: #000; font-weight: 900; font-size: 1.3rem; cursor: pointer; transition: 0.4s;
+    color: #000; font-weight: 900; font-size: 1.3rem; cursor: pointer; transition: 0.3s;
 }
+#main-btn:hover { box-shadow: 0 0 30px var(--neon); transform: translateY(-2px); }
 
-footer { margin-top: 35px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 25px; }
-.isp-tag { color: var(--neon); font-weight: 900; font-size: 1.2rem; }
-.ip-tag { font-family: 'Orbitron'; color: #475569; font-size: 0.9rem; margin: 5px 0 15px 0; }
-.graduation-tag { font-size: 0.8rem; color: #1e293b; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+footer { margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 25px; }
+.net-info { margin-bottom: 15px; }
+#isp { color: var(--neon); font-weight: 900; font-size: 1.2rem; margin: 0; }
+#ip { font-family: 'Orbitron'; color: #475569; font-size: 0.85rem; margin: 5px 0 0 0; }
+.group-signature { font-size: 0.75rem; color: #1e293b; font-weight: 900; text-transform: uppercase; }
