@@ -1,57 +1,84 @@
 const fill = document.getElementById('progress');
 const count = document.getElementById('mbps-count');
+const TEST_DURATION = 10000; // 10 ثوانٍ
 
 function updateUI(speed, type) {
-    const max = 500; // السقف الجديد للعداد
+    const max = 500; 
     const offset = 565 - (565 * (Math.min(speed, max) / max));
     fill.style.strokeDashoffset = offset;
     count.innerText = Math.floor(speed);
     
-    // تكبير الرقم ديناميكياً مع السرعة
-    count.style.transform = `scale(${1 + (speed / 500)})`;
+    // تأثير "تكبير الحكم" مع السرعة
+    count.style.transform = `scale(${1 + (speed / 600)})`;
 
     if(type === 'dl') document.getElementById('dl-val').innerText = speed;
-    else document.getElementById('ul-val').innerText = speed;
+    if(type === 'ul') document.getElementById('ul-val').innerText = speed;
 }
 
 async function runTurboTest() {
     const btn = document.getElementById('test-btn');
     btn.disabled = true;
-    btn.innerText = "جاري الفحص الموازي...";
-
-    // تشغيل 6 طلبات متوازية لضمان سحب كامل سرعة النت
-    const threads = 6;
-    const testURL = "https://speed.cloudflare.com/__down?bytes=50000000"; // 50MB لكل طلب
     
-    let totalLoaded = 0;
-    const startTime = performance.now();
+    // 1. فحص البينج (Ping)
+    btn.innerText = "جاري قياس الاستجابة...";
+    const ping = await measurePing();
+    document.getElementById('ping-val').innerText = ping;
 
-    const downloadThreads = Array(threads).fill(0).map(async () => {
-        const response = await fetch(testURL + "&cache=" + Math.random());
-        const reader = response.body.getReader();
-        while (true) {
-            const {done, value} = await reader.read();
-            if (done) break;
-            totalLoaded += value.length;
-            
-            const duration = (performance.now() - startTime) / 1000;
-            const mbps = ((totalLoaded * 8) / (duration * 1024 * 1024)).toFixed(1);
-            updateUI(parseFloat(mbps), 'dl');
-        }
-    });
+    // 2. فحص التحميل (10 ثوانٍ)
+    btn.innerText = "جاري فحص التحميل (10s)...";
+    await startTimedTest('dl');
 
-    await Promise.all(downloadThreads);
+    // 3. فحص الرفع (10 ثوانٍ)
+    btn.innerText = "جاري فحص الرفع (10s)...";
+    await startTimedTest('ul');
 
-    // اختبار الرفع (Upload)
-    btn.innerText = "جاري فحص الرفع...";
-    const upData = new Uint8Array(20 * 1024 * 1024); // 20MB للرفع
-    const upStart = performance.now();
-    await fetch("https://httpbin.org/post", { method: 'POST', body: upData });
-    const upDuration = (performance.now() - upStart) / 1000;
-    const upMbps = ((upData.length * 8) / (upDuration * 1024 * 1024)).toFixed(1);
-    
-    updateUI(parseFloat(upMbps), 'ul');
-    
     btn.disabled = false;
     btn.innerText = "فحص جديد";
+}
+
+async function measurePing() {
+    const start = performance.now();
+    await fetch("https://www.cloudflare.com/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-cache' });
+    return Math.floor(performance.now() - start);
+}
+
+async function startTimedTest(type) {
+    const startTime = performance.now();
+    let totalData = 0;
+    const controller = new AbortController();
+
+    // تشغيل المحرك لمدة 10 ثوانٍ فقط
+    setTimeout(() => controller.abort(), TEST_DURATION);
+
+    try {
+        if (type === 'dl') {
+            // تحميل متوازي لضمان أقصى سرعة (Multi-threading)
+            const threads = 6;
+            const promises = Array(threads).fill(0).map(async () => {
+                try {
+                    const response = await fetch("https://speed.cloudflare.com/__down?bytes=100000000", { signal: controller.signal });
+                    const reader = response.body.getReader();
+                    while (true) {
+                        const {done, value} = await reader.read();
+                        if (done) break;
+                        totalData += value.length;
+                        const elapsed = (performance.now() - startTime) / 1000;
+                        const mbps = ((totalData * 8) / (elapsed * 1024 * 1024)).toFixed(1);
+                        updateUI(parseFloat(mbps), 'dl');
+                    }
+                } catch(e) {}
+            });
+            await Promise.all(promises);
+        } else {
+            // اختبار الرفع (Upload)
+            const upData = new Uint8Array(10 * 1024 * 1024); // 10MB chunk
+            while ((performance.now() - startTime) < TEST_DURATION) {
+                await fetch("https://httpbin.org/post", { method: 'POST', body: upData, signal: controller.signal });
+                totalData += upData.length;
+                const elapsed = (performance.now() - startTime) / 1000;
+                const mbps = ((totalData * 8) / (elapsed * 1024 * 1024)).toFixed(1);
+                updateUI(parseFloat(mbps), 'ul');
+            }
+        }
+    } catch (e) { /* التجاهل عند انتهاء الوقت (Abort) */ }
 }
