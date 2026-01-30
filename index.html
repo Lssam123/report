@@ -3,47 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum G6 Ultra | 2026</title>
+    <title>G6 Quantum Final | 2026</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="glass-container">
-        <header>
-            <div id="isp-header" class="isp-title">جاري تحديد الشبكة...</div>
+    <div class="pro-card">
+        <header class="top-header">
+            <h1 class="test-title">TEST</h1>
         </header>
 
-        <div class="gauge-section">
+        <div class="gauge-box">
             <svg viewBox="0 0 200 120" class="gauge-svg">
-                <path class="gauge-track" d="M20,100 A80,80 0 0,1 180,100" />
-                <path id="gauge-fill" class="gauge-active" d="M20,100 A80,80 0 0,1 180,100" />
+                <path class="gauge-bg" d="M20,100 A80,80 0 0,1 180,100" />
+                <path id="gauge-fill" class="gauge-fill" d="M20,100 A80,80 0 0,1 180,100" />
             </svg>
-            <div class="speed-display">
-                <h1 id="speed-num">0</h1>
+            <div class="speed-info">
+                <span id="speed-num">0</span>
                 <small>Mbps</small>
             </div>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-item">
+        <div class="stats-container">
+            <div class="stat">
                 <label>PING</label>
-                <div class="data"><span id="ping">--</span><small>ms</small></div>
+                <div class="val"><span id="ping">--</span><small>ms</small></div>
             </div>
-            <div class="stat-item highlight">
+            <div class="stat highlight">
                 <label>DOWNLOAD</label>
-                <div class="data"><span id="download">0.0</span><small>Mb</small></div>
+                <div class="val"><span id="download">0.0</span><small>Mb</small></div>
             </div>
-            <div class="stat-item highlight">
+            <div class="stat highlight">
                 <label>UPLOAD</label>
-                <div class="data"><span id="upload">0.0</span><small>Mb</small></div>
+                <div class="val"><span id="upload">0.0</span><small>Mb</small></div>
             </div>
         </div>
 
-        <button id="btn-start" onclick="igniteTest()">بدء فحص السرعة</button>
+        <button id="start-btn" onclick="startUltimateTest()">بدء فحص الشبكة</button>
 
-        <footer class="info-footer">
-            <div id="ip-footer" class="ip-display">IP: 0.0.0.0</div>
-            <div class="group-name">مشروع تخرج المجموعة السادسة 2026</div>
+        <footer class="bottom-info">
+            <div id="isp-label" class="isp-info">جاري تحديد المزود...</div>
+            <div id="ip-label" class="ip-info">IP: --.--.--.--</div>
+            <div class="group-tag">مشروع تخرج المجموعة السادسة 2026</div>
         </footer>
     </div>
     <script src="script.js"></script>
