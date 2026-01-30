@@ -3,50 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum Speed G6 | Ultimate 2026</title>
+    <title>G6 Quantum Max | 2026</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="glass-shield">
+    <div class="main-frame">
         <header>
-            <h1 class="master-title">TEST</h1>
+            <h1 class="neon-test">TEST</h1>
         </header>
 
-        <div class="gauge-box">
-            <svg viewBox="0 0 200 120" class="gauge-canvas">
+        <div class="gauge-container">
+            <svg viewBox="0 0 200 120" class="gauge-svg">
+                <defs>
+                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%|">
+                        <stop offset="0%" style="stop-color:#00f2fe;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#05ffa1;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
                 <path class="gauge-track" d="M20,100 A80,80 0 0,1 180,100" />
-                <path id="gauge-fill" class="gauge-active" d="M20,100 A80,80 0 0,1 180,100" />
+                <path id="gauge-fill" class="gauge-fill" d="M20,100 A80,80 0 0,1 180,100" />
             </svg>
-            <div class="speed-readout">
-                <span id="speed-display">0</span>
+            <div class="speed-box">
+                <span id="speed-val">0</span>
                 <small>Mbps</small>
             </div>
         </div>
 
-        <div class="metrics-dashboard">
-            <div class="m-card">
-                <label>PING</label>
-                <div class="value"><span id="ping-val">--</span><small>ms</small></div>
+        <div class="results-grid">
+            <div class="card">
+                <label>الاستجابة PING</label>
+                <div class="val"><span id="ping">--</span><small>ms</small></div>
             </div>
-            <div class="m-card special">
-                <label>DOWNLOAD</label>
-                <div class="value"><span id="dl-val">0.0</span><small>Mb</small></div>
+            <div class="card active-dl">
+                <label>التحميل DOWNLOAD</label>
+                <div class="val"><span id="dl">0.0</span><small>Mb</small></div>
             </div>
-            <div class="m-card special">
-                <label>UPLOAD</label>
-                <div class="value"><span id="ul-val">0.0</span><small>Mb</small></div>
+            <div class="card active-ul">
+                <label>الرفع UPLOAD</label>
+                <div class="val"><span id="ul">0.0</span><small>Mb</small></div>
             </div>
         </div>
 
-        <button id="ignite-btn" onclick="startEngine()">إطلاق محرك الفحص</button>
+        <button id="main-btn" onclick="ignite()">بدء الفحص الذكي</button>
 
         <footer>
-            <div class="network-specs">
-                <div id="isp-name" class="isp-tag">جاري تحديد المزود...</div>
-                <div id="ip-addr" class="ip-tag">IP: --.--.--.--</div>
+            <div class="net-info">
+                <p id="isp">المزود: جاري البحث...</p>
+                <p id="ip">IP: --.--.--.--</p>
             </div>
-            <div class="graduation-tag">مشروع تخرج المجموعة السادسة 2026</div>
+            <div class="group-signature">مشروع تخرج المجموعة السادسة 2026</div>
         </footer>
     </div>
     <script src="script.js"></script>
