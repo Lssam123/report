@@ -1,87 +1,104 @@
 const fill = document.getElementById('gauge-fill');
-const speedText = document.getElementById('speed-display');
+const speedDisplay = document.getElementById('speed-val');
 
-function updateGauge(v) {
+function updateUI(v) {
     const dash = 251.3;
     const offset = dash - (Math.min(v, 800) / 800) * dash;
     fill.style.strokeDashoffset = offset;
-    speedText.innerText = Math.floor(v);
+    speedDisplay.innerText = Math.floor(v);
 }
 
-// جلب معلومات الشبكة بنظام الاستباق
-async function initNetwork() {
+// جلب معلومات الشبكة فوراً
+async function getNetwork() {
     try {
         const res = await fetch('https://ipapi.co/json/');
         const data = await res.json();
-        document.getElementById('isp-name').innerText = data.org;
-        document.getElementById('ip-addr').innerText = "IP: " + data.ip;
-    } catch (e) {
-        document.getElementById('isp-name').innerText = "PROVIDER DETECTED";
-    }
+        document.getElementById('isp').innerText = data.org;
+        document.getElementById('ip').innerText = "IP: " + data.ip;
+    } catch(e) { document.getElementById('isp').innerText = "PROVIDER ACTIVE"; }
 }
 
-async function startEngine() {
-    const btn = document.getElementById('ignite-btn');
+async function ignite() {
+    const btn = document.getElementById('main-btn');
     btn.disabled = true;
     
-    // 1. زمن الاستجابة (Ping) - فحص 8 نبضات للدقة القصوى
-    btn.innerText = "تحليل زمن الاستجابة...";
-    let pings = [];
-    for(let i=0; i<8; i++){
-        const start = performance.now();
-        await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors' });
-        pings.push(performance.now() - start);
-    }
-    document.getElementById('ping-val').innerText = Math.floor(Math.min(...pings));
+    // 1. زمن الاستجابة فائق السرعة
+    const startPing = performance.now();
+    await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors' });
+    document.getElementById('ping').innerText = Math.floor(performance.now() - startPing);
 
-    // 2. التنزيل (20 ثانية) - 20 مساراً متوازياً
-    btn.innerText = "فحص التنزيل (20s)...";
-    await coreEngine('dl', 20000);
+    // 2. التحميل الذكي (بدون مدة محددة - ينتهي عند الاستقرار)
+    btn.innerText = "جاري تحليل التدفق...";
+    await smartEngine('dl');
 
-    // 3. الرفع (10 ثوانٍ) - دفعات بيانات ضخمة
-    btn.innerText = "فحص الرفع (10s)...";
-    await coreEngine('ul', 10000);
+    // 3. الرفع الذكي
+    btn.innerText = "جاري تحليل الرفع...";
+    await smartEngine('ul');
 
     btn.disabled = false;
     btn.innerText = "إعادة الفحص";
 }
 
-async function coreEngine(type, duration) {
-    const start = performance.now();
-    let bytesClaimed = 0;
+async function smartEngine(type) {
+    const startTime = performance.now();
+    let totalBytes = 0;
+    let lastSpeeds = [];
     const controller = new AbortController();
-    setTimeout(() => controller.abort(), duration);
 
-    try {
-        if(type === 'dl') {
-            const threads = 20; // رفع المسارات لضمان الوصول لأقصى قدرة للواي فاي
-            const tasks = Array(threads).fill(0).map(async () => {
-                const res = await fetch("https://speed.cloudflare.com/__down?bytes=500000000", { signal: controller.signal });
-                const reader = res.body.getReader();
+    return new Promise(async (resolve) => {
+        // الأمان: إذا لم يستقر النت، ينتهي الفحص بعد 15 ثانية كحد أقصى
+        const timeout = setTimeout(() => controller.abort(), 15000);
+
+        try {
+            if(type === 'dl') {
+                const threads = 24; // أقصى طاقة للمتصفح
+                const tasks = Array(threads).fill(0).map(async () => {
+                    const res = await fetch("https://speed.cloudflare.com/__down?bytes=500000000", { signal: controller.signal });
+                    const reader = res.body.getReader();
+                    while(true) {
+                        const {done, value} = await reader.read();
+                        if(done) break;
+                        totalBytes += value.length;
+                        const mbps = calculateMbps(totalBytes, startTime);
+                        updateUI(mbps);
+                        document.getElementById('dl').innerText = mbps.toFixed(1);
+                        
+                        // نظام كشف الاستقرار: إذا لم تتغير السرعة كثيراً لمدة ثانيتين، ننهي الفحص
+                        if(isStable(mbps, lastSpeeds)) { controller.abort(); break; }
+                    }
+                });
+                await Promise.all(tasks);
+            } else {
+                const data = new Uint8Array(8 * 1024 * 1024);
                 while(true) {
-                    const {done, value} = await reader.read();
-                    if(done) break;
-                    bytesClaimed += value.length;
-                    const elapsed = (performance.now() - start) / 1000;
-                    // معامل تصحيح 1.12 لتعويض فقد البروتوكولات الأمنية
-                    const mbps = ((bytesClaimed * 8 * 1.12) / elapsed / (1024 * 1024)).toFixed(1);
-                    updateGauge(parseFloat(mbps));
-                    document.getElementById('dl-val').innerText = mbps;
+                    await fetch("https://httpbin.org/post", { method: 'POST', body: data, signal: controller.signal });
+                    totalBytes += data.length;
+                    const mbps = calculateMbps(totalBytes, startTime);
+                    updateUI(mbps);
+                    document.getElementById('ul').innerText = mbps.toFixed(1);
+                    if(isStable(mbps, lastSpeeds)) { controller.abort(); break; }
                 }
-            });
-            await Promise.all(tasks);
-        } else {
-            const dataBuffer = new Uint8Array(10 * 1024 * 1024); // رفع دفعات 10MB
-            while((performance.now() - start) < duration) {
-                await fetch("https://httpbin.org/post", { method: 'POST', body: dataBuffer, signal: controller.signal });
-                bytesClaimed += dataBuffer.length;
-                const elapsed = (performance.now() - start) / 1000;
-                const mbps = ((bytesClaimed * 8 * 1.14) / elapsed / (1024 * 1024)).toFixed(1);
-                updateGauge(parseFloat(mbps));
-                document.getElementById('ul-val').innerText = mbps;
             }
-        }
-    } catch(e) {}
+        } catch(e) {}
+        clearTimeout(timeout);
+        resolve();
+    });
 }
 
-window.onload = initNetwork;
+function calculateMbps(bytes, start) {
+    const sec = (performance.now() - start) / 1000;
+    return (bytes * 8 * 1.12) / sec / (1024 * 1024);
+}
+
+function isStable(current, history) {
+    history.push(current);
+    if(history.length > 30) { // فحص آخر 30 قراءة
+        history.shift();
+        const avg = history.reduce((a, b) => a + b) / history.length;
+        const diff = Math.abs(current - avg);
+        return diff < 0.5; // إذا كان التذبذب أقل من 0.5 ميجا، استقر النت
+    }
+    return false;
+}
+
+window.onload = getNetwork;
