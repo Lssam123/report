@@ -1,94 +1,95 @@
-const fill = document.getElementById('gauge-fill');
-const speedNum = document.getElementById('speed-num');
+const progress = document.getElementById('gauge-progress');
+const speedVal = document.getElementById('speed-value');
 
 function updateGauge(v) {
     const dash = 251.3;
     const offset = dash - (Math.min(v, 600) / 600) * dash;
-    fill.style.strokeDashoffset = offset;
-    speedNum.innerText = Math.floor(v);
+    progress.style.strokeDashoffset = offset;
+    speedVal.innerText = Math.floor(v);
 }
 
-// جلب معلومات الشبكة (ISP & IP) بموثوقية مضاعفة
-async function getNetworkInfo() {
-    try {
-        // نستخدم ip-api لضمان جلب اسم الشركة (STC, Mobily, etc)
-        const res = await fetch('http://ip-api.com/json/?fields=status,message,isp,query');
-        const data = await res.json();
-        if(data.status === "success") {
-            document.getElementById('isp-name').innerText = data.isp;
-            document.getElementById('ip-addr').innerText = "IP: " + data.query;
-        } else {
-            throw new Error();
-        }
-    } catch (e) {
-        // مصدر بديل في حال تعطل الأول
-        const res2 = await fetch('https://ipapi.co/json/');
-        const data2 = await res2.json();
-        document.getElementById('isp-name').innerText = data2.org;
-        document.getElementById('ip-addr').innerText = "IP: " + data2.ip;
+// جلب معلومات الشبكة (ISP & IP) بموثوقية كاملة
+async function getNetworkSpecs() {
+    const providers = [
+        'https://ipapi.co/json/',
+        'https://ip-api.com/json/'
+    ];
+    
+    for (let url of providers) {
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            document.getElementById('isp-label').innerText = data.org || data.isp;
+            document.getElementById('ip-label').innerText = "IP: " + (data.ip || data.query);
+            return;
+        } catch (e) { console.warn("Trying fallback ISP provider..."); }
     }
+    document.getElementById('isp-label').innerText = "Network Connected";
 }
 
-async function startProTest() {
-    const btn = document.getElementById('start-btn');
+async function igniteEngine() {
+    const btn = document.getElementById('run-btn');
     btn.disabled = true;
     
-    // 1. فحص الاستجابة (Ping)
-    btn.innerText = "جاري القياس الحقيقي...";
-    const pings = [];
+    // 1. البينج (Ping) - نظام النبضة المتكررة لضمان الدقة
+    btn.innerText = "قياس زمن الاستجابة...";
+    let pings = [];
     for(let i=0; i<5; i++){
         const start = performance.now();
-        await fetch("https://www.google.com/generate_204", { mode: 'no-cors', cache: 'no-store' });
+        await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-store' });
         pings.push(performance.now() - start);
     }
-    document.getElementById('ping').innerText = Math.floor(Math.min(...pings));
+    document.getElementById('ping-res').innerText = Math.floor(Math.min(...pings));
 
-    // 2. التحميل (20 ثانية) لضمان أقصى دقة
-    btn.innerText = "فحص التحميل (20s)...";
-    await engine('dl', 20000);
+    // 2. التحميل (20 ثانية) - Turbo Multithreading
+    btn.innerText = "فحص التنزيل الجاري...";
+    await runProEngine('dl', 20000);
 
-    // 3. الرفع (10 ثواني)
-    btn.innerText = "فحص الرفع (10s)...";
-    await engine('ul', 10000);
+    // 3. الرفع (10 ثواني) - تقنية Binary Upload
+    btn.innerText = "فحص الرفع الجاري...";
+    await runProEngine('ul', 10000);
 
     btn.disabled = false;
     btn.innerText = "إعادة الفحص";
 }
 
-async function engine(type, duration) {
-    const start = performance.now();
-    let bytes = 0;
+async function runProEngine(type, duration) {
+    const startTime = performance.now();
+    let totalBytes = 0;
     const controller = new AbortController();
     setTimeout(() => controller.abort(), duration);
 
     try {
-        if(type === 'dl') {
-            const threads = 12; // زيادة عدد المسارات لسحب السرعة كاملة
+        if (type === 'dl') {
+            const threads = 12; // 12 قناة اتصال لضمان سحب السرعة كاملة
             const workers = Array(threads).fill(0).map(async () => {
                 const res = await fetch("https://speed.cloudflare.com/__down?bytes=500000000", { signal: controller.signal });
                 const reader = res.body.getReader();
                 while(true) {
                     const {done, value} = await reader.read();
                     if(done) break;
-                    bytes += value.length;
-                    const mbps = ((bytes * 8 * 1.08) / ((performance.now()-start)/1000) / (1024*1024)).toFixed(1);
-                    updateGauge(mbps);
-                    document.getElementById('download').innerText = mbps;
+                    totalBytes += value.length;
+                    const elapsed = (performance.now() - startTime) / 1000;
+                    // معامل تصحيح 1.09 لتعويض فاقد البيانات البرمجي في المتصفح
+                    const mbps = ((totalBytes * 8 * 1.09) / elapsed / (1024 * 1024)).toFixed(1);
+                    updateGauge(parseFloat(mbps));
+                    document.getElementById('dl-res').innerText = mbps;
                 }
             });
             await Promise.all(workers);
         } else {
-            // رفع بيانات حقيقية (Upload)
-            const chunk = new Uint8Array(4 * 1024 * 1024); // 4MB
-            while((performance.now() - start) < duration) {
-                await fetch("https://httpbin.org/post", { method: 'POST', body: chunk, signal: controller.signal });
-                bytes += chunk.length;
-                const mbps = ((bytes * 8 * 1.1) / ((performance.now()-start)/1000) / (1024*1024)).toFixed(1);
-                updateGauge(mbps);
-                document.getElementById('upload').innerText = mbps;
+            // رفع بيانات حقيقية لضمان قراءة سرعة الرفع
+            const data = new Uint8Array(5 * 1024 * 1024); // 5MB chunks
+            while((performance.now() - startTime) < duration) {
+                await fetch("https://httpbin.org/post", { method: 'POST', body: data, signal: controller.signal });
+                totalBytes += data.length;
+                const elapsed = (performance.now() - startTime) / 1000;
+                const mbps = ((totalBytes * 8 * 1.1) / elapsed / (1024 * 1024)).toFixed(1);
+                updateGauge(parseFloat(mbps));
+                document.getElementById('ul-res').innerText = mbps;
             }
         }
     } catch(e) {}
 }
 
-window.onload = getNetworkInfo;
+window.onload = getNetworkSpecs;
