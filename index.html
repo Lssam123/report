@@ -3,49 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum Speed G6 | 2026</title>
+    <title>G6 Quantum Speed Pro | 2026</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="glass-card">
-        <header>
-            <div class="project-tag">مشروع تخرج المجموعة السادسة</div>
-            <div class="brand">G-FORCE <span>PRO</span></div>
-        </header>
+    <div class="main-card">
+        <div class="header">
+            <span class="badge">مشروع تخرج المجموعة السادسة 2026</span>
+            <h2 class="title">QUANTUM <span>SPEED</span></h2>
+        </div>
 
-        <div class="gauge-wrapper">
+        <div class="gauge-container">
             <svg viewBox="0 0 200 200">
-                <circle class="rail" cx="100" cy="100" r="90"></circle>
-                <circle id="progress" class="fill" cx="100" cy="100" r="90"></circle>
+                <circle class="gauge-track" cx="100" cy="100" r="85"></circle>
+                <circle id="gauge-progress" class="gauge-fill" cx="100" cy="100" r="85"></circle>
             </svg>
-            <div class="main-display">
-                <h1 id="mbps-count">0</h1>
-                <p>Mbps</p>
+            <div class="speed-box">
+                <h1 id="speed-num">0</h1>
+                <small>Mbps</small>
             </div>
         </div>
 
-        <div class="results-grid">
-            <div class="res-item">
-                <small>PING</small>
-                <div><span id="ping-val">--</span> <small>ms</small></div>
+        <div class="metrics-grid">
+            <div class="metric">
+                <label>PING</label>
+                <div class="val"><span id="ping">--</span><small>ms</small></div>
             </div>
-            <div class="res-item">
-                <small>DOWNLOAD</small>
-                <div><span id="dl-val">0.0</span> <small>Mbps</small></div>
+            <div class="metric">
+                <label>DOWNLOAD</label>
+                <div class="val"><span id="download">0.0</span><small>Mb</small></div>
             </div>
-            <div class="res-item">
-                <small>UPLOAD</small>
-                <div><span id="ul-val">0.0</span> <small>Mbps</small></div>
+            <div class="metric">
+                <label>UPLOAD</label>
+                <div class="val"><span id="upload">0.0</span><small>Mb</small></div>
             </div>
         </div>
 
-        <button id="test-btn" onclick="runTurboTest()">فحص السرعة</button>
+        <button id="test-btn" onclick="runAdvancedTest()">بدء الفحص (15 ثانية)</button>
 
-        <footer>
-            <div class="year">2026</div>
-            <div class="team">مشروع تخرج المجموعة السادسة - تقنية المعلومات</div>
-        </footer>
+        <div class="footer">
+            <p>تم التطوير بواسطة المجموعة السادسة - تقنية المعلومات</p>
+            <p id="ip-display">جاري تحديد السيرفر...</p>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
