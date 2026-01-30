@@ -3,46 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum G-Force 2026</title>
+    <title>Quantum Speed G6 | 2026</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container">
+
+    <div class="nebula-bg"></div>
+
+    <div class="glass-card">
         <header>
-            <div class="logo">QUANTUM<span>G-FORCE</span></div>
-            <p>مشروع تخرج المجموعة السادسة</p>
+            <div class="project-tag">speedtest</div>
+            <div class="brand">G-FORCE <span>PRO</span></div>
         </header>
 
-        <div class="main-gauge">
+        <div class="gauge-wrapper">
             <svg viewBox="0 0 200 200">
-                <circle class="bg" cx="100" cy="100" r="90"></circle>
-                <circle id="progress" class="meter" cx="100" cy="100" r="90"></circle>
+                <circle class="rail" cx="100" cy="100" r="90"></circle>
+                <circle id="progress" class="fill" cx="100" cy="100" r="90"></circle>
             </svg>
-            <div class="speed-info">
-                <h1 id="main-speed">0</h1>
-                <span>Mbps</span>
+            <div class="main-display">
+                <h1 id="mbps-count">0</h1>
+                <p>Mbps</p>
             </div>
         </div>
 
-        <div class="dual-stats">
-            <div class="stat-box" id="dl-box">
-                <small>التحميل (Download)</small>
-                <div class="val"><span id="dl-speed">0.0</span> <small>Mb</small></div>
+        <div class="results-grid">
+            <div class="res-item" id="dl-card">
+                <small>DOWNLOAD</small>
+                <div><span id="dl-val">0.0</span> <small>Mbps</small></div>
             </div>
-            <div class="stat-box" id="ul-box">
-                <small>الرفع (Upload)</small>
-                <div class="val"><span id="ul-speed">0.0</span> <small>Mb</small></div>
+            <div class="res-item" id="ul-card">
+                <small>UPLOAD</small>
+                <div><span id="ul-val">0.0</span> <small>Mbps</small></div>
             </div>
         </div>
 
-        <button id="start-btn" onclick="runCompleteTest()">فحص السرعة</button>
+        <button id="test-btn" onclick="runTurboTest()">فحص السرعة</button>
 
         <footer>
-            <p>© 2026 جميع الحقوق محفوظة</p>
-            <p>مشروع تخرج المجموعة السادسة - تقنية المعلومات</p>
+            <div class="year">2026</div>
+            <div class="team">كلية تقنية المعلومات - المجموعة السادسة</div>
         </footer>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
