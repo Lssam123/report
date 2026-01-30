@@ -1,95 +1,91 @@
 const fill = document.getElementById('gauge-fill');
-const speedVal = document.getElementById('speed-val');
+const speedText = document.getElementById('speed-display');
 
 function updateGauge(v) {
     const dash = 251.3;
-    const offset = dash - (Math.min(v, 600) / 600) * dash;
+    const offset = dash - (Math.min(v, 700) / 700) * dash;
     fill.style.strokeDashoffset = offset;
-    speedVal.innerText = Math.floor(v);
+    speedText.innerText = Math.floor(v);
+    // تغيير اللون إذا كانت السرعة عالية جداً
+    fill.style.stroke = v > 200 ? "#05ffa1" : "#00f2fe";
 }
 
-// جلب ISP دقيق و IP رباعي حصراً
-async function getNetworkInfo() {
+// جلب ISP دقيق و IP رباعي (IPv4)
+async function getSpecs() {
     try {
-        // استخدام API يجبر العودة بـ IPv4
         const res = await fetch('https://api.ipify.org?format=json');
-        const ipData = await res.json();
-        const ip = ipData.ip;
+        const { ip } = await res.json();
+        const resIsp = await fetch(`http://ip-api.com/json/${ip}?fields=isp,org`);
+        const data = await resIsp.json();
         
-        // جلب اسم المزود بناءً على الـ IP
-        const resIsp = await fetch(`http://ip-api.com/json/${ip}`);
-        const ispData = await resIsp.json();
-        
-        document.getElementById('isp-label').innerText = ispData.isp || "Internet Provider";
-        document.getElementById('ip-label').innerText = "IPv4: " + ip;
+        document.getElementById('isp-info').innerText = data.isp || data.org;
+        document.getElementById('ip-info').innerText = "IPv4: " + ip;
     } catch (e) {
-        document.getElementById('isp-label').innerText = "اتصال واي فاي نشط";
+        document.getElementById('isp-info').innerText = "اتصال واي فاي مستقر";
     }
 }
 
-async function runProTest() {
-    const btn = document.getElementById('start-btn');
+async function startHeavyTest() {
+    const btn = document.getElementById('main-btn');
     btn.disabled = true;
     
-    // 1. PING (يأخذ 3 ثوانٍ للتحليل)
-    btn.innerText = "جاري تحليل الاستجابة...";
+    // 1. زمن الاستجابة (Ping) - فحص هادئ ودقيق
+    btn.innerText = "جاري فحص الاستجابة...";
     let pings = [];
     for(let i=0; i<6; i++) {
         const start = performance.now();
-        await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-store' });
+        await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors' });
         pings.push(performance.now() - start);
-        await new Promise(r => setTimeout(r, 500)); // تأخير بسيط للمظهر
+        await new Promise(r => setTimeout(r, 400));
     }
-    document.getElementById('ping').innerText = Math.floor(Math.min(...pings));
+    document.getElementById('ping-res').innerText = Math.floor(Math.min(...pings));
 
-    // 2. DOWNLOAD (مدة ثابتة 25 ثانية للدقة)
-    btn.innerText = "جاري فحص التنزيل (25s)...";
-    await performEngine('dl', 25000);
+    // 2. التحميل (مدة ثابتة 25 ثانية لسحب كامل السعة)
+    btn.innerText = "فحص التنزيل (تحميل هائل)...";
+    await engine('dl', 25000);
 
-    // 3. UPLOAD (مدة ثابتة 15 ثانية للدقة)
-    btn.innerText = "جاري فحص الرفع (15s)...";
-    await performEngine('ul', 15000);
+    // 3. الرفع (مدة ثابتة 15 ثانية)
+    btn.innerText = "فحص الرفع (إرسال بيانات)...";
+    await engine('ul', 15000);
 
     btn.disabled = false;
     btn.innerText = "إعادة الفحص";
 }
 
-async function performEngine(type, duration) {
+async function engine(type, duration) {
     const start = performance.now();
-    let bytes = 0;
+    let totalBytes = 0;
     const controller = new AbortController();
     setTimeout(() => controller.abort(), duration);
 
     try {
         if(type === 'dl') {
-            const threads = 12; 
+            const threads = 16; // زيادة القنوات لضمان استهلاك الواي فاي بالكامل
             const workers = Array(threads).fill(0).map(async () => {
                 const res = await fetch("https://speed.cloudflare.com/__down?bytes=500000000", { signal: controller.signal });
                 const reader = res.body.getReader();
                 while(true) {
                     const {done, value} = await reader.read();
                     if(done) break;
-                    bytes += value.length;
-                    const elapsed = (performance.now() - start) / 1000;
-                    const mbps = ((bytes * 8 * 1.08) / elapsed / (1024 * 1024)).toFixed(1);
+                    totalBytes += value.length;
+                    const mbps = ((totalBytes * 8 * 1.1) / ((performance.now()-start)/1000) / (1024*1024)).toFixed(1);
                     updateGauge(parseFloat(mbps));
-                    document.getElementById('dl').innerText = mbps;
+                    document.getElementById('dl-res').innerText = mbps;
                 }
             });
             await Promise.all(workers);
         } else {
-            // رفع بيانات حقيقي
-            const data = new Uint8Array(4 * 1024 * 1024);
+            // رفع حقيقي 100%
+            const blob = new Uint8Array(5 * 1024 * 1024); // 5MB chunks
             while((performance.now() - start) < duration) {
-                await fetch("https://httpbin.org/post", { method: 'POST', body: data, signal: controller.signal });
-                bytes += data.length;
-                const elapsed = (performance.now() - start) / 1000;
-                const mbps = ((bytes * 8 * 1.1) / elapsed / (1024 * 1024)).toFixed(1);
+                await fetch("https://httpbin.org/post", { method: 'POST', body: blob, signal: controller.signal });
+                totalBytes += blob.length;
+                const mbps = ((totalBytes * 8 * 1.12) / ((performance.now()-start)/1000) / (1024*1024)).toFixed(1);
                 updateGauge(parseFloat(mbps));
-                document.getElementById('ul').innerText = mbps;
+                document.getElementById('ul-res').innerText = mbps;
             }
         }
     } catch(e) {}
 }
 
-window.onload = getNetworkInfo;
+window.onload = getSpecs;
