@@ -1,59 +1,57 @@
-const progressCircle = document.getElementById('progress');
-const mainSpeedText = document.getElementById('main-speed');
+const fill = document.getElementById('progress');
+const count = document.getElementById('mbps-count');
 
 function updateUI(speed, type) {
-    // نسبة مئوية بناءً على 500 ميجا
-    const percentage = Math.min(speed / 500, 1);
-    const offset = 565 - (565 * percentage);
-    progressCircle.style.strokeDashoffset = offset;
-    mainSpeedText.innerText = Math.floor(speed);
+    const max = 500; // السقف الجديد للعداد
+    const offset = 565 - (565 * (Math.min(speed, max) / max));
+    fill.style.strokeDashoffset = offset;
+    count.innerText = Math.floor(speed);
     
-    // تكبير الخط ديناميكياً
-    mainSpeedText.style.transform = `scale(${1 + (speed/600)})`;
-    
-    if(type === 'dl') document.getElementById('dl-speed').innerText = speed;
-    else document.getElementById('ul-speed').innerText = speed;
+    // تكبير الرقم ديناميكياً مع السرعة
+    count.style.transform = `scale(${1 + (speed / 500)})`;
+
+    if(type === 'dl') document.getElementById('dl-val').innerText = speed;
+    else document.getElementById('ul-val').innerText = speed;
 }
 
-async function runCompleteTest() {
-    const btn = document.getElementById('start-btn');
+async function runTurboTest() {
+    const btn = document.getElementById('test-btn');
     btn.disabled = true;
-    btn.innerText = "جاري الفحص...";
+    btn.innerText = "جاري الفحص الموازي...";
 
-    // 1. اختبار التحميل (Download) - 50MB
-    await startTrafficTest("https://speed.cloudflare.com/__down?bytes=50000000", 'dl');
+    // تشغيل 6 طلبات متوازية لضمان سحب كامل سرعة النت
+    const threads = 6;
+    const testURL = "https://speed.cloudflare.com/__down?bytes=50000000"; // 50MB لكل طلب
     
-    // 2. اختبار الرفع (Upload) - محاكاة رفع بيانات حقيقية
-    await startTrafficTest("https://httpbin.org/post", 'ul', true);
-
-    btn.disabled = false;
-    btn.innerText = "إعادة الفحص";
-}
-
-async function startTrafficTest(url, type, isUpload = false) {
+    let totalLoaded = 0;
     const startTime = performance.now();
-    let loaded = 0;
 
-    try {
-        if (!isUpload) {
-            const response = await fetch(url + "&r=" + Math.random());
-            const reader = response.body.getReader();
-            while(true) {
-                const {done, value} = await reader.read();
-                if (done) break;
-                loaded += value.length;
-                const duration = (performance.now() - startTime) / 1000;
-                const mbps = ((loaded * 8) / (duration * 1024 * 1024)).toFixed(1);
-                updateUI(parseFloat(mbps), type);
-            }
-        } else {
-            // محاكاة الرفع ببيانات حقيقية مولدة برمجياً
-            const dummyData = new Uint8Array(10 * 1024 * 1024); // 10MB
-            const upStart = performance.now();
-            await fetch(url, { method: 'POST', body: dummyData });
-            const upDuration = (performance.now() - upStart) / 1000;
-            const upMbps = ((dummyData.length * 8) / (upDuration * 1024 * 1024)).toFixed(1);
-            updateUI(parseFloat(upMbps), 'ul');
+    const downloadThreads = Array(threads).fill(0).map(async () => {
+        const response = await fetch(testURL + "&cache=" + Math.random());
+        const reader = response.body.getReader();
+        while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            totalLoaded += value.length;
+            
+            const duration = (performance.now() - startTime) / 1000;
+            const mbps = ((totalLoaded * 8) / (duration * 1024 * 1024)).toFixed(1);
+            updateUI(parseFloat(mbps), 'dl');
         }
-    } catch (e) { console.error("Error during test"); }
+    });
+
+    await Promise.all(downloadThreads);
+
+    // اختبار الرفع (Upload)
+    btn.innerText = "جاري فحص الرفع...";
+    const upData = new Uint8Array(20 * 1024 * 1024); // 20MB للرفع
+    const upStart = performance.now();
+    await fetch("https://httpbin.org/post", { method: 'POST', body: upData });
+    const upDuration = (performance.now() - upStart) / 1000;
+    const upMbps = ((upData.length * 8) / (upDuration * 1024 * 1024)).toFixed(1);
+    
+    updateUI(parseFloat(upMbps), 'ul');
+    
+    btn.disabled = false;
+    btn.innerText = "فحص جديد";
 }
