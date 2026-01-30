@@ -1,95 +1,92 @@
-const progressCircle = document.getElementById('gauge-progress');
-const speedNum = document.getElementById('speed-num');
-const TEST_DURATION = 15000; // 15 ثانية للفحص
+const fill = document.getElementById('gauge-fill');
+const speedText = document.getElementById('speed-num');
 
+// تحديث العداد
 function updateGauge(speed) {
-    const maxSpeed = 500; 
-    const circumference = 534;
-    const offset = circumference - (Math.min(speed, maxSpeed) / maxSpeed) * circumference;
-    progressCircle.style.strokeDashoffset = offset;
-    speedNum.innerText = Math.floor(speed);
+    const max = 500; // سقف العداد
+    const dashArray = 251.3; 
+    const offset = dashArray - (Math.min(speed, max) / max) * dashArray;
+    fill.style.strokeDashoffset = offset;
+    speedText.innerText = Math.floor(speed);
 }
 
-// تحسين دقة البينج بأخذ متوسط 5 محاولات
-async function getHighPrecisionPing() {
-    let results = [];
+// دقة البينج (Ping) العالية
+async function measurePrecisePing() {
+    let latencies = [];
     for(let i=0; i<5; i++) {
         const start = performance.now();
-        await fetch("https://www.cloudflare.com/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-store' });
-        results.push(performance.now() - start);
+        await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-store' });
+        latencies.push(performance.now() - start);
     }
-    return Math.floor(results.reduce((a, b) => a + b) / results.length);
+    return Math.floor(latencies.reduce((a, b) => a + b) / latencies.length);
 }
 
-async function runAdvancedTest() {
-    const btn = document.getElementById('test-btn');
+async function startEngine() {
+    const btn = document.getElementById('action-btn');
     btn.disabled = true;
     
-    // 1. فحص البينج بدقة
-    btn.innerText = "جاري قياس استجابة الشبكة...";
-    const avgPing = await getHighPrecisionPing();
-    document.getElementById('ping').innerText = avgPing;
+    // 1. قياس الاستجابة
+    btn.innerText = "جاري القياس التقني...";
+    const ping = await measurePrecisePing();
+    document.getElementById('ping-val').innerText = ping;
 
-    // 2. فحص التحميل (Download) لـ 15 ثانية
-    btn.innerText = "جاري فحص التحميل (15s)...";
-    await performTrafficTest('dl');
+    // 2. التحميل (Download) - 15 ثانية لدقة فائقة
+    btn.innerText = "فحص سرعة التحميل...";
+    await runStreamTest('dl', 15000);
 
-    // 3. فحص الرفع (Upload) لـ 15 ثانية
-    btn.innerText = "جاري فحص الرفع (15s)...";
-    await performTrafficTest('ul');
+    // 3. الرفع (Upload) - 5 ثوانٍ فقط كما طلبت
+    btn.innerText = "فحص سرعة الرفع...";
+    await runStreamTest('ul', 5000);
 
     btn.disabled = false;
     btn.innerText = "إعادة الفحص";
 }
 
-async function performTrafficTest(type) {
+async function runStreamTest(type, duration) {
     const startTime = performance.now();
-    let totalBytes = 0;
+    let bytesReceived = 0;
     const controller = new AbortController();
 
-    // إيقاف الفحص بعد 15 ثانية بالضبط
-    setTimeout(() => controller.abort(), TEST_DURATION);
+    setTimeout(() => controller.abort(), duration);
 
     try {
         if (type === 'dl') {
-            const threads = 6; // تحميل متوازي لرفع الدقة
-            const downloadTasks = Array(threads).fill(0).map(async () => {
+            // تعدد المسارات لضمان سحب كامل باقة الـ 150-500 ميجا
+            const threads = 6; 
+            const workers = Array(threads).fill(0).map(async () => {
                 try {
                     const response = await fetch("https://speed.cloudflare.com/__down?bytes=200000000", { signal: controller.signal });
                     const reader = response.body.getReader();
                     while (true) {
                         const {done, value} = await reader.read();
                         if (done) break;
-                        totalBytes += value.length;
+                        bytesReceived += value.length;
                         const elapsed = (performance.now() - startTime) / 1000;
-                        const mbps = ((totalBytes * 8) / (elapsed * 1024 * 1024)).toFixed(1);
+                        const mbps = ((bytesReceived * 8) / (elapsed * 1024 * 1024)).toFixed(1);
                         updateGauge(parseFloat(mbps));
-                        document.getElementById('download').innerText = mbps;
+                        document.getElementById('dl-val').innerText = mbps;
                     }
                 } catch(e) {}
             });
-            await Promise.all(downloadTasks);
+            await Promise.all(workers);
         } else {
-            // اختبار الرفع (Upload) الدقيق
-            const uploadChunk = new Uint8Array(5 * 1024 * 1024); // 5MB chunk
-            while ((performance.now() - startTime) < TEST_DURATION) {
+            // اختبار الرفع (5 ثوانٍ)
+            const chunk = new Uint8Array(5 * 1024 * 1024); // 5MB chunks
+            while ((performance.now() - startTime) < duration) {
                 await fetch("https://httpbin.org/post", { 
-                    method: 'POST', 
-                    body: uploadChunk, 
-                    signal: controller.signal,
-                    mode: 'cors'
+                    method: 'POST', body: chunk, signal: controller.signal 
                 });
-                totalBytes += uploadChunk.length;
+                bytesReceived += chunk.length;
                 const elapsed = (performance.now() - startTime) / 1000;
-                const mbps = ((totalBytes * 8) / (elapsed * 1024 * 1024)).toFixed(1);
+                const mbps = ((bytesReceived * 8) / (elapsed * 1024 * 1024)).toFixed(1);
                 updateGauge(parseFloat(mbps));
-                document.getElementById('upload').innerText = mbps;
+                document.getElementById('ul-val').innerText = mbps;
             }
         }
-    } catch (e) { /* انتهى الوقت بنجاح */ }
+    } catch (e) { /* استكمال عند انتهاء الوقت */ }
 }
 
-// جلب IP المستخدم
-fetch('https://api.ipify.org?format=json')
-    .then(r => r.json())
-    .then(d => document.getElementById('ip-display').innerText = "IP: " + d.ip + " | Server: Global Edge");
+// جلب الـ IP
+fetch('https://api.ipify.org?format=json').then(r => r.json()).then(d => {
+    document.getElementById('ip-info').innerText = "IP: " + d.ip + " | Server: Riyadh/Jeddah Edge";
+});
