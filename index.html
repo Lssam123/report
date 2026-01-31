@@ -3,61 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G6 Quantum X-Treme</title>
+    <title>SPEED TEST - G6</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;900&family=Cairo:wght@300;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="cyber-container">
-        <header class="cyber-header">
-            <div class="logo-area">
-                <span class="g6-text">G6</span>
-                <span class="quantum-text">QUANTUM</span>
-                <span class="version">X-TREME</span>
-            </div>
-            <div id="date-time" class="cyber-clock">2026 / 01 / 31</div>
-        </header>
+        <h1 class="main-title">SPEED TEST</h1>
 
         <div class="main-stats-row">
             <div class="hex-container">
                 <div class="hex-outer">
                     <div class="hex-inner">
-                        <small id="stage-text">READY</small>
+                        <small id="stage-text">جاهز</small>
                         <div class="speed-digit" id="speed-num">0.00</div>
-                        <span class="unit-text">Mbps</span>
+                        <span class="unit-text">ميجا/ثانية</span>
                     </div>
                 </div>
-                <svg class="hex-svg">
-                    <polygon id="hex-progress" points="100,10 190,55 190,145 100,190 10,145 10,55" />
+                <svg class="gauge-svg">
+                    <circle class="bg" cx="100" cy="100" r="90" />
+                    <circle id="progress-bar" class="prog" cx="100" cy="100" r="90" />
                 </svg>
             </div>
         </div>
 
         <div class="data-grid">
-            <div class="data-box ping-idle">
-                <div class="box-label">PING IDLE</div>
-                <div class="box-value"><span id="ping-unloaded">0</span><small>ms</small></div>
+            <div class="data-box">
+                <div class="box-label">زمن الاستجابة (مستقر)</div>
+                <div class="box-value"><span id="ping-unloaded">0</span><small>ملي ثانية</small></div>
             </div>
-            <div class="data-box ping-load">
-                <div class="box-label">PING LOAD</div>
-                <div class="box-value"><span id="ping-loaded">0</span><small>ms</small></div>
+            <div class="data-box">
+                <div class="box-label">زمن الاستجابة (تحت الضغط)</div>
+                <div class="box-value"><span id="ping-loaded">0</span><small>ملي ثانية</small></div>
             </div>
             <div class="data-box download-box">
-                <div class="box-label">DOWNLOAD</div>
-                <div class="box-value"><span id="download">0.00</span><small>Mb</small></div>
+                <div class="box-label">سرعة التحميل</div>
+                <div class="box-value"><span id="download">0.00</span><small>ميجا</small></div>
             </div>
             <div class="data-box upload-box">
-                <div class="box-label">UPLOAD</div>
-                <div class="box-value"><span id="upload">0.00</span><small>Mb</small></div>
+                <div class="box-label">سرعة الرفع</div>
+                <div class="box-value"><span id="upload">0.00</span><small>ميجا</small></div>
             </div>
         </div>
 
         <div class="control-area">
-            <button id="startBtn" onclick="runNetworkAudit()">INITIALIZE AUDIT</button>
+            <button id="startBtn" onclick="runNetworkAudit()">بدء فحص الشبكة</button>
         </div>
 
         <footer class="cyber-footer">
-            NETWORK ENGINEERING | GROUP 6 | 2026
+            مشروع تخرج المجموعة السادسة | هندسة الشبكات 2026
         </footer>
     </div>
     <script src="script.js"></script>
