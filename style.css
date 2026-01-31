@@ -1,39 +1,38 @@
-:root { --neon-cyan: #00f2fe; --neon-pink: #ff007a; --dark-bg: #0a0b0e; }
+:root { --neon: #00f2fe; --up-color: #f093fb; --bg-dark: #080a0f; }
 
-body { background-color: var(--dark-bg); color: #fff; font-family: 'Cairo', sans-serif; height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+body { background: var(--bg-dark); color: white; font-family: 'Cairo', sans-serif; height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; }
 
-.cyber-container { background: #11141b; border: 1px solid #222; border-radius: 20px; padding: 30px; width: 550px; position: relative; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+.cyber-container { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 40px; padding: 40px; width: 520px; text-align: center; backdrop-filter: blur(20px); }
 
-.cyber-header { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding-bottom: 15px; margin-bottom: 30px; }
-.g6-text { font-family: 'Orbitron'; color: var(--neon-cyan); font-weight: 900; font-size: 1.5rem; }
-.quantum-text { font-family: 'Orbitron'; color: #fff; margin-left: 5px; letter-spacing: 3px; }
-.version { font-family: 'Orbitron'; font-size: 0.6rem; color: var(--neon-pink); vertical-align: top; }
-.cyber-clock { font-family: 'Orbitron'; font-size: 0.7rem; color: #444; }
+.main-title { font-family: 'Orbitron'; font-size: 2.5rem; letter-spacing: 10px; color: var(--neon); text-shadow: 0 0 20px var(--neon); margin-bottom: 40px; margin-top: 0; }
 
-.hex-container { position: relative; width: 200px; height: 200px; margin: 0 auto; }
-.hex-outer { position: absolute; width: 100%; height: 100%; background: #1a1e26; clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%); display: flex; align-items: center; justify-content: center; z-index: 2; }
-.hex-inner { text-align: center; }
-.speed-digit { font-family: 'Orbitron'; font-size: 3rem; font-weight: 900; line-height: 1; }
-.unit-text { font-family: 'Orbitron'; font-size: 0.8rem; color: #555; }
-#stage-text { display: block; font-size: 0.7rem; color: var(--neon-cyan); letter-spacing: 2px; margin-bottom: 5px; }
+.hex-container { position: relative; width: 220px; height: 220px; margin: 0 auto; }
+.hex-outer { position: absolute; top: 10px; left: 10px; width: 200px; height: 200px; background: rgba(0,0,0,0.4); border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 2; border: 1px solid rgba(255,255,255,0.05); }
 
-.hex-svg { position: absolute; top: -5px; left: -5px; width: 210px; height: 210px; transform: rotate(-90deg); z-index: 1; }
-#hex-progress { fill: none; stroke: var(--neon-cyan); stroke-width: 5; stroke-dasharray: 600; stroke-dashoffset: 600; stroke-linecap: round; transition: 0.4s; }
+.speed-digit { font-family: 'Orbitron'; font-size: 3.5rem; font-weight: 900; line-height: 1; }
+.unit-text { font-size: 0.8rem; color: #555; font-weight: bold; }
+#stage-text { display: block; font-size: 0.9rem; color: var(--neon); font-weight: 900; margin-bottom: 5px; }
+
+.gauge-svg { width: 220px; height: 220px; transform: rotate(-90deg); }
+.gauge-svg circle { fill: none; stroke-width: 12; stroke-linecap: round; }
+.gauge-svg .bg { stroke: #12151c; }
+.gauge-svg .prog { stroke: var(--neon); stroke-dasharray: 565; stroke-dashoffset: 565; transition: stroke-dashoffset 0.4s ease; }
 
 .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 40px 0; }
-.data-box { background: #161a22; padding: 15px; border-radius: 10px; border: 1px solid #222; transition: 0.3s; }
-.data-box:hover { border-color: #444; }
-.box-label { font-size: 0.6rem; color: #555; font-weight: 900; letter-spacing: 1px; }
-.box-value { font-family: 'Orbitron'; font-size: 1.2rem; margin-top: 5px; }
+.data-box { background: rgba(255,255,255,0.02); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.03); }
+.box-label { font-size: 0.7rem; color: #666; font-weight: bold; margin-bottom: 8px; }
+.box-value { font-family: 'Orbitron'; font-size: 1.3rem; }
+.box-value small { font-family: 'Cairo'; font-size: 0.6rem; margin-right: 5px; color: #444; }
 
-.download-box { border-bottom: 2px solid var(--neon-cyan); }
-.upload-box { border-bottom: 2px solid var(--neon-pink); }
+.download-box { border-bottom: 3px solid var(--neon); }
+.upload-box { border-bottom: 3px solid var(--up-color); }
 
 #startBtn { 
-    width: 100%; background: none; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
-    padding: 15px; border-radius: 5px; font-family: 'Orbitron'; font-weight: 900; cursor: pointer; transition: 0.3s;
+    width: 100%; background: linear-gradient(45deg, var(--neon), #4facfe); border: none; 
+    color: #000; padding: 22px; border-radius: 50px; font-size: 1.4rem; font-weight: 900; 
+    cursor: pointer; transition: 0.3s; font-family: 'Cairo';
 }
-#startBtn:hover { background: var(--neon-cyan); color: #000; box-shadow: 0 0 20px var(--neon-cyan); }
-#startBtn:disabled { border-color: #333; color: #333; cursor: wait; }
+#startBtn:hover { transform: scale(1.02); box-shadow: 0 0 30px var(--neon); }
+#startBtn:disabled { opacity: 0.3; cursor: wait; }
 
-.cyber-footer { margin-top: 20px; font-size: 0.6rem; color: #333; text-align: center; font-family: 'Orbitron'; letter-spacing: 2px; }
+.cyber-footer { font-size: 0.75rem; color: #333; font-weight: bold; margin-top: 30px; }
