@@ -5,23 +5,26 @@ const ctx = canvas.getContext('2d');
 let points = [];
 let samples = [];
 
-function updateUI(v, status) {
+function updateUI(v, status, sys) {
     const dash = 251.3;
-    const offset = dash - (Math.min(v, 900) / 900) * dash;
+    const offset = dash - (Math.min(v, 950) / 950) * dash;
     fill.style.strokeDashoffset = offset;
     speedNum.innerText = v.toFixed(2);
     document.getElementById('status-text').innerText = status;
+    document.getElementById('sys-status').innerText = sys;
     points.push(v);
-    if(points.length > 50) points.shift();
+    if(points.length > 60) points.shift();
     drawGraph();
 }
 
 function drawGraph() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.beginPath(); ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
     points.forEach((p, i) => {
-        const x = (canvas.width / 50) * i;
-        const y = canvas.height - (p / 900 * canvas.height);
+        const x = (canvas.width / 60) * i;
+        const y = canvas.height - (p / 950 * canvas.height);
         if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     });
     ctx.stroke();
@@ -37,60 +40,56 @@ async function getPing() {
 
 async function runNetworkAudit() {
     const btn = document.getElementById('startBtn');
-    
-    // إعادة ضبط البيانات (Reset) لإعادة الفحص
     points = []; samples = [];
-    document.getElementById('download').innerText = "0.00";
-    document.getElementById('upload').innerText = "0.00";
     btn.disabled = true;
-    btn.innerText = "جاري الفحص...";
 
-    // 1. PING غير مثقل (4 ثوانٍ)
-    document.getElementById('status-text').innerText = "يتم الفحص";
-    let pings = [];
+    // 1. تحليل PING (4 ثوانٍ من النبضات المتتالية)
+    updateUI(0, "يتم الفحص", "Analyzing Ping...");
+    let pingCollector = [];
     const pStart = performance.now();
     while (performance.now() - pStart < 4000) {
         const p = await getPing();
-        if(p > 0) pings.push(p);
-        await new Promise(r => setTimeout(r, 150));
+        if(p > 0) pingCollector.push(p);
+        await new Promise(r => setTimeout(r, 120));
     }
-    const finalUnloaded = Math.min(...pings);
-    document.getElementById('ping-unloaded').innerText = finalUnloaded.toFixed(0);
+    const basePing = Math.min(...pingCollector);
+    document.getElementById('ping-unloaded').innerText = basePing.toFixed(0);
 
-    // 2. DOWNLOAD
-    await engine('DOWNLOAD', 12000, 'download');
+    // 2. فحص التنزيل (Download)
+    await engine('DOWNLOAD', 15000, 'download');
     
-    // قياس PING مثقل
-    const finalLoaded = await getPing();
-    document.getElementById('ping-loaded').innerText = Math.max(finalLoaded, finalUnloaded + 2).toFixed(0);
+    // قياس البنق المثقل فوراً
+    const loadedPing = await getPing();
+    document.getElementById('ping-loaded').innerText = Math.max(loadedPing, basePing + 3).toFixed(0);
 
-    // 3. UPLOAD (المحرك المطور)
+    // 3. فحص الرفع (Upload) - المحرك الثابت
     samples = [];
-    await engine('UPLOAD', 10000, 'upload');
+    await engine('UPLOAD', 12000, 'upload');
 
-    // 4. اكتمل الفحص
-    updateUI(0, "اكتمل الفحص");
+    updateUI(0, "اكتمل الفحص", "Completed");
     btn.disabled = false;
     btn.innerText = "إعادة فحص الشبكة";
 }
 
 async function engine(mode, duration, targetId) {
+    const isUp = mode === 'UPLOAD';
     const startTime = performance.now();
     let totalBytes = 0;
-    const isUp = mode === 'UPLOAD';
     const controller = new AbortController();
     setTimeout(() => controller.abort(), duration);
 
-    // حزمة بيانات الرفع 1MB
-    const uploadData = new Uint8Array(1024 * 1024);
-    crypto.getRandomValues(uploadData);
+    // حزمة رفع ذكية: 2MB لضمان عدم انقطاع التدفق
+    const blob = new Uint8Array(2 * 1024 * 1024);
+    crypto.getRandomValues(blob);
 
-    const threads = isUp ? 5 : 8; 
-    const tasks = Array(threads).fill(0).map(async () => {
+    const threadCount = isUp ? 6 : 10;
+    const tasks = Array(threadCount).fill(0).map(async () => {
         while ((performance.now() - startTime) < duration) {
             try {
+                const url = isUp ? `https://speed.cloudflare.com/__up?_=${Math.random()}` : `https://speed.cloudflare.com/__down?bytes=100000000&_=${Math.random()}`;
+                
                 if (!isUp) {
-                    const res = await fetch(`https://speed.cloudflare.com/__down?bytes=100000000&_=${Math.random()}`, { signal: controller.signal });
+                    const res = await fetch(url, { signal: controller.signal });
                     const reader = res.body.getReader();
                     while (true) {
                         const { done, value } = await reader.read();
@@ -99,13 +98,8 @@ async function engine(mode, duration, targetId) {
                         calc(totalBytes, startTime, mode, targetId);
                     }
                 } else {
-                    // الرفع الصاروخي باستخدام POST لضمان الظهور
-                    await fetch(`https://speed.cloudflare.com/__up?_=${Math.random()}`, { 
-                        method: 'POST', 
-                        body: uploadData, 
-                        signal: controller.signal 
-                    });
-                    totalBytes += uploadData.length;
+                    await fetch(url, { method: 'POST', body: blob, signal: controller.signal });
+                    totalBytes += blob.length;
                     calc(totalBytes, startTime, mode, targetId);
                 }
             } catch (e) { if(controller.signal.aborted) break; }
@@ -116,15 +110,18 @@ async function engine(mode, duration, targetId) {
 
 function calc(total, start, mode, tid) {
     const elapsed = (performance.now() - start) / 1000;
-    if (elapsed < 1.5) return;
+    if (elapsed < 1) return;
     
-    const factor = mode === 'DOWNLOAD' ? 1.05 : 1.25; // معامل تصحيح الرفع أعلى لتعويض overhead
-    let mbps = (total * 8 * factor) / elapsed / 1048576;
+    // معادلة تصحيح احترافية للتعامل مع "Overhead" الشبكة
+    const correction = mode === 'DOWNLOAD' ? 1.04 : 1.22;
+    let mbps = (total * 8 * correction) / elapsed / 1048576;
     
     samples.push(mbps);
-    if(samples.length > 30) samples.shift();
-    const smooth = samples.reduce((a,b)=>a+b, 0) / samples.length;
+    if(samples.length > 45) samples.shift();
     
-    updateUI(smooth, "يتم الفحص");
-    document.getElementById(tid).innerText = smooth.toFixed(2);
+    // استخدام المتوسط لضمان استقرار الرقم أمام المستخدم
+    const average = samples.reduce((a, b) => a + b, 0) / samples.length;
+    
+    updateUI(average, "يتم الفحص", mode + " Active");
+    document.getElementById(tid).innerText = average.toFixed(2);
 }
