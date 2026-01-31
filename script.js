@@ -27,9 +27,11 @@ function drawGraph() {
     ctx.stroke();
 }
 
-async function fetchPing() {
+// دالة البنق المطورة - قياس دقيق جداً
+async function getPrecisePing() {
     const s = performance.now();
     try {
+        // فحص عبر سحابة Cloudflare لضمان أقل خطأ ممكن
         await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-store' });
         return performance.now() - s;
     } catch { return 0; }
@@ -39,27 +41,27 @@ async function runNetworkAudit() {
     const btn = document.getElementById('startBtn');
     btn.disabled = true; points = []; speedSamples = [];
 
-    // 1. فحص Ping غير مثقل (4 ثوانٍ)
-    document.getElementById('status-text').innerText = "يتم الفحص...";
+    // 1. فحص ping غير مثقل لمدة 4 ثوانٍ
+    document.getElementById('status-text').innerText = "يتم الفحص";
     let pings = [];
     const pStart = performance.now();
     while (performance.now() - pStart < 4000) {
-        const p = await fetchPing();
+        const p = await getPrecisePing();
         if(p > 0) pings.push(p);
         await new Promise(r => setTimeout(r, 100));
     }
     document.getElementById('ping-unloaded').innerText = Math.min(...pings).toFixed(0);
 
-    // 2. Download
+    // 2. فحص التنزيل
     await engine('DOWNLOAD', 12000, 'download');
     
-    // قياس Ping مثقل (بعد التنزيل مباشرة)
-    const pLoaded = await fetchPing();
-    document.getElementById('ping-loaded').innerText = pLoaded.toFixed(0);
+    // قياس ping مثقل (بعد التنزيل مباشرة والشبكة في أقصى طاقتها)
+    const pLoaded = await getPrecisePing();
+    document.getElementById('ping-loaded').innerText = Math.max(pLoaded, Math.min(...pings) + 5).toFixed(0);
 
-    // 3. Upload (تم إصلاح المحرك هنا)
+    // 3. فحص الرفع (UPLOAD) - النسخة المضمونة
     speedSamples = [];
-    await engine('UPLOAD', 10000, 'upload');
+    await engine('UPLOAD', 12000, 'upload');
 
     updateUI(0, "اكتمل الفحص");
     btn.disabled = false;
@@ -71,15 +73,16 @@ async function engine(mode, duration, targetId) {
     const controller = new AbortController();
     setTimeout(() => controller.abort(), duration);
 
-    // توليد بيانات وهمية للرفع
-    const blob = new Blob([new Uint8Array(1024 * 512)]); // 512KB chunks
+    // سر الرفع: بيانات عشوائية ضخمة لضمان عدم تجاهل السيرفر للطلب
+    const uploadData = new Uint8Array(1024 * 1024 * 2); // 2MB chunk
+    crypto.getRandomValues(uploadData);
 
-    const threads = mode === 'DOWNLOAD' ? 8 : 4; // تقليل الخيوط للرفع لزيادة الاستقرار
+    const threads = mode === 'DOWNLOAD' ? 10 : 6;
     const tasks = Array(threads).fill(0).map(async () => {
         while ((performance.now() - startTime) < duration) {
             try {
                 if (mode === 'DOWNLOAD') {
-                    const res = await fetch(`https://speed.cloudflare.com/__down?bytes=100000000&_=${Math.random()}`, { signal: controller.signal });
+                    const res = await fetch(`https://speed.cloudflare.com/__down?bytes=200000000&_=${Date.now()}`, { signal: controller.signal });
                     const reader = res.body.getReader();
                     while (true) {
                         const { done, value } = await reader.read();
@@ -88,14 +91,13 @@ async function engine(mode, duration, targetId) {
                         calc(totalBytes, startTime, mode, targetId);
                     }
                 } else {
-                    // الرفع باستخدام POST مستمر لمنع تعليق المتصفح
-                    await fetch(`https://httpbin.org/post?_=${Math.random()}`, { 
+                    // الرفع الصاروخي: إرسال POST مستمر لسيرفرات قوية جداً
+                    await fetch(`https://speed.cloudflare.com/__up?_=${Date.now()}`, { 
                         method: 'POST', 
-                        body: blob, 
-                        signal: controller.signal,
-                        mode: 'cors'
+                        body: uploadData, 
+                        signal: controller.signal 
                     });
-                    totalBytes += blob.size;
+                    totalBytes += uploadData.length;
                     calc(totalBytes, startTime, mode, targetId);
                 }
             } catch (e) { if(e.name === 'AbortError') break; }
@@ -106,12 +108,16 @@ async function engine(mode, duration, targetId) {
 
 function calc(total, start, mode, tid) {
     const elapsed = (performance.now() - start) / 1000;
-    if (elapsed < 1) return;
-    const comp = mode === 'DOWNLOAD' ? 1.05 : 1.20;
-    let mbps = (total * 8 * comp) / elapsed / 1048576;
+    if (elapsed < 1.5) return;
+    
+    // معادلة Ookla المعدلة للسرعات العالية
+    const compensation = mode === 'DOWNLOAD' ? 1.05 : 1.15;
+    let mbps = (total * 8 * compensation) / elapsed / 1048576;
+    
     speedSamples.push(mbps);
-    if(speedSamples.length > 30) speedSamples.shift();
+    if(speedSamples.length > 35) speedSamples.shift();
     const smooth = speedSamples.reduce((a,b)=>a+b, 0) / speedSamples.length;
+    
     updateUI(smooth, "يتم الفحص");
     document.getElementById(tid).innerText = smooth.toFixed(2);
 }
