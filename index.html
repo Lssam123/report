@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G6 Quantum - مشروع التخرج</title>
+    <title>G6 Quantum - نظام قياس الشبكات المطور</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -14,6 +14,12 @@
         <div class="main-gauge-card">
             <div class="gauge-box">
                 <svg viewBox="0 0 200 120" class="gauge-svg">
+                    <defs>
+                        <linearGradient id="speedGrad" x1="0%" y1="0%" x2="100%|">
+                            <stop offset="0%" style="stop-color:#00f2fe;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#05ffa1;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
                     <path class="gauge-bg" d="M20,100 A80,80 0 0,1 180,100" />
                     <path id="gauge-progress" class="gauge-fill" d="M20,100 A80,80 0 0,1 180,100" />
                 </svg>
@@ -27,15 +33,15 @@
         </div>
 
         <div class="stats-row">
-            <div class="stat-card">
-                <label>PING</label>
-                <div class="data"><span id="ping">0</span><small>ms</small></div>
+            <div class="stat-card" id="ping-card">
+                <label>PING / JITTER</label>
+                <div class="data"><span id="ping">0</span><small>ms</small> / <span id="jitter">0</span><small>ms</small></div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" id="dl-card">
                 <label>DOWNLOAD</label>
                 <div class="data"><span id="download">0.0</span><small>Mb</small></div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" id="ul-card">
                 <label>UPLOAD</label>
                 <div class="data"><span id="upload">0.0</span><small>Mb</small></div>
             </div>
