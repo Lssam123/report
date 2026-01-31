@@ -3,18 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G6 SpeedTest Platinum - 2026</title>
+    <title>G6 SpeedTest Master - 2026</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;900&family=Cairo:wght@300;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="background-blobs"></div>
-    
     <div class="app-container">
-        <div class="glass-header">
-            <h1 class="top-logo">TEST</h1>
-            <div class="system-status">System: <span id="sys-status">Ready</span></div>
-        </div>
+        <h1 class="top-logo">TEST</h1>
 
         <div class="main-gauge-card">
             <div class="gauge-box">
@@ -22,7 +17,7 @@
                     <defs>
                         <linearGradient id="speedGrad" x1="0%" y1="0%" x2="100%">
                             <stop offset="0%" style="stop-color:#00f2fe" />
-                            <stop offset="100%" style="stop-color:#4facfe" />
+                            <stop offset="100%" style="stop-color:#05ffa1" />
                         </linearGradient>
                     </defs>
                     <path class="gauge-bg" d="M20,100 A80,80 0 0,1 180,100" />
@@ -39,19 +34,19 @@
 
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="icon-label">🌐 ping غير مثقل</div>
+                <label>ping غير مثقل</label>
                 <div class="data"><span id="ping-unloaded">0</span><small>ms</small></div>
             </div>
             <div class="stat-card">
-                <div class="icon-label">⚡ ping مثقل</div>
+                <label>ping مثقل</label>
                 <div class="data"><span id="ping-loaded">0</span><small>ms</small></div>
             </div>
-            <div class="stat-card accent-down">
-                <div class="icon-label">DOWNLOAD</div>
+            <div class="stat-card accent">
+                <label>DOWNLOAD</label>
                 <div class="data"><span id="download">0.00</span><small>Mb</small></div>
             </div>
-            <div class="stat-card accent-up">
-                <div class="icon-label">UPLOAD</div>
+            <div class="stat-card accent">
+                <label>UPLOAD</label>
                 <div class="data"><span id="upload">0.00</span><small>Mb</small></div>
             </div>
         </div>
