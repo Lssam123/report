@@ -27,36 +27,40 @@ function drawGraph() {
     ctx.stroke();
 }
 
+async function getPrecisePing() {
+    const s = performance.now();
+    try {
+        await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-store' });
+        return performance.now() - s;
+    } catch { return 0; }
+}
+
 async function runNetworkAudit() {
     const btn = document.getElementById('startBtn');
     btn.disabled = true; points = []; speedSamples = [];
-    
-    // --- فحص الاستجابة العنيف (Ping & Jitter) لمدة 4 ثوانٍ ---
-    document.getElementById('status-text').innerText = "تحليل النبض الشبكي...";
+
+    // 1. PING غير مثقل (4 ثوانٍ)
+    document.getElementById('status-text').innerText = "تحليل الاستجابة الهادئة...";
     let pings = [];
     const pStart = performance.now();
     while (performance.now() - pStart < 4000) {
-        const s = performance.now();
-        try {
-            await fetch("https://www.google.com/generate_204", { mode: 'no-cors', cache: 'no-store' });
-            pings.push(performance.now() - s);
-        } catch(e) {}
+        const p = await getPrecisePing();
+        if(p > 0) pings.push(p);
         await new Promise(r => setTimeout(r, 100));
     }
-    const minP = Math.min(...pings);
-    const jitter = pings.length > 1 ? Math.abs(pings[pings.length-1] - pings[pings.length-2]) : 0;
-    document.getElementById('ping-unloaded').innerText = minP.toFixed(0);
-    document.getElementById('ping-loaded').innerText = jitter.toFixed(1);
+    document.getElementById('ping-unloaded').innerText = Math.min(...pings).toFixed(0);
 
-    // --- فحص التنزيل الاحترافي ---
+    // 2. DOWNLOAD + قياس PING مثقل
     await engine('DOWNLOAD', 15000, 'download');
+    const pLoaded = await getPrecisePing();
+    document.getElementById('ping-loaded').innerText = pLoaded.toFixed(0);
 
-    // --- فحص الرفع الخارق (تم حل مشكلة التوقف) ---
+    // 3. UPLOAD (محرك مطور)
     speedSamples = [];
     await engine('UPLOAD', 12000, 'upload');
 
     btn.disabled = false;
-    document.getElementById('status-text').innerText = "تم التحليل بنجاح";
+    document.getElementById('status-text').innerText = "اكتمل الفحص الشامل";
 }
 
 async function engine(mode, duration, targetId) {
@@ -65,16 +69,12 @@ async function engine(mode, duration, targetId) {
     const controller = new AbortController();
     setTimeout(() => controller.abort(), duration);
 
-    // تقنية الرفع المستقر: استخدام دفعات بيانات أصغر وتكرار أسرع
-    const chunk = new Uint8Array(512 * 1024); // 512KB لضمان عدم رفض السيرفر
-    crypto.getRandomValues(chunk);
+    const threads = mode === 'DOWNLOAD' ? 10 : 6;
+    const chunk = new Uint8Array(mode === 'DOWNLOAD' ? 0 : 512 * 1024);
+    if(mode === 'UPLOAD') crypto.getRandomValues(chunk);
 
-    const threads = mode === 'DOWNLOAD' ? 8 : 6; // تقليل الخيوط لزيادة جودة كل خيط
-    const workers = Array(threads).fill(0).map(async () => {
-        const url = mode === 'DOWNLOAD' ? 
-            "https://speed.cloudflare.com/__down?bytes=500000000" : 
-            "https://httpbin.org/post";
-
+    const tasks = Array(threads).fill(0).map(async () => {
+        const url = mode === 'DOWNLOAD' ? "https://speed.cloudflare.com/__down?bytes=500000000" : "https://httpbin.org/post";
         while ((performance.now() - startTime) < duration) {
             try {
                 if (mode === 'DOWNLOAD') {
@@ -91,30 +91,21 @@ async function engine(mode, duration, targetId) {
                     totalBytes += chunk.length;
                     calculate(totalBytes, startTime, mode, targetId);
                 }
-            } catch (e) {
-                if (e.name === 'AbortError') break;
-                await new Promise(r => setTimeout(r, 100)); // انتظار بسيط في حال الخطأ ثم المحاولة مجدداً
-            }
+            } catch (e) { if (e.name === 'AbortError') break; }
         }
     });
-    await Promise.all(workers);
+    await Promise.all(tasks);
 }
 
 function calculate(total, start, mode, targetId) {
     const elapsed = (performance.now() - start) / 1000;
-    if (elapsed < 1) return;
-
-    // معامل التصحيح الهندسي لتعويض الفقد في المتصفح
-    const compensation = mode === 'DOWNLOAD' ? 1.04 : 1.18;
+    if (elapsed < 1.2) return;
+    const compensation = mode === 'DOWNLOAD' ? 1.05 : 1.18;
     let mbps = (total * 8 * compensation) / elapsed / 1048576;
-
     speedSamples.push(mbps);
     if (speedSamples.length > 40) speedSamples.shift();
-    
-    // استخدام الوسيط (Median) بدلاً من المتوسط لتقليل القفزات المفاجئة
     const sorted = [...speedSamples].sort((a, b) => a - b);
     const median = sorted[Math.floor(sorted.length / 2)];
-
-    updateGauge(median, mode === 'DOWNLOAD' ? "تحليل التنزيل..." : "تحليل الرفع...");
+    updateGauge(median, mode === 'DOWNLOAD' ? "جاري التنزيل..." : "جاري الرفع...");
     document.getElementById(targetId).innerText = median.toFixed(2);
 }
