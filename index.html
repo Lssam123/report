@@ -2,57 +2,48 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SPEED TEST - G6</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@800&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="cyber-container">
+    <div class="app-container">
         <h1 class="main-title">SPEED TEST</h1>
 
-        <div class="main-stats-row">
-            <div class="hex-container">
-                <div class="hex-outer">
-                    <div class="hex-inner">
-                        <small id="stage-text">جاهز</small>
-                        <div class="speed-digit" id="speed-num">0.00</div>
-                        <span class="unit-text">ميجا/ثانية</span>
-                    </div>
-                </div>
-                <svg class="gauge-svg">
-                    <circle class="bg" cx="100" cy="100" r="90" />
-                    <circle id="progress-bar" class="prog" cx="100" cy="100" r="90" />
-                </svg>
+        <div class="gauge-wrapper">
+            <div class="gauge-center">
+                <div id="stage-text">جاهز للفحص</div>
+                <div id="speed-num">0.00</div>
+                <div class="unit">ميجا / ثانية</div>
+            </div>
+            <svg class="gauge-svg" viewBox="0 0 200 200">
+                <circle class="bg" cx="100" cy="100" r="90" />
+                <circle id="progress-bar" class="prog" cx="100" cy="100" r="90" />
+            </svg>
+        </div>
+
+        <div class="results-grid">
+            <div class="card">
+                <label>زمن الاستجابة</label>
+                <div class="val"><span id="ping-unloaded">0</span> <small>ms</small></div>
+            </div>
+            <div class="card">
+                <label>الاستجابة (ضغظ)</label>
+                <div class="val"><span id="ping-loaded">0</span> <small>ms</small></div>
+            </div>
+            <div class="card down">
+                <label>التحميل (Download)</label>
+                <div class="val"><span id="download">0.00</span> <small>Mbps</small></div>
+            </div>
+            <div class="card up">
+                <label>الرفع (Upload)</label>
+                <div class="val"><span id="upload">0.00</span> <small>Mbps</small></div>
             </div>
         </div>
 
-        <div class="data-grid">
-            <div class="data-box">
-                <div class="box-label">زمن الاستجابة (مستقر)</div>
-                <div class="box-value"><span id="ping-unloaded">0</span><small>ملي ثانية</small></div>
-            </div>
-            <div class="data-box">
-                <div class="box-label">زمن الاستجابة (تحت الضغط)</div>
-                <div class="box-value"><span id="ping-loaded">0</span><small>ملي ثانية</small></div>
-            </div>
-            <div class="data-box download-box">
-                <div class="box-label">سرعة التحميل</div>
-                <div class="box-value"><span id="download">0.00</span><small>ميجا</small></div>
-            </div>
-            <div class="data-box upload-box">
-                <div class="box-label">سرعة الرفع</div>
-                <div class="box-value"><span id="upload">0.00</span><small>ميجا</small></div>
-            </div>
-        </div>
-
-        <div class="control-area">
-            <button id="startBtn" onclick="runNetworkAudit()">بدء فحص الشبكة</button>
-        </div>
-
-        <footer class="cyber-footer">
-            مشروع تخرج المجموعة السادسة | هندسة الشبكات 2026
-        </footer>
+        <button id="startBtn" onclick="mainFlow()">بدء فحص الشبكة</button>
+        
+        <div class="footer">مشروع تخرج المجموعة السادسة - 2026</div>
     </div>
     <script src="script.js"></script>
 </body>
