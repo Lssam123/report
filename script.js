@@ -1,23 +1,23 @@
-const progressHex = document.getElementById('hex-progress');
+const progBar = document.getElementById('progress-bar');
 const speedNum = document.getElementById('speed-num');
 const stageText = document.getElementById('stage-text');
 let samples = [];
 
 function updateUI(val, stage, color = "#00f2fe") {
-    // محيط الشكل السداسي التقريبي 600
-    const dashOffset = 600 - (Math.min(val, 900) / 900) * 600;
-    progressHex.style.strokeDashoffset = dashOffset;
-    progressHex.style.stroke = color;
+    // محيط الدائرة (2 * pi * r) = 2 * 3.14 * 90 = 565
+    const offset = 565 - (Math.min(val, 900) / 900) * 565;
+    progBar.style.strokeDashoffset = offset;
+    progBar.style.stroke = color;
     speedNum.innerText = val.toFixed(2);
     stageText.innerText = stage;
     stageText.style.color = color;
 }
 
 async function getPing() {
-    const s = performance.now();
+    const start = performance.now();
     try {
         await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-store' });
-        return performance.now() - s;
+        return performance.now() - start;
     } catch { return 0; }
 }
 
@@ -26,46 +26,47 @@ async function runNetworkAudit() {
     btn.disabled = true;
     samples = [];
     
-    // 1. PING PHASE
-    updateUI(0, "ANALYZING PING");
+    // 1. فحص البنق (Ping)
+    updateUI(0, "جاري فحص الاستجابة...");
     let pings = [];
     for(let i=0; i<10; i++) {
         const p = await getPing();
-        if(p>0) pings.push(p);
+        if(p > 0) pings.push(p);
         await new Promise(r => setTimeout(r, 100));
     }
-    const idlePing = Math.min(...pings);
+    const idlePing = Math.min(...pings) || 0;
     document.getElementById('ping-unloaded').innerText = idlePing.toFixed(0);
 
-    // 2. DOWNLOAD PHASE
-    await engine('DOWNLOAD', 12000, 'download', "#00f2fe");
+    // 2. فحص التحميل (Download) - سينتقل آلياً بعد انتهاء البنق
+    await runEngine('DOWNLOAD', 12000, 'download', "#00f2fe");
 
-    // 3. LOADED PING
-    const lPing = await getPing();
-    document.getElementById('ping-loaded').innerText = Math.max(lPing, idlePing + 5).toFixed(0);
+    // 3. البنق تحت الضغط
+    const loadedPing = await getPing();
+    document.getElementById('ping-loaded').innerText = Math.max(loadedPing, idlePing + 5).toFixed(0);
 
-    // 4. UPLOAD PHASE
+    // 4. فحص الرفع (Upload)
     samples = [];
-    await engine('UPLOAD', 10000, 'upload', "#ff007a");
+    await runEngine('UPLOAD', 10000, 'upload', "#f093fb");
 
-    updateUI(0, "COMPLETED", "#00f2fe");
+    // النهاية
+    updateUI(0, "تم الفحص");
     btn.disabled = false;
-    btn.innerText = "RE-INITIALIZE";
+    btn.innerText = "إعادة فحص الشبكة";
 }
 
-async function engine(mode, duration, tid, color) {
+async function runEngine(mode, duration, tid, color) {
     const isUp = mode === 'UPLOAD';
-    const start = performance.now();
-    let bytes = 0;
+    const startTime = performance.now();
+    let bytesClaimed = 0;
     const controller = new AbortController();
     setTimeout(() => controller.abort(), duration);
 
-    const chunk = new Uint8Array(1024 * 1024);
-    crypto.getRandomValues(chunk);
+    const dummyData = new Uint8Array(1024 * 1024); // 1MB
+    crypto.getRandomValues(dummyData);
 
-    const threads = isUp ? 5 : 10;
-    const tasks = Array(threads).fill(0).map(async () => {
-        while ((performance.now() - start) < duration) {
+    const threadCount = isUp ? 4 : 8;
+    const tasks = Array(threadCount).fill(0).map(async () => {
+        while ((performance.now() - startTime) < duration) {
             try {
                 const url = `https://speed.cloudflare.com/__${isUp ? 'up' : 'down'}?_=${Math.random()}`;
                 if (!isUp) {
@@ -74,27 +75,32 @@ async function engine(mode, duration, tid, color) {
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
-                        bytes += value.length;
-                        calc(bytes, start, mode, tid, color);
+                        bytesClaimed += value.length;
+                        calculate(bytesClaimed, startTime, mode, tid, color);
                     }
                 } else {
-                    await fetch(url, { method: 'POST', body: chunk, signal: controller.signal });
-                    bytes += chunk.length;
-                    calc(bytes, start, mode, tid, color);
+                    await fetch(url, { method: 'POST', body: dummyData, signal: controller.signal });
+                    bytesClaimed += dummyData.length;
+                    calculate(bytesClaimed, startTime, mode, tid, color);
                 }
             } catch (e) { if(controller.signal.aborted) break; }
         }
     });
-    await Promise.all(tasks);
+    return Promise.all(tasks); // نستخدم return لضمان انتظار انتهاء المهام
 }
 
-function calc(total, start, mode, tid, color) {
-    const time = (performance.now() - start) / 1000;
-    if (time < 1) return;
-    const mbps = (total * 8 * (mode === 'DOWNLOAD' ? 1.04 : 1.2)) / time / 1048576;
+function calculate(total, start, mode, tid, color) {
+    const elapsed = (performance.now() - start) / 1000;
+    if (elapsed < 1) return;
+    
+    // معامل تصحيح (Correction Factor)
+    const factor = mode === 'DOWNLOAD' ? 1.05 : 1.25;
+    const mbps = (total * 8 * factor) / elapsed / 1048576;
+    
     samples.push(mbps);
-    if(samples.length > 40) samples.shift();
-    const avg = samples.reduce((a,b) => a+b, 0) / samples.length;
-    updateUI(avg, mode, color);
-    document.getElementById(tid).innerText = avg.toFixed(2);
+    if(samples.length > 30) samples.shift();
+    const average = samples.reduce((a, b) => a + b, 0) / samples.length;
+    
+    updateUI(average, mode === 'DOWNLOAD' ? "جاري التحميل..." : "جاري الرفع...", color);
+    document.getElementById(tid).innerText = average.toFixed(2);
 }
