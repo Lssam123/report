@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G6 SpeedTest Master - 2026</title>
+    <title>G6 SpeedTest Quantum - 2026</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -11,7 +11,7 @@
     <div class="app-container">
         <h1 class="top-logo">TEST</h1>
 
-        <div class="main-gauge-card">
+        <div class="main-gauge-card" id="gaugeCard">
             <div class="gauge-box">
                 <svg viewBox="0 0 200 120" class="gauge-svg">
                     <defs>
@@ -28,7 +28,6 @@
                     <div class="speed-value"><span id="speed-num">0.00</span></div>
                     <small class="unit">Mbps</small>
                 </div>
-                <canvas id="miniGraph"></canvas>
             </div>
         </div>
 
@@ -41,11 +40,11 @@
                 <label>ping مثقل</label>
                 <div class="data"><span id="ping-loaded">0</span><small>ms</small></div>
             </div>
-            <div class="stat-card accent">
+            <div class="stat-card accent-down">
                 <label>DOWNLOAD</label>
                 <div class="data"><span id="download">0.00</span><small>Mb</small></div>
             </div>
-            <div class="stat-card accent">
+            <div class="stat-card accent-up">
                 <label>UPLOAD</label>
                 <div class="data"><span id="upload">0.00</span><small>Mb</small></div>
             </div>
