@@ -3,28 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G6 Quantum - الإصدار النهائي</title>
+    <title>G6 SpeedTest Ultra - النسخة الاحترافية</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
-        <h1 class="top-logo">TEST</h1>
+        <h1 class="top-logo">QUANTUM G6</h1>
 
         <div class="main-gauge-card">
             <div class="gauge-box">
                 <svg viewBox="0 0 200 120" class="gauge-svg">
                     <defs>
                         <linearGradient id="speedGrad" x1="0%" y1="0%" x2="100%">
-                            <stop offset="0%" style="stop-color:#00f2fe;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#05ffa1;stop-opacity:1" />
+                            <stop offset="0%" style="stop-color:#00f2fe" />
+                            <stop offset="100%" style="stop-color:#05ffa1" />
                         </linearGradient>
                     </defs>
                     <path class="gauge-bg" d="M20,100 A80,80 0 0,1 180,100" />
                     <path id="gauge-progress" class="gauge-fill" d="M20,100 A80,80 0 0,1 180,100" />
                 </svg>
                 <div class="center-data">
-                    <small id="status-text">جاهز</small>
+                    <small id="status-text">جاهز للانطلاق</small>
                     <div class="speed-value"><span id="speed-num">0.00</span></div>
                     <small class="unit">Mbps</small>
                 </div>
@@ -34,11 +34,11 @@
 
         <div class="stats-grid">
             <div class="stat-card">
-                <label>PING (غير مثقل)</label>
+                <label>PING (4s Analysis)</label>
                 <div class="data"><span id="ping-unloaded">0</span><small>ms</small></div>
             </div>
             <div class="stat-card">
-                <label>PING (مثقل)</label>
+                <label>JITTER (استقرار)</label>
                 <div class="data"><span id="ping-loaded">0</span><small>ms</small></div>
             </div>
             <div class="stat-card accent">
@@ -51,10 +51,10 @@
             </div>
         </div>
 
-        <button id="startBtn" onclick="runNetworkAudit()">بدء الفحص الشامل</button>
+        <button id="startBtn" onclick="runNetworkAudit()">بدء الفحص الخارق</button>
 
         <footer class="footer-note">
-            2026 مشروع تخرج المجموعة السادسة - تقنية المعلومات
+            © 2026 المجموعة السادسة - نظام القياس الكمي
         </footer>
     </div>
     <script src="script.js"></script>
