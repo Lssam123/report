@@ -1,38 +1,33 @@
-:root { --neon: #00f2fe; --up-color: #f093fb; --bg-dark: #080a0f; }
+:root { --neon: #00f2fe; --pink: #f093fb; --dark: #0a0c10; }
+body { background: var(--dark); color: white; font-family: 'Cairo', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
 
-body { background: var(--bg-dark); color: white; font-family: 'Cairo', sans-serif; height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; }
+.app-container { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 40px; border-radius: 40px; width: 500px; text-align: center; }
 
-.cyber-container { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 40px; padding: 40px; width: 520px; text-align: center; backdrop-filter: blur(20px); }
+.main-title { font-family: 'Orbitron'; color: var(--neon); font-size: 2.8rem; letter-spacing: 8px; margin-bottom: 40px; text-shadow: 0 0 20px var(--neon); }
 
-.main-title { font-family: 'Orbitron'; font-size: 2.5rem; letter-spacing: 10px; color: var(--neon); text-shadow: 0 0 20px var(--neon); margin-bottom: 40px; margin-top: 0; }
+.gauge-wrapper { position: relative; width: 220px; height: 220px; margin: 0 auto 40px; }
+.gauge-center { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 5; }
+#stage-text { color: var(--neon); font-weight: 900; font-size: 0.9rem; margin-bottom: 5px; }
+#speed-num { font-family: 'Orbitron'; font-size: 3.5rem; font-weight: 900; line-height: 1; }
+.unit { font-size: 0.7rem; color: #555; font-weight: bold; margin-top: 5px; }
 
-.hex-container { position: relative; width: 220px; height: 220px; margin: 0 auto; }
-.hex-outer { position: absolute; top: 10px; left: 10px; width: 200px; height: 200px; background: rgba(0,0,0,0.4); border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 2; border: 1px solid rgba(255,255,255,0.05); }
-
-.speed-digit { font-family: 'Orbitron'; font-size: 3.5rem; font-weight: 900; line-height: 1; }
-.unit-text { font-size: 0.8rem; color: #555; font-weight: bold; }
-#stage-text { display: block; font-size: 0.9rem; color: var(--neon); font-weight: 900; margin-bottom: 5px; }
-
-.gauge-svg { width: 220px; height: 220px; transform: rotate(-90deg); }
+.gauge-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .gauge-svg circle { fill: none; stroke-width: 12; stroke-linecap: round; }
-.gauge-svg .bg { stroke: #12151c; }
-.gauge-svg .prog { stroke: var(--neon); stroke-dasharray: 565; stroke-dashoffset: 565; transition: stroke-dashoffset 0.4s ease; }
+.bg { stroke: #1a1e26; }
+.prog { stroke: var(--neon); stroke-dasharray: 565; stroke-dashoffset: 565; transition: 0.3s linear; }
 
-.data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 40px 0; }
-.data-box { background: rgba(255,255,255,0.02); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.03); }
-.box-label { font-size: 0.7rem; color: #666; font-weight: bold; margin-bottom: 8px; }
-.box-value { font-family: 'Orbitron'; font-size: 1.3rem; }
-.box-value small { font-family: 'Cairo'; font-size: 0.6rem; margin-right: 5px; color: #444; }
-
-.download-box { border-bottom: 3px solid var(--neon); }
-.upload-box { border-bottom: 3px solid var(--up-color); }
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
+.card { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); }
+.card label { display: block; font-size: 0.7rem; color: #666; font-weight: bold; margin-bottom: 5px; }
+.val { font-family: 'Orbitron'; font-size: 1.2rem; }
+.val small { font-family: 'Cairo'; font-size: 0.6rem; color: #333; }
+.down { border-bottom: 3px solid var(--neon); }
+.up { border-bottom: 3px solid var(--pink); }
 
 #startBtn { 
-    width: 100%; background: linear-gradient(45deg, var(--neon), #4facfe); border: none; 
-    color: #000; padding: 22px; border-radius: 50px; font-size: 1.4rem; font-weight: 900; 
-    cursor: pointer; transition: 0.3s; font-family: 'Cairo';
+    width: 100%; padding: 20px; border-radius: 50px; border: none; 
+    background: linear-gradient(45deg, var(--neon), #4facfe); 
+    font-size: 1.3rem; font-weight: 900; cursor: pointer; font-family: 'Cairo';
 }
-#startBtn:hover { transform: scale(1.02); box-shadow: 0 0 30px var(--neon); }
-#startBtn:disabled { opacity: 0.3; cursor: wait; }
-
-.cyber-footer { font-size: 0.75rem; color: #333; font-weight: bold; margin-top: 30px; }
+#startBtn:disabled { filter: grayscale(1); opacity: 0.3; cursor: not-allowed; }
+.footer { font-size: 0.7rem; color: #222; margin-top: 30px; }
