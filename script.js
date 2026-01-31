@@ -1,103 +1,94 @@
-const fill = document.getElementById('gauge-fill');
-const speedVal = document.getElementById('speed-display');
-const statusLabel = document.getElementById('status-label');
+const bar = document.getElementById('bar');
+const num = document.getElementById('number');
+const label = document.getElementById('label');
 
-function refreshGauge(value, label, color = "#00f2fe") {
-    const dash = 553;
-    const offset = dash - (Math.min(value, 900) / 900) * dash;
-    fill.style.strokeDashoffset = offset;
-    fill.style.stroke = color;
-    speedVal.innerText = value.toFixed(2);
-    statusLabel.innerText = label;
+function update(v, txt) {
+    const offset = 565 - (Math.min(v, 900) / 900) * 565;
+    bar.style.strokeDashoffset = offset;
+    num.innerText = v.toFixed(2);
+    label.innerText = txt;
 }
 
-async function pingProbe() {
-    const start = performance.now();
-    try {
-        await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-store' });
-        return performance.now() - start;
-    } catch { return 0; }
+// 1. وظيفة البنق المستقلة
+async function measurePing() {
+    let results = [];
+    const endTime = Date.now() + 3000; // 3 ثوانٍ كما طلبت
+    while (Date.now() < endTime) {
+        const start = performance.now();
+        try {
+            await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-store' });
+            results.push(performance.now() - start);
+        } catch (e) {}
+        await new Promise(r => setTimeout(r, 50));
+    }
+    return results.length ? Math.min(...results) : 0;
 }
 
-async function igniteEngine() {
+// 2. الوظيفة الرئيسية المتسلسلة
+async function runMain() {
     const btn = document.getElementById('startBtn');
     btn.disabled = true;
-    
-    // 1. مرحلة فحص البنق الصامتة (3 ثوانٍ بدقة متناهية)
-    refreshGauge(0, "جاري تهيئة الاتصال...");
-    let pingBucket = [];
-    const endTime = Date.now() + 3000;
-    
-    while(Date.now() < endTime) {
-        const p = await pingProbe();
-        if(p > 0) pingBucket.push(p);
-        await new Promise(r => setTimeout(r, 40));
-    }
-    const idlePing = pingBucket.length ? Math.min(...pingBucket) : 0;
-    document.getElementById('p-un').innerText = idlePing.toFixed(0);
 
-    // 2. فحص التحميل (Download)
-    await runQuantumPhase('DOWNLOAD', 12000, 'd-val', "#00f2fe");
+    // المرحلة الأولى: البنق (صامت لمدة 3 ثوانٍ)
+    update(0, "جاري البدء...");
+    const ping = await measurePing();
+    document.getElementById('p-val').innerText = ping.toFixed(0);
 
-    // فحص البنق تحت الضغط
-    const loadedP = await pingProbe();
-    document.getElementById('p-lo').innerText = Math.max(loadedP, idlePing + 4).toFixed(0);
+    // المرحلة الثانية: التحميل
+    await startTest('DOWNLOAD', 10000, 'd-val');
 
-    // 3. فحص الرفع (Upload)
-    await runQuantumPhase('UPLOAD', 10000, 'u-val', "#f093fb");
+    // المرحلة الثالثة: الرفع
+    await startTest('UPLOAD', 10000, 'u-val');
 
-    // اكتمال العمليات
-    refreshGauge(0, "تم الفحص بنجاح");
+    // النهاية
+    update(0, "اكتمل");
     btn.disabled = false;
     btn.innerText = "إعادة الفحص";
 }
 
-async function runQuantumPhase(mode, duration, elementId, themeColor) {
-    const isUp = mode === 'UPLOAD';
-    const start = performance.now();
-    let bytesTransferred = 0;
-    let rollingSamples = [];
+// 3. محرك القياس (تحميل/رفع)
+async function startTest(type, duration, targetId) {
+    const isUp = type === 'UPLOAD';
+    const startTime = performance.now();
+    let bytes = 0;
+    const controller = new AbortController();
+    
+    // إغلاق إجباري بعد انتهاء الوقت
+    setTimeout(() => controller.abort(), duration);
 
-    const ctrl = new AbortController();
-    setTimeout(() => ctrl.abort(), duration);
+    const dummy = new Uint8Array(1024 * 1024); // 1MB
+    crypto.getRandomValues(dummy);
 
-    const payload = new Uint8Array(1024 * 1024);
-    crypto.getRandomValues(payload);
+    const workers = isUp ? 4 : 8; // تقليل الخيوط للرفع لضمان الثبات
+    const tasks = [];
 
-    // نظام تعدد المسارات الكثيف (12 مسار للتحميل)
-    const streamCount = isUp ? 6 : 12;
-    const streams = [];
-
-    for (let i = 0; i < streamCount; i++) {
-        streams.push((async () => {
-            while (performance.now() - start < duration) {
+    for (let i = 0; i < workers; i++) {
+        tasks.push((async () => {
+            while (performance.now() - startTime < duration) {
                 try {
-                    const url = `https://speed.cloudflare.com/__${isUp ? 'up' : 'down'}?bytes=50000000&_=${Math.random()}`;
-                    if (!isUp) {
-                        const response = await fetch(url, { signal: ctrl.signal });
-                        const buffer = await response.arrayBuffer();
-                        bytesTransferred += buffer.byteLength;
-                    } else {
-                        await fetch(url, { method: 'POST', body: payload, signal: ctrl.signal });
-                        bytesTransferred += payload.length;
-                    }
+                    const url = `https://speed.cloudflare.com/__${isUp ? 'up' : 'down'}?bytes=25000000&_=${Math.random()}`;
                     
-                    const elapsed = (performance.now() - start) / 1000;
-                    if (elapsed > 0.5) {
-                        const correction = isUp ? 1.24 : 1.07; // معادلة جبرية لتعويض الفاقد (TCP Overhead)
-                        const mbps = (bytesTransferred * 8 * correction) / elapsed / 1048576;
-                        
-                        rollingSamples.push(mbps);
-                        if(rollingSamples.length > 15) rollingSamples.shift();
-                        const smoothed = rollingSamples.reduce((a, b) => a + b) / rollingSamples.length;
-
-                        refreshGauge(smoothed, isUp ? "جاري فحص الرفع" : "جاري فحص التحميل", themeColor);
-                        document.getElementById(elementId).innerText = smoothed.toFixed(2);
+                    if (!isUp) {
+                        const res = await fetch(url, { signal: controller.signal });
+                        const buf = await res.arrayBuffer();
+                        bytes += buf.byteLength;
+                    } else {
+                        await fetch(url, { method: 'POST', body: dummy, signal: controller.signal });
+                        bytes += dummy.length;
                     }
-                } catch (e) { if (ctrl.signal.aborted) break; }
+
+                    // حساب السرعة
+                    const sec = (performance.now() - startTime) / 1000;
+                    if (sec > 0.5) {
+                        const mbps = (bytes * 8 * (isUp ? 1.2 : 1.05)) / sec / 1048576;
+                        update(mbps, isUp ? "جاري الرفع" : "جاري التحميل");
+                        document.getElementById(targetId).innerText = mbps.toFixed(2);
+                    }
+                } catch (e) { if (controller.signal.aborted) break; }
             }
         })());
     }
 
-    return Promise.all(streams);
+    // الانتظار الإجباري لانتهاء كافة المهام قبل العودة للدالة الرئيسية
+    await Promise.allSettled(tasks);
 }
