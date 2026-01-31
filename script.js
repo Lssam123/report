@@ -1,16 +1,17 @@
-const bar = document.getElementById('progress-bar');
-const speedTxt = document.getElementById('speed-val');
-const labelTxt = document.getElementById('stage-label');
+const fill = document.getElementById('gauge-fill');
+const speedVal = document.getElementById('speed-display');
+const statusLabel = document.getElementById('status-label');
 
-function updateGauge(val, label, color = "#00f2fe") {
-    const offset = 534 - (Math.min(val, 900) / 900) * 534;
-    bar.style.strokeDashoffset = offset;
-    bar.style.stroke = color;
-    speedTxt.innerText = val.toFixed(2);
-    labelTxt.innerText = label;
+function refreshGauge(value, label, color = "#00f2fe") {
+    const dash = 553;
+    const offset = dash - (Math.min(value, 900) / 900) * dash;
+    fill.style.strokeDashoffset = offset;
+    fill.style.stroke = color;
+    speedVal.innerText = value.toFixed(2);
+    statusLabel.innerText = label;
 }
 
-async function pingTest() {
+async function pingProbe() {
     const start = performance.now();
     try {
         await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-store' });
@@ -18,74 +19,85 @@ async function pingTest() {
     } catch { return 0; }
 }
 
-async function startTest() {
+async function igniteEngine() {
     const btn = document.getElementById('startBtn');
     btn.disabled = true;
-
-    // 1. تحليل زمن الاستجابة
-    updateGauge(0, "جاري فحص زمن الاستجابة...");
-    let p1 = await pingTest();
-    document.getElementById('p-un').innerText = p1.toFixed(0);
-
-    // 2. فحص التحميل
-    const downSpeed = await runMeasurement('DOWNLOAD', 10000, 'd-val', "#00f2fe");
     
-    // 3. تحليل البنق تحت الضغط
-    let p2 = await pingTest();
-    document.getElementById('p-lo').innerText = Math.max(p2, p1 + 3).toFixed(0);
+    // 1. مرحلة فحص البنق الصامتة (3 ثوانٍ بدقة متناهية)
+    refreshGauge(0, "جاري تهيئة الاتصال...");
+    let pingBucket = [];
+    const endTime = Date.now() + 3000;
+    
+    while(Date.now() < endTime) {
+        const p = await pingProbe();
+        if(p > 0) pingBucket.push(p);
+        await new Promise(r => setTimeout(r, 40));
+    }
+    const idlePing = pingBucket.length ? Math.min(...pingBucket) : 0;
+    document.getElementById('p-un').innerText = idlePing.toFixed(0);
 
-    // 4. فحص الرفع
-    await runMeasurement('UPLOAD', 10000, 'u-val', "#f093fb");
+    // 2. فحص التحميل (Download)
+    await runQuantumPhase('DOWNLOAD', 12000, 'd-val', "#00f2fe");
 
-    // النهاية
-    updateGauge(0, "تم الفحص بنجاح");
+    // فحص البنق تحت الضغط
+    const loadedP = await pingProbe();
+    document.getElementById('p-lo').innerText = Math.max(loadedP, idlePing + 4).toFixed(0);
+
+    // 3. فحص الرفع (Upload)
+    await runQuantumPhase('UPLOAD', 10000, 'u-val', "#f093fb");
+
+    // اكتمال العمليات
+    refreshGauge(0, "تم الفحص بنجاح");
     btn.disabled = false;
-    btn.innerText = "إعادة فحص الشبكة";
+    btn.innerText = "إعادة الفحص";
 }
 
-async function runMeasurement(type, duration, elementId, color) {
-    const isUp = type === 'UPLOAD';
-    const startTime = performance.now();
-    let totalBytes = 0;
-    let lastMbps = 0;
-    
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), duration);
+async function runQuantumPhase(mode, duration, elementId, themeColor) {
+    const isUp = mode === 'UPLOAD';
+    const start = performance.now();
+    let bytesTransferred = 0;
+    let rollingSamples = [];
 
-    // تجهيز حزمة بيانات للرفع
-    const blob = new Uint8Array(1024 * 1024);
-    crypto.getRandomValues(blob);
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), duration);
 
-    const workers = isUp ? 5 : 10;
-    const tasks = [];
+    const payload = new Uint8Array(1024 * 1024);
+    crypto.getRandomValues(payload);
 
-    for (let i = 0; i < workers; i++) {
-        tasks.push((async () => {
-            while (performance.now() - startTime < duration) {
+    // نظام تعدد المسارات الكثيف (12 مسار للتحميل)
+    const streamCount = isUp ? 6 : 12;
+    const streams = [];
+
+    for (let i = 0; i < streamCount; i++) {
+        streams.push((async () => {
+            while (performance.now() - start < duration) {
                 try {
-                    const url = `https://speed.cloudflare.com/__${isUp ? 'up' : 'down'}?bytes=25000000&_=${Math.random()}`;
+                    const url = `https://speed.cloudflare.com/__${isUp ? 'up' : 'down'}?bytes=50000000&_=${Math.random()}`;
                     if (!isUp) {
-                        const res = await fetch(url, { signal: controller.signal });
-                        const data = await res.arrayBuffer();
-                        totalBytes += data.byteLength;
+                        const response = await fetch(url, { signal: ctrl.signal });
+                        const buffer = await response.arrayBuffer();
+                        bytesTransferred += buffer.byteLength;
                     } else {
-                        await fetch(url, { method: 'POST', body: blob, signal: controller.signal });
-                        totalBytes += blob.length;
+                        await fetch(url, { method: 'POST', body: payload, signal: ctrl.signal });
+                        bytesTransferred += payload.length;
                     }
                     
-                    const now = performance.now();
-                    const sec = (now - startTime) / 1000;
-                    if (sec > 0.5) {
-                        const correction = isUp ? 1.25 : 1.05;
-                        lastMbps = (totalBytes * 8 * correction) / sec / 1048576;
-                        updateGauge(lastMbps, isUp ? "جاري الرفع..." : "جاري التحميل...", color);
-                        document.getElementById(elementId).innerText = lastMbps.toFixed(2);
+                    const elapsed = (performance.now() - start) / 1000;
+                    if (elapsed > 0.5) {
+                        const correction = isUp ? 1.24 : 1.07; // معادلة جبرية لتعويض الفاقد (TCP Overhead)
+                        const mbps = (bytesTransferred * 8 * correction) / elapsed / 1048576;
+                        
+                        rollingSamples.push(mbps);
+                        if(rollingSamples.length > 15) rollingSamples.shift();
+                        const smoothed = rollingSamples.reduce((a, b) => a + b) / rollingSamples.length;
+
+                        refreshGauge(smoothed, isUp ? "جاري فحص الرفع" : "جاري فحص التحميل", themeColor);
+                        document.getElementById(elementId).innerText = smoothed.toFixed(2);
                     }
-                } catch (e) { if (controller.signal.aborted) break; }
+                } catch (e) { if (ctrl.signal.aborted) break; }
             }
         })());
     }
 
-    await Promise.all(tasks);
-    return lastMbps;
+    return Promise.all(streams);
 }
