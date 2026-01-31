@@ -22,7 +22,7 @@ body {
 .gauge-fill {
     fill: none; stroke: url(#speedGrad); stroke-width: 10; stroke-linecap: round;
     stroke-dasharray: 251.3; stroke-dashoffset: 251.3;
-    transition: stroke-dashoffset 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: stroke-dashoffset 0.5s ease-out;
 }
 
 .center-data { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -10%); }
@@ -33,7 +33,7 @@ body {
 
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 30px 0; }
 .stat-card { background: rgba(255,255,255,0.02); padding: 15px 2px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.03); }
-.stat-card label { font-size: 0.5rem; color: #555; font-weight: 900; display: block; margin-bottom: 5px; height: 18px; }
+.stat-card label { font-size: 0.5rem; color: #555; font-weight: 900; display: block; margin-bottom: 5px; }
 .stat-card .data { font-family: 'Orbitron'; font-size: 0.95rem; color: #fff; font-weight: 700; }
 .stat-card.accent .data { color: var(--sub); }
 
@@ -44,4 +44,4 @@ body {
 }
 #startBtn:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(0, 242, 254, 0.4); }
 
-.footer-note { margin-top: 40px; font-size: 0.85rem; color: #333; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; }
+.footer-note { margin-top: 40px; font-size: 0.85rem; color: #222; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; }
