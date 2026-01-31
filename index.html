@@ -3,53 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G6 Quantum Ultra - 2026</title>
+    <title>G6 SpeedTest Quantum Gold</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container" id="mainApp">
-        <header>
-            <h1 class="logo">QUANTUM</h1>
-            <div id="status-badge" class="badge">نظام جاهز</div>
-        </header>
+    <div class="app-container">
+        <div class="header">
+            <h1 class="logo">G6 QUANTUM</h1>
+            <div id="connection-type" class="badge">فحص مستقر</div>
+        </div>
 
-        <div class="gauge-section">
-            <div class="gauge-wrapper">
-                <svg viewBox="0 0 200 120" class="main-gauge">
-                    <path class="track" d="M20,100 A80,80 0 0,1 180,100" />
-                    <path id="progress" class="fill" d="M20,100 A80,80 0 0,1 180,100" />
+        <div class="main-gauge-card">
+            <div class="gauge-box">
+                <svg viewBox="0 0 200 120" class="gauge-svg">
+                    <defs>
+                        <linearGradient id="speedGrad" x1="0%" y1="0%" x2="100%">
+                            <stop offset="0%" style="stop-color:#00f2fe" />
+                            <stop offset="100%" style="stop-color:#4facfe" />
+                        </linearGradient>
+                    </defs>
+                    <path class="gauge-bg" d="M20,100 A80,80 0 0,1 180,100" />
+                    <path id="gauge-progress" class="gauge-fill" d="M20,100 A80,80 0 0,1 180,100" />
                 </svg>
-                <div class="display">
-                    <span id="speed">0.00</span>
-                    <small>Mbps</small>
+                <div class="center-data">
+                    <small id="status-text">جاهز للفحص</small>
+                    <div class="speed-value"><span id="speed-num">0.00</span></div>
+                    <small class="unit">Mbps</small>
                 </div>
             </div>
-            <div class="stage-info" id="stage-text">انتظار الأمر...</div>
         </div>
 
-        <div class="results-grid">
-            <div class="card">
-                <span class="label">Ping (Idle)</span>
-                <span class="val" id="p-unloaded">0<small>ms</small></span>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <label>Ping (استقرار)</label>
+                <div class="data"><span id="ping-unloaded">0</span><small>ms</small></div>
             </div>
-            <div class="card">
-                <span class="label">Ping (Load)</span>
-                <span class="val" id="p-loaded">0<small>ms</small></span>
+            <div class="stat-card">
+                <label>Ping (ضغط)</label>
+                <div class="data"><span id="ping-loaded">0</span><small>ms</small></div>
             </div>
-            <div class="card highlight down">
-                <span class="label">DOWNLOAD</span>
-                <span class="val" id="res-down">0.00</span>
+            <div class="stat-card highlight-down">
+                <label>DOWNLOAD</label>
+                <div class="data"><span id="download">0.00</span><small>Mb</small></div>
             </div>
-            <div class="card highlight up">
-                <span class="label">UPLOAD</span>
-                <span class="val" id="res-up">0.00</span>
+            <div class="stat-card highlight-up">
+                <label>UPLOAD</label>
+                <div class="data"><span id="upload">0.00</span><small>Mb</small></div>
             </div>
         </div>
 
-        <button id="actionBtn" onclick="initiateAudit()">بدء الفحص الشامل</button>
-        
-        <div class="footer">المجموعة السادسة | هندسة الشبكات 2026</div>
+        <button id="startBtn" onclick="runNetworkAudit()">بدء فحص الشبكة</button>
+
+        <footer class="footer-note">
+            © 2026 مشروع تخرج المجموعة السادسة - الإصدار الذهبي المعتمد
+        </footer>
     </div>
     <script src="script.js"></script>
 </body>
