@@ -3,11 +3,11 @@ const speedNum = document.getElementById('speed-num');
 const canvas = document.getElementById('miniGraph');
 const ctx = canvas.getContext('2d');
 let points = [];
-let speedSamples = [];
+let samples = [];
 
 function updateGauge(v, mode) {
     const dash = 251.3;
-    const offset = dash - (Math.min(v, 800) / 800) * dash;
+    const offset = dash - (Math.min(v, 900) / 900) * dash;
     fill.style.strokeDashoffset = offset;
     speedNum.innerText = v.toFixed(2);
     document.getElementById('status-text').innerText = mode;
@@ -18,10 +18,10 @@ function updateGauge(v, mode) {
 
 function drawGraph() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.beginPath(); ctx.strokeStyle = '#05ffa1'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 2;
     points.forEach((p, i) => {
         const x = (canvas.width / 50) * i;
-        const y = canvas.height - (p / 800 * canvas.height);
+        const y = canvas.height - (p / 900 * canvas.height);
         if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     });
     ctx.stroke();
@@ -37,18 +37,18 @@ async function getInstantPing() {
 
 async function runNetworkAudit() {
     const btn = document.getElementById('startBtn');
-    btn.disabled = true; points = []; speedSamples = [];
+    btn.disabled = true; points = []; samples = [];
 
     // 1. PING غير مثقل
-    document.getElementById('status-text').innerText = "تحليل الاستجابة...";
+    document.getElementById('status-text').innerText = "فحص الاستجابة الهادئة...";
     let unSamples = [];
-    for(let i=0; i<6; i++) {
+    for(let i=0; i<8; i++) {
         unSamples.push(await getInstantPing());
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise(r => setTimeout(r, 80));
     }
     document.getElementById('ping-unloaded').innerText = Math.min(...unSamples).toFixed(0);
 
-    // 2. DOWNLOAD + PING مثقل
+    // 2. DOWNLOAD (مع مراقبة البنق المثقل)
     let loadedPings = [];
     const tracker = setInterval(async () => {
         const p = await getInstantPing(); if(p > 0) loadedPings.push(p);
@@ -59,13 +59,13 @@ async function runNetworkAudit() {
     const avgLoaded = loadedPings.reduce((a,b) => a+b, 0) / loadedPings.length;
     document.getElementById('ping-loaded').innerText = avgLoaded ? avgLoaded.toFixed(0) : "--";
 
-    // 3. UPLOAD
-    speedSamples = [];
+    // 3. UPLOAD (أداء مكثف 40 مسار)
+    samples = [];
     await engine('UPLOAD', 12000, 'upload');
 
     btn.disabled = false;
     btn.innerText = "إعادة الفحص";
-    document.getElementById('status-text').innerText = "اكتمل التحليل";
+    document.getElementById('status-text').innerText = "اكتمل الفحص بنجاح";
 }
 
 async function engine(mode, duration, targetId) {
@@ -75,7 +75,8 @@ async function engine(mode, duration, targetId) {
     setTimeout(() => controller.abort(), duration);
 
     try {
-        const threads = mode === 'DOWNLOAD' ? 24 : 32;
+        // زيادة المسارات للرفع لضمان القوة
+        const threads = mode === 'DOWNLOAD' ? 24 : 40;
         const payload = new Uint8Array(mode === 'DOWNLOAD' ? 0 : 4 * 1024 * 1024);
         if(mode === 'UPLOAD') crypto.getRandomValues(payload);
 
@@ -101,18 +102,17 @@ async function engine(mode, duration, targetId) {
     } catch(e) {}
 }
 
-function processSpeed(totalBytes, start, mode, targetId) {
+function processSpeed(total, start, mode, targetId) {
     const elapsed = (performance.now() - start) / 1000;
-    if(elapsed < 1.5) return; // تجاهل أول ثانية ونصف للاستقرار
+    if(elapsed < 1.5) return; // تجاوز مرحلة البداية المتذبذبة
 
-    let mbps = (totalBytes * 8) / elapsed / 1048576;
-    const compensation = mode === 'DOWNLOAD' ? 1.06 : 1.12;
-    mbps *= compensation;
+    const factor = mode === 'DOWNLOAD' ? 1.06 : 1.15; // معامل تصحيح دقيق للرفع
+    let mbps = (total * 8 * factor) / elapsed / 1048576;
 
-    speedSamples.push(mbps);
-    if(speedSamples.length > 30) speedSamples.shift();
-    const smooth = speedSamples.reduce((a,b) => a+b, 0) / speedSamples.length;
+    samples.push(mbps);
+    if(samples.length > 40) samples.shift();
+    const smooth = samples.reduce((a,b) => a+b, 0) / samples.length;
 
-    updateGauge(smooth, mode === 'DOWNLOAD' ? "جاري التنزيل..." : "جاري الرفع...");
+    updateGauge(smooth, mode === 'DOWNLOAD' ? "تنزيل البيانات..." : "رفع البيانات...");
     document.getElementById(targetId).innerText = smooth.toFixed(2);
 }
