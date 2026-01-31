@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G6 Quantum Max | نظام تحليل الشبكات المتقدم</title>
+    <title>G6 SpeedTest Professional</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
@@ -24,8 +24,8 @@
                     <path id="gauge-progress" class="gauge-fill" d="M20,100 A80,80 0 0,1 180,100" />
                 </svg>
                 <div class="center-data">
-                    <small id="status-text">جاهز للتحليل</small>
-                    <div class="speed-value"><span id="speed-num">0.0</span></div>
+                    <small id="status-text">جاهز للفحص</small>
+                    <div class="speed-value"><span id="speed-num">0.00</span></div>
                     <small class="unit">Mbps</small>
                 </div>
                 <canvas id="miniGraph"></canvas>
@@ -33,25 +33,25 @@
         </div>
 
         <div class="stats-grid">
-            <div class="stat-card" id="ping-un-card">
+            <div class="stat-card">
                 <label>PING (غير مثقل)</label>
                 <div class="data"><span id="ping-unloaded">0</span><small>ms</small></div>
             </div>
-            <div class="stat-card" id="ping-lo-card">
+            <div class="stat-card">
                 <label>PING (مثقل)</label>
                 <div class="data"><span id="ping-loaded">0</span><small>ms</small></div>
             </div>
-            <div class="stat-card" id="dl-card">
+            <div class="stat-card accent">
                 <label>DOWNLOAD</label>
-                <div class="data"><span id="download">0.0</span><small>Mb</small></div>
+                <div class="data"><span id="download">0.00</span><small>Mb</small></div>
             </div>
-            <div class="stat-card" id="ul-card">
+            <div class="stat-card accent">
                 <label>UPLOAD</label>
-                <div class="data"><span id="upload">0.0</span><small>Mb</small></div>
+                <div class="data"><span id="upload">0.00</span><small>Mb</small></div>
             </div>
         </div>
 
-        <button id="startBtn" onclick="runNetworkAudit()">بدء الفحص الشامل</button>
+        <button id="startBtn" onclick="runNetworkAudit()">بدء فحص الشبكة</button>
 
         <footer class="footer-note">
             2026 مشروع تخرج المجموعة السادسة - تقنية المعلومات
