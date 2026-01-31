@@ -2,50 +2,50 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>SPEED TEST - G6</title>
+    <title>SPEED TEST - G6 QUANTUM</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@800&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container">
+    <div class="main-wrapper">
         <h1 class="main-title">SPEED TEST</h1>
 
-        <div class="gauge-section">
-            <div class="gauge-ui">
-                <svg viewBox="0 0 200 200">
-                    <circle class="track" cx="100" cy="100" r="85" />
-                    <circle id="progress-bar" class="fill" cx="100" cy="100" r="85" />
+        <div class="master-container">
+            <div class="gauge-box">
+                <svg viewBox="0 0 200 200" class="gauge-svg">
+                    <circle class="gauge-track" cx="100" cy="100" r="88" />
+                    <circle id="gauge-fill" class="gauge-fill" cx="100" cy="100" r="88" />
                 </svg>
-                <div class="gauge-content">
-                    <span id="stage-label">جاهز</span>
-                    <h2 id="speed-val">0.00</h2>
+                <div class="gauge-data">
+                    <span id="status-label">نظام القياس جاهز</span>
+                    <div id="speed-display">0.00</div>
                     <small>Mbps</small>
                 </div>
             </div>
+
+            <div class="results-dashboard">
+                <div class="res-card">
+                    <label>الاستجابة (Ping)</label>
+                    <div class="res-val"><span id="p-un">0</span><small>ms</small></div>
+                </div>
+                <div class="res-card">
+                    <label>الاستجابة (ضغظ)</label>
+                    <div class="res-val"><span id="p-lo">0</span><small>ms</small></div>
+                </div>
+                <div class="res-card accent-down">
+                    <label>سرعة التحميل</label>
+                    <div class="res-val"><span id="d-val">0.00</span><small>Mb</small></div>
+                </div>
+                <div class="res-card accent-up">
+                    <label>سرعة الرفع</label>
+                    <div class="res-val"><span id="u-val">0.00</span><small>Mb</small></div>
+                </div>
+            </div>
+
+            <button id="startBtn" onclick="igniteEngine()">بدء الفحص الشامل</button>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-box">
-                <label>زمن الاستجابة</label>
-                <div class="value"><span id="p-un">0</span> <small>ms</small></div>
-            </div>
-            <div class="stat-box">
-                <label>الاستجابة (ضغط)</label>
-                <div class="value"><span id="p-lo">0</span> <small>ms</small></div>
-            </div>
-            <div class="stat-box download">
-                <label>سرعة التحميل</label>
-                <div class="value"><span id="d-val">0.00</span> <small>Mb</small></div>
-            </div>
-            <div class="stat-box upload">
-                <label>سرعة الرفع</label>
-                <div class="value"><span id="u-val">0.00</span> <small>Mb</small></div>
-            </div>
-        </div>
-
-        <button id="startBtn" onclick="startTest()">بدء فحص الشبكة</button>
-        
-        <div class="footer">مشروع تخرج المجموعة السادسة | هندسة الشبكات 2026</div>
+        <p class="footer-tag">مشروع تخرج المجموعة السادسة | هندسة الشبكات 2026</p>
     </div>
     <script src="script.js"></script>
 </body>
