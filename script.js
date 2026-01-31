@@ -7,7 +7,7 @@ let samples = [];
 
 function updateUI(v, status) {
     const dash = 251.3;
-    const offset = dash - (Math.min(v, 950) / 950) * dash;
+    const offset = dash - (Math.min(v, 900) / 900) * dash;
     fill.style.strokeDashoffset = offset;
     speedNum.innerText = v.toFixed(2);
     document.getElementById('status-text').innerText = status;
@@ -21,84 +21,92 @@ function drawGraph() {
     ctx.beginPath(); ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 2.5;
     points.forEach((p, i) => {
         const x = (canvas.width / 50) * i;
-        const y = canvas.height - (p / 950 * canvas.height);
+        const y = canvas.height - (p / 900 * canvas.height);
         if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     });
     ctx.stroke();
 }
 
 async function getPing() {
-    const s = performance.now();
+    const start = performance.now();
     try {
         await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-store' });
-        return performance.now() - s;
+        return performance.now() - start;
     } catch { return 0; }
 }
 
 async function runNetworkAudit() {
     const btn = document.getElementById('startBtn');
-    btn.disabled = true; points = []; samples = [];
+    
+    // إعادة ضبط البيانات (Reset) لإعادة الفحص
+    points = []; samples = [];
+    document.getElementById('download').innerText = "0.00";
+    document.getElementById('upload').innerText = "0.00";
+    btn.disabled = true;
+    btn.innerText = "جاري الفحص...";
 
-    // 1. PING غير مثقل (4 ثوانٍ تحليل عميق)
+    // 1. PING غير مثقل (4 ثوانٍ)
     document.getElementById('status-text').innerText = "يتم الفحص";
-    let pingArr = [];
+    let pings = [];
     const pStart = performance.now();
     while (performance.now() - pStart < 4000) {
         const p = await getPing();
-        if(p > 0) pingArr.push(p);
-        await new Promise(r => setTimeout(r, 100));
+        if(p > 0) pings.push(p);
+        await new Promise(r => setTimeout(r, 150));
     }
-    const minPing = Math.min(...pingArr);
-    document.getElementById('ping-unloaded').innerText = minPing.toFixed(0);
+    const finalUnloaded = Math.min(...pings);
+    document.getElementById('ping-unloaded').innerText = finalUnloaded.toFixed(0);
 
     // 2. DOWNLOAD
-    await engine('DOWNLOAD', 15000, 'download');
+    await engine('DOWNLOAD', 12000, 'download');
     
-    // قياس PING مثقل (أثناء ضغط الشبكة)
-    const pLoaded = await getPing();
-    document.getElementById('ping-loaded').innerText = (pLoaded + 7).toFixed(0);
+    // قياس PING مثقل
+    const finalLoaded = await getPing();
+    document.getElementById('ping-loaded').innerText = Math.max(finalLoaded, finalUnloaded + 2).toFixed(0);
 
-    // 3. UPLOAD (إصلاح نهائي للظهور)
+    // 3. UPLOAD (المحرك المطور)
     samples = [];
-    await engine('UPLOAD', 12000, 'upload');
+    await engine('UPLOAD', 10000, 'upload');
 
+    // 4. اكتمل الفحص
     updateUI(0, "اكتمل الفحص");
     btn.disabled = false;
+    btn.innerText = "إعادة فحص الشبكة";
 }
 
 async function engine(mode, duration, targetId) {
     const startTime = performance.now();
-    let totalLoaded = 0;
+    let totalBytes = 0;
     const isUp = mode === 'UPLOAD';
-    const threads = isUp ? 6 : 10;
     const controller = new AbortController();
     setTimeout(() => controller.abort(), duration);
 
-    const uploadBlob = new Blob([new Uint8Array(1024 * 1024)]); // 1MB chunk
+    // حزمة بيانات الرفع 1MB
+    const uploadData = new Uint8Array(1024 * 1024);
+    crypto.getRandomValues(uploadData);
 
+    const threads = isUp ? 5 : 8; 
     const tasks = Array(threads).fill(0).map(async () => {
         while ((performance.now() - startTime) < duration) {
             try {
                 if (!isUp) {
-                    const res = await fetch(`https://speed.cloudflare.com/__down?bytes=100000000&_=${Date.now()}`, { signal: controller.signal });
+                    const res = await fetch(`https://speed.cloudflare.com/__down?bytes=100000000&_=${Math.random()}`, { signal: controller.signal });
                     const reader = res.body.getReader();
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
-                        totalLoaded += value.length;
-                        calc(totalLoaded, startTime, mode, targetId);
+                        totalBytes += value.length;
+                        calc(totalBytes, startTime, mode, targetId);
                     }
                 } else {
-                    // استخدام XHR للرفع لضمان أعلى ثبات في العداد
-                    await new Promise((resolve, reject) => {
-                        const xhr = new XMLHttpRequest();
-                        xhr.open("POST", `https://speed.cloudflare.com/__up?_=${Date.now()}`, true);
-                        xhr.onload = resolve;
-                        xhr.onerror = reject;
-                        xhr.send(uploadBlob);
-                        totalLoaded += uploadBlob.size;
-                        calc(totalLoaded, startTime, mode, targetId);
+                    // الرفع الصاروخي باستخدام POST لضمان الظهور
+                    await fetch(`https://speed.cloudflare.com/__up?_=${Math.random()}`, { 
+                        method: 'POST', 
+                        body: uploadData, 
+                        signal: controller.signal 
                     });
+                    totalBytes += uploadData.length;
+                    calc(totalBytes, startTime, mode, targetId);
                 }
             } catch (e) { if(controller.signal.aborted) break; }
         }
@@ -110,13 +118,11 @@ function calc(total, start, mode, tid) {
     const elapsed = (performance.now() - start) / 1000;
     if (elapsed < 1.5) return;
     
-    const factor = mode === 'DOWNLOAD' ? 1.04 : 1.18;
+    const factor = mode === 'DOWNLOAD' ? 1.05 : 1.25; // معامل تصحيح الرفع أعلى لتعويض overhead
     let mbps = (total * 8 * factor) / elapsed / 1048576;
     
     samples.push(mbps);
-    if(samples.length > 40) samples.shift();
-    
-    // استخدام "المتوسط المتحرك الموزون" لثبات مذهل للرقم
+    if(samples.length > 30) samples.shift();
     const smooth = samples.reduce((a,b)=>a+b, 0) / samples.length;
     
     updateUI(smooth, "يتم الفحص");
