@@ -3,60 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G6 SpeedTest Quantum Gold</title>
+    <title>G6 Quantum X-Treme</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;900&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;900&family=Cairo:wght@300;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container">
-        <div class="header">
-            <h1 class="logo">G6 QUANTUM</h1>
-            <div id="connection-type" class="badge">فحص مستقر</div>
-        </div>
+    <div class="cyber-container">
+        <header class="cyber-header">
+            <div class="logo-area">
+                <span class="g6-text">G6</span>
+                <span class="quantum-text">QUANTUM</span>
+                <span class="version">X-TREME</span>
+            </div>
+            <div id="date-time" class="cyber-clock">2026 / 01 / 31</div>
+        </header>
 
-        <div class="main-gauge-card">
-            <div class="gauge-box">
-                <svg viewBox="0 0 200 120" class="gauge-svg">
-                    <defs>
-                        <linearGradient id="speedGrad" x1="0%" y1="0%" x2="100%">
-                            <stop offset="0%" style="stop-color:#00f2fe" />
-                            <stop offset="100%" style="stop-color:#4facfe" />
-                        </linearGradient>
-                    </defs>
-                    <path class="gauge-bg" d="M20,100 A80,80 0 0,1 180,100" />
-                    <path id="gauge-progress" class="gauge-fill" d="M20,100 A80,80 0 0,1 180,100" />
-                </svg>
-                <div class="center-data">
-                    <small id="status-text">جاهز للفحص</small>
-                    <div class="speed-value"><span id="speed-num">0.00</span></div>
-                    <small class="unit">Mbps</small>
+        <div class="main-stats-row">
+            <div class="hex-container">
+                <div class="hex-outer">
+                    <div class="hex-inner">
+                        <small id="stage-text">READY</small>
+                        <div class="speed-digit" id="speed-num">0.00</div>
+                        <span class="unit-text">Mbps</span>
+                    </div>
                 </div>
+                <svg class="hex-svg">
+                    <polygon id="hex-progress" points="100,10 190,55 190,145 100,190 10,145 10,55" />
+                </svg>
             </div>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <label>Ping (استقرار)</label>
-                <div class="data"><span id="ping-unloaded">0</span><small>ms</small></div>
+        <div class="data-grid">
+            <div class="data-box ping-idle">
+                <div class="box-label">PING IDLE</div>
+                <div class="box-value"><span id="ping-unloaded">0</span><small>ms</small></div>
             </div>
-            <div class="stat-card">
-                <label>Ping (ضغط)</label>
-                <div class="data"><span id="ping-loaded">0</span><small>ms</small></div>
+            <div class="data-box ping-load">
+                <div class="box-label">PING LOAD</div>
+                <div class="box-value"><span id="ping-loaded">0</span><small>ms</small></div>
             </div>
-            <div class="stat-card highlight-down">
-                <label>DOWNLOAD</label>
-                <div class="data"><span id="download">0.00</span><small>Mb</small></div>
+            <div class="data-box download-box">
+                <div class="box-label">DOWNLOAD</div>
+                <div class="box-value"><span id="download">0.00</span><small>Mb</small></div>
             </div>
-            <div class="stat-card highlight-up">
-                <label>UPLOAD</label>
-                <div class="data"><span id="upload">0.00</span><small>Mb</small></div>
+            <div class="data-box upload-box">
+                <div class="box-label">UPLOAD</div>
+                <div class="box-value"><span id="upload">0.00</span><small>Mb</small></div>
             </div>
         </div>
 
-        <button id="startBtn" onclick="runNetworkAudit()">بدء فحص الشبكة</button>
+        <div class="control-area">
+            <button id="startBtn" onclick="runNetworkAudit()">INITIALIZE AUDIT</button>
+        </div>
 
-        <footer class="footer-note">
-            © 2026 مشروع تخرج المجموعة السادسة - الإصدار الذهبي المعتمد
+        <footer class="cyber-footer">
+            NETWORK ENGINEERING | GROUP 6 | 2026
         </footer>
     </div>
     <script src="script.js"></script>
