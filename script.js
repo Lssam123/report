@@ -1,106 +1,114 @@
 const progBar = document.getElementById('progress-bar');
-const speedNum = document.getElementById('speed-num');
-const stageText = document.getElementById('stage-text');
+const speedEl = document.getElementById('speed-num');
+const stageEl = document.getElementById('stage-text');
 let samples = [];
 
-function updateUI(val, stage, color = "#00f2fe") {
-    // محيط الدائرة (2 * pi * r) = 2 * 3.14 * 90 = 565
+function updateUI(val, stage, color) {
     const offset = 565 - (Math.min(val, 900) / 900) * 565;
     progBar.style.strokeDashoffset = offset;
     progBar.style.stroke = color;
-    speedNum.innerText = val.toFixed(2);
-    stageText.innerText = stage;
-    stageText.style.color = color;
+    speedEl.innerText = val.toFixed(2);
+    stageEl.innerText = stage;
 }
 
+// دالة البنق المنفصلة
 async function getPing() {
-    const start = performance.now();
     try {
+        const start = performance.now();
         await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-store' });
         return performance.now() - start;
-    } catch { return 0; }
+    } catch (e) { return 0; }
 }
 
-async function runNetworkAudit() {
+// المحرك الرئيسي لإدارة التدفق
+async function mainFlow() {
     const btn = document.getElementById('startBtn');
     btn.disabled = true;
-    samples = [];
     
-    // 1. فحص البنق (Ping)
-    updateUI(0, "جاري فحص الاستجابة...");
-    let pings = [];
-    for(let i=0; i<10; i++) {
-        const p = await getPing();
-        if(p > 0) pings.push(p);
+    // 1. مرحلة البنق (Ping)
+    updateUI(0, "تحليل الاستجابة...", "#00f2fe");
+    let pingSum = 0;
+    for(let i=0; i<5; i++) {
+        pingSum += await getPing();
         await new Promise(r => setTimeout(r, 100));
     }
-    const idlePing = Math.min(...pings) || 0;
-    document.getElementById('ping-unloaded').innerText = idlePing.toFixed(0);
+    const avgPing = pingSum / 5;
+    document.getElementById('ping-unloaded').innerText = avgPing.toFixed(0);
 
-    // 2. فحص التحميل (Download) - سينتقل آلياً بعد انتهاء البنق
-    await runEngine('DOWNLOAD', 12000, 'download', "#00f2fe");
+    // 2. مرحلة التحميل (Download)
+    await runTest('DOWNLOAD', 10000, 'download', "#00f2fe");
 
-    // 3. البنق تحت الضغط
-    const loadedPing = await getPing();
-    document.getElementById('ping-loaded').innerText = Math.max(loadedPing, idlePing + 5).toFixed(0);
+    // 3. بنق تحت الضغط
+    const loadedP = await getPing();
+    document.getElementById('ping-loaded').innerText = Math.max(loadedP, avgPing + 5).toFixed(0);
 
-    // 4. فحص الرفع (Upload)
-    samples = [];
-    await runEngine('UPLOAD', 10000, 'upload', "#f093fb");
+    // 4. مرحلة الرفع (Upload)
+    await runTest('UPLOAD', 10000, 'upload', "#f093fb");
 
     // النهاية
-    updateUI(0, "تم الفحص");
+    updateUI(0, "اكتمل الفحص", "#00f2fe");
     btn.disabled = false;
-    btn.innerText = "إعادة فحص الشبكة";
+    btn.innerText = "إعادة الفحص";
 }
 
-async function runEngine(mode, duration, tid, color) {
+async function runTest(mode, duration, elementId, color) {
     const isUp = mode === 'UPLOAD';
     const startTime = performance.now();
-    let bytesClaimed = 0;
+    let totalBytes = 0;
+    samples = [];
+
     const controller = new AbortController();
     setTimeout(() => controller.abort(), duration);
 
-    const dummyData = new Uint8Array(1024 * 1024); // 1MB
-    crypto.getRandomValues(dummyData);
+    // بيانات وهمية للرفع
+    const blob = new Uint8Array(1024 * 1024); // 1MB
+    crypto.getRandomValues(blob);
 
-    const threadCount = isUp ? 4 : 8;
-    const tasks = Array(threadCount).fill(0).map(async () => {
-        while ((performance.now() - startTime) < duration) {
-            try {
-                const url = `https://speed.cloudflare.com/__${isUp ? 'up' : 'down'}?_=${Math.random()}`;
-                if (!isUp) {
-                    const res = await fetch(url + "&bytes=50000000", { signal: controller.signal });
-                    const reader = res.body.getReader();
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        bytesClaimed += value.length;
-                        calculate(bytesClaimed, startTime, mode, tid, color);
+    const threads = isUp ? 4 : 6;
+    const promises = [];
+
+    for (let i = 0; i < threads; i++) {
+        promises.push((async () => {
+            while (performance.now() - startTime < duration) {
+                try {
+                    const url = `https://speed.cloudflare.com/__${isUp ? 'up' : 'down'}?bytes=${isUp ? '' : '25000000'}&_=${Math.random()}`;
+                    
+                    if (!isUp) {
+                        const response = await fetch(url, { signal: controller.signal });
+                        const reader = response.body.getReader();
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            totalBytes += value.length;
+                            calculate(totalBytes, startTime, mode, elementId, color);
+                        }
+                    } else {
+                        await fetch(url, { method: 'POST', body: blob, signal: controller.signal });
+                        totalBytes += blob.length;
+                        calculate(totalBytes, startTime, mode, elementId, color);
                     }
-                } else {
-                    await fetch(url, { method: 'POST', body: dummyData, signal: controller.signal });
-                    bytesClaimed += dummyData.length;
-                    calculate(bytesClaimed, startTime, mode, tid, color);
+                } catch (e) {
+                    if (controller.signal.aborted) break;
                 }
-            } catch (e) { if(controller.signal.aborted) break; }
-        }
-    });
-    return Promise.all(tasks); // نستخدم return لضمان انتظار انتهاء المهام
+            }
+        })());
+    }
+
+    await Promise.all(promises);
 }
 
-function calculate(total, start, mode, tid, color) {
-    const elapsed = (performance.now() - start) / 1000;
-    if (elapsed < 1) return;
-    
-    // معامل تصحيح (Correction Factor)
-    const factor = mode === 'DOWNLOAD' ? 1.05 : 1.25;
-    const mbps = (total * 8 * factor) / elapsed / 1048576;
+function calculate(total, start, mode, eid, color) {
+    const now = performance.now();
+    const duration = (now - start) / 1000;
+    if (duration < 0.5) return;
+
+    const correction = mode === 'DOWNLOAD' ? 1.05 : 1.25;
+    const mbps = (total * 8 * correction) / duration / 1048576;
     
     samples.push(mbps);
-    if(samples.length > 30) samples.shift();
+    if (samples.length > 20) samples.shift();
     const average = samples.reduce((a, b) => a + b, 0) / samples.length;
-    
-    updateUI(average, mode === 'DOWNLOAD' ? "جاري التحميل..." : "جاري الرفع...", color);
-    document.getElementById(tid).innerText = average.toFixed(2);
+
+    updateUI(average, mode === 'DOWNLOAD' ? "جاري التحميل" : "جاري الرفع", color);
+    document.getElementById(eid).innerText = average.toFixed(2);
 }
