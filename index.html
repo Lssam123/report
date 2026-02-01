@@ -2,56 +2,57 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>G6 Quantum Analyzer - Full Suite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edge Network Analyzer Pro</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="main-container">
-        <header class="glass-header">
-            <div class="logo">G6 <span>QUANTUM</span></div>
-            <div id="network-info">جاري فحص الشبكة...</div>
+    <div class="app-container">
+        <header>
+            <h1>محلل الشبكة المتقدم <span class="badge">Edge</span></h1>
+            <p>قياس السرعة الحقيقية وزمن الاستجابة تحت الضغط</p>
         </header>
 
-        <div class="hero-gauge">
-            <div class="gauge-ring">
-                <svg viewBox="0 0 200 200">
-                    <circle class="bg" cx="100" cy="100" r="90" />
-                    <circle id="progress-bar" class="fill" cx="100" cy="100" r="90" />
-                </svg>
-                <div class="gauge-data">
-                    <span id="test-label">جاهز</span>
-                    <h1 id="main-speed">0.00</h1>
-                    <small>Mbps</small>
+        <div class="main-stats">
+            <div class="card">
+                <label>البنق (خامل)</label>
+                <div class="value" id="ping-idle">--</div>
+                <span class="unit">ms</span>
+            </div>
+            <div class="card highlight">
+                <label>البنق (تحت الضغط)</label>
+                <div class="value" id="ping-loaded">--</div>
+                <span class="unit">ms</span>
+            </div>
+            <div class="card">
+                <label>التذبذب (Jitter)</label>
+                <div class="value" id="jitter">--</div>
+                <span class="unit">ms</span>
+            </div>
+        </div>
+
+        <div class="gauge-section">
+            <div class="gauge">
+                <div class="gauge-outer"></div>
+                <div class="gauge-inner">
+                    <div class="gauge-needle" id="needle"></div>
+                    <div class="gauge-data">
+                        <h2 id="download-speed">0</h2>
+                        <p>Mbps</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="results-grid">
-            <div class="res-box">
-                <label>البنق (غير مثقل)</label>
-                <div class="res-val"><span id="ping-val">0</span><small>ms</small></div>
-            </div>
-            <div class="res-box accent-down">
-                <label>سرعة التحميل</label>
-                <div class="res-val"><span id="down-val">0.00</span><small>Mb/s</small></div>
-            </div>
-            <div class="res-box accent-up">
-                <label>سرعة الرفع</label>
-                <div class="res-val"><span id="up-val">0.00</span><small>Mb/s</small></div>
-            </div>
+        <div class="controls">
+            <button id="start-btn">بدء فحص الشبكة</button>
+            <div id="status-bar" class="status">جاهز للاختبار</div>
         </div>
 
-        <div class="chart-area">
-            <canvas id="liveChart"></canvas>
-        </div>
-
-        <button id="startBtn" onclick="runFullSuite()">بدء الاختبار الشامل</button>
-        
-        <p class="footer-text">نظام تحليل الشبكات المتقدم - المجموعة السادسة 2026</p>
+        <footer class="info-footer">
+            <p>يستخدم الفحص 8 مسارات متزامنة (Threads) مع سيرفرات Cloudflare Edge لضمان أقصى دقة.</p>
+        </footer>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
