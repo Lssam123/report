@@ -2,34 +2,46 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>SPEED TEST - G6</title>
+    <title>SPEED TEST - G6 FINAL</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@800&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
+    <div class="app-container">
         <h1 class="main-title">SPEED TEST</h1>
 
-        <div class="gauge-area">
-            <div class="display">
-                <span id="label">جاهز</span>
-                <div id="number">0.00</div>
-                <small>Mbps</small>
+        <div class="gauge-section">
+            <div class="gauge-wrapper">
+                <svg viewBox="0 0 200 200">
+                    <circle class="track" cx="100" cy="100" r="85" />
+                    <circle id="progress-bar" class="fill" cx="100" cy="100" r="85" />
+                </svg>
+                <div class="gauge-content">
+                    <span id="stage-text">جاهز</span>
+                    <h2 id="speed-num">0.00</h2>
+                    <small>Mbps</small>
+                </div>
             </div>
-            <svg viewBox="0 0 200 200">
-                <circle class="bg" cx="100" cy="100" r="90" />
-                <circle id="bar" class="progress" cx="100" cy="100" r="90" />
-            </svg>
         </div>
 
-        <div class="stats">
-            <div class="card">الاستجابة: <span id="p-val">0</span> ms</div>
-            <div class="card">التحميل: <span id="d-val">0.00</span> Mb</div>
-            <div class="card">الرفع: <span id="u-val">0.00</span> Mb</div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <label>زمن الاستجابة</label>
+                <div class="value"><span id="p-val">0</span><small>ms</small></div>
+            </div>
+            <div class="stat-card down">
+                <label>سرعة التحميل</label>
+                <div class="value"><span id="d-val">0.00</span><small>Mbps</small></div>
+            </div>
+            <div class="stat-card up">
+                <label>سرعة الرفع</label>
+                <div class="value"><span id="u-val">0.00</span><small>Mbps</small></div>
+            </div>
         </div>
 
-        <button id="startBtn" onclick="runMain()">بدء الفحص</button>
-        <div class="footer">المجموعة السادسة 2026</div>
+        <button id="startBtn" onclick="initiatePerfectTest()">بدء الفحص الشامل</button>
+        
+        <div class="footer">مشروع تخرج المجموعة السادسة - الإصدار المعتمد 2026</div>
     </div>
     <script src="script.js"></script>
 </body>
