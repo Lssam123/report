@@ -2,47 +2,56 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>SPEED TEST - G6 FINAL</title>
+    <title>G6 Quantum Analyzer - Full Suite</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@800&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container">
-        <h1 class="main-title">SPEED TEST</h1>
+    <div class="main-container">
+        <header class="glass-header">
+            <div class="logo">G6 <span>QUANTUM</span></div>
+            <div id="network-info">جاري فحص الشبكة...</div>
+        </header>
 
-        <div class="gauge-section">
-            <div class="gauge-wrapper">
+        <div class="hero-gauge">
+            <div class="gauge-ring">
                 <svg viewBox="0 0 200 200">
-                    <circle class="track" cx="100" cy="100" r="85" />
-                    <circle id="progress-bar" class="fill" cx="100" cy="100" r="85" />
+                    <circle class="bg" cx="100" cy="100" r="90" />
+                    <circle id="progress-bar" class="fill" cx="100" cy="100" r="90" />
                 </svg>
-                <div class="gauge-content">
-                    <span id="stage-text">جاهز</span>
-                    <h2 id="speed-num">0.00</h2>
+                <div class="gauge-data">
+                    <span id="test-label">جاهز</span>
+                    <h1 id="main-speed">0.00</h1>
                     <small>Mbps</small>
                 </div>
             </div>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <label>زمن الاستجابة</label>
-                <div class="value"><span id="p-val">0</span><small>ms</small></div>
+        <div class="results-grid">
+            <div class="res-box">
+                <label>البنق (غير مثقل)</label>
+                <div class="res-val"><span id="ping-val">0</span><small>ms</small></div>
             </div>
-            <div class="stat-card down">
+            <div class="res-box accent-down">
                 <label>سرعة التحميل</label>
-                <div class="value"><span id="d-val">0.00</span><small>Mbps</small></div>
+                <div class="res-val"><span id="down-val">0.00</span><small>Mb/s</small></div>
             </div>
-            <div class="stat-card up">
+            <div class="res-box accent-up">
                 <label>سرعة الرفع</label>
-                <div class="value"><span id="u-val">0.00</span><small>Mbps</small></div>
+                <div class="res-val"><span id="up-val">0.00</span><small>Mb/s</small></div>
             </div>
         </div>
 
-        <button id="startBtn" onclick="initiatePerfectTest()">بدء الفحص الشامل</button>
+        <div class="chart-area">
+            <canvas id="liveChart"></canvas>
+        </div>
+
+        <button id="startBtn" onclick="runFullSuite()">بدء الاختبار الشامل</button>
         
-        <div class="footer">مشروع تخرج المجموعة السادسة - الإصدار المعتمد 2026</div>
+        <p class="footer-text">نظام تحليل الشبكات المتقدم - المجموعة السادسة 2026</p>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
