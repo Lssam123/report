@@ -2,33 +2,37 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>محرك فحص الشبكة الخارق</title>
+    <title>نظام فحص الاستجابة والسرعة الخارق</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="test-container">
         <div class="monitor-screen">
             <div class="live-speed" id="live-mbps">0.00</div>
-            <div class="label">Mbps</div>
+            <div class="label">ميغابت/ثانية</div>
         </div>
 
         <div class="results-table">
             <div class="result-box">
-                <label>البنق الخامل</label>
-                <div id="res-ping">--</div><span>ms</span>
+                <label>البنق (غير مثقل)</label>
+                <div><span id="res-ping-idle">--</span> <small>ms</small></div>
+            </div>
+            <div class="result-box highlighted">
+                <label>البنق (تحت الضغط)</label>
+                <div><span id="res-ping-loaded">--</span> <small>ms</small></div>
             </div>
             <div class="result-box">
-                <label>أقصى تحميل</label>
-                <div id="res-dl">--</div><span>Mbps</span>
+                <label>سرعة التحميل</label>
+                <div><span id="res-dl">--</span> <small>Mbps</small></div>
             </div>
             <div class="result-box">
-                <label>أقصى رفع</label>
-                <div id="res-ul">--</div><span>Mbps</span>
+                <label>سرعة الرفع</label>
+                <div><span id="res-ul">--</span> <small>Mbps</small></div>
             </div>
         </div>
 
-        <button id="ignite">بدء الفحص الخارق</button>
-        <div id="status">جاهز للاختبار بأقصى طاقة</div>
+        <button id="ignite">بدء الفحص الشامل</button>
+        <div id="status">جاهز للتحليل الدقيق</div>
     </div>
     <script src="script.js"></script>
 </body>
