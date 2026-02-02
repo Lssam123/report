@@ -1,65 +1,11 @@
-:root {
-    --primary: #00f2fe;
-    --secondary: #4facfe;
-    --danger: #ff4b2b;
-    --bg-main: #06090f;
-    --glass: rgba(255, 255, 255, 0.03);
-}
-
-body {
-    background-color: var(--bg-main);
-    color: #fff;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0; padding: 20px;
-    display: flex; justify-content: center; min-height: 100vh;
-}
-
-.main-wrapper {
-    width: 100%; max-width: 950px;
-    background: #0d1117; border-radius: 35px;
-    padding: 30px; border: 1px solid rgba(255,255,255,0.05);
-    box-shadow: 0 40px 80px rgba(0,0,0,0.6);
-}
-
-.dashboard-header {
-    display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 20px;
-}
-
-.brand-identity h1 { font-size: 1.8rem; margin: 0; }
-.brand-identity span { color: var(--primary); text-shadow: 0 0 15px var(--primary); }
-
-.gauge-hub { height: 320px; position: relative; margin: 30px 0; }
-.digital-readout {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    text-align: center;
-}
-.digital-readout h2 { font-size: 5.5rem; margin: 0; font-weight: 900; }
-
-.stats-grid {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px;
-}
-
-.stat-card {
-    background: var(--glass); padding: 20px; border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.05); transition: 0.3s;
-}
-
-.stat-card:hover { border-color: var(--primary); transform: translateY(-5px); }
-.stat-card label { font-size: 0.8rem; color: #8b949e; }
-.stat-card .stat-value { font-size: 1.6rem; font-weight: bold; margin-top: 10px; }
-
-.efficiency-report {
-    background: rgba(0,0,0,0.2); padding: 20px; border-radius: 25px; margin-bottom: 30px;
-}
-
-.report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-.report-item { background: rgba(255,255,255,0.02); padding: 15px; border-radius: 15px; font-size: 0.9rem; }
-
-button {
-    width: 100%; padding: 22px; border-radius: 18px; border: none;
-    background: linear-gradient(90deg, var(--secondary), var(--primary));
-    color: #000; font-weight: bold; font-size: 1.3rem; cursor: pointer; transition: 0.3s;
-}
-
-button:hover { box-shadow: 0 0 30px rgba(0, 242, 254, 0.4); }
+body { background: #050505; color: #00ff41; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+.test-container { width: 400px; text-align: center; border: 2px solid #00ff41; padding: 30px; border-radius: 10px; background: #000; box-shadow: 0 0 20px rgba(0,255,65,0.2); }
+.monitor-screen { margin-bottom: 30px; padding: 20px; border-bottom: 1px solid #222; }
+.live-speed { font-size: 4rem; font-weight: bold; }
+.results-table { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px; }
+.result-box { display: flex; justify-content: space-between; background: #111; padding: 10px 15px; border-radius: 5px; border: 1px solid #333; }
+.result-box label { color: #888; }
+.result-box div { font-weight: bold; color: #fff; }
+button { width: 100%; padding: 15px; background: #00ff41; color: #000; border: none; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
+button:disabled { background: #222; color: #444; }
+#status { margin-top: 15px; font-size: 0.8rem; color: #888; }
