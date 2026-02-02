@@ -3,65 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>محلل الشبكة الاحترافي | Edge Analyzer</title>
+    <title>Edge Speed Analyzer Ultra</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-container">
-        <header>
-            <h1>محلل أداء الشبكة <span class="badge">Edge Pro</span></h1>
-            <p>مشروع فحص السرعة المتطور باستخدام تقنيات Multi-threading</p>
-        </header>
+    <div class="glass-container">
+        <nav>
+            <div class="logo">NETWORK<span>PRO</span></div>
+            <div id="connection-type" class="badge">جاري التحقق من الشبكة...</div>
+        </nav>
 
-        <div class="main-stats">
-            <div class="card">
-                <label>البنق (خامل)</label>
-                <div class="value" id="ping-idle">--</div>
-                <span class="unit">ms</span>
-            </div>
-            <div class="card highlight-dl">
-                <label>التحميل</label>
-                <div class="value" id="download-speed">0</div>
-                <span class="unit">Mbps</span>
-            </div>
-            <div class="card highlight-ul">
-                <label>الرفع</label>
-                <div class="value" id="upload-speed">0</div>
-                <span class="unit">Mbps</span>
-            </div>
-            <div class="card">
-                <label>البنق (مضغوط)</label>
-                <div class="value" id="ping-loaded">--</div>
-                <span class="unit">ms</span>
-            </div>
-        </div>
-
-        <div class="gauge-section">
-            <div class="gauge">
-                <div class="gauge-body">
-                    <div class="gauge-fill" id="gauge-fill"></div>
-                    <div class="gauge-cover">
-                        <span id="gauge-text">0</span>
-                        <small>Mbps</small>
-                    </div>
+        <div class="hero-stats">
+            <div class="main-gauge">
+                <canvas id="speedChart"></canvas>
+                <div class="gauge-center">
+                    <h2 id="current-mbps">0</h2>
+                    <p>Mbps</p>
                 </div>
             </div>
         </div>
 
-        <div class="progress-area">
-            <div class="progress-bar-bg">
-                <div class="progress-bar-fill" id="progress-bar"></div>
+        <div class="results-grid">
+            <div class="res-card">
+                <span>التحميل (Peak)</span>
+                <strong id="dl-max">0.0</strong>
             </div>
-            <div id="status-bar" class="status">جاهز للاختبار</div>
+            <div class="res-card">
+                <span>الرفع (Peak)</span>
+                <strong id="ul-max">0.0</strong>
+            </div>
+            <div class="res-card">
+                <span>ثبات الاتصال</span>
+                <strong id="stability">--</strong>
+            </div>
         </div>
 
-        <div class="controls">
-            <button id="start-btn">بدء الفحص الشامل</button>
+        <div class="latency-bar">
+            <div class="lat-item">البنق الخامل: <span id="p-idle">0</span>ms</div>
+            <div class="lat-item">البنق تحت الضغط: <span id="p-loaded">0</span>ms</div>
         </div>
 
-        <footer class="tech-specs">
-            <small>بروتوكول: HTTP/2 Streaming | سيرفرات: Cloudflare Edge | المسارات: 8 Threads</small>
-        </footer>
+        <div class="actions">
+            <button id="start-btn">بدء الفحص التوربيني</button>
+            <p id="status">جاهز لاختبار عرض النطاق الترددي</p>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
