@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edge Network Analyzer Pro</title>
+    <title>محلل الشبكة الاحترافي | Edge Analyzer</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="app-container">
         <header>
-            <h1>محلل الشبكة المتقدم <span class="badge">Edge</span></h1>
-            <p>قياس السرعة الحقيقية وزمن الاستجابة تحت الضغط</p>
+            <h1>محلل أداء الشبكة <span class="badge">Edge Pro</span></h1>
+            <p>مشروع فحص السرعة المتطور باستخدام تقنيات Multi-threading</p>
         </header>
 
         <div class="main-stats">
@@ -19,38 +19,48 @@
                 <div class="value" id="ping-idle">--</div>
                 <span class="unit">ms</span>
             </div>
-            <div class="card highlight">
-                <label>البنق (تحت الضغط)</label>
-                <div class="value" id="ping-loaded">--</div>
-                <span class="unit">ms</span>
+            <div class="card highlight-dl">
+                <label>التحميل</label>
+                <div class="value" id="download-speed">0</div>
+                <span class="unit">Mbps</span>
+            </div>
+            <div class="card highlight-ul">
+                <label>الرفع</label>
+                <div class="value" id="upload-speed">0</div>
+                <span class="unit">Mbps</span>
             </div>
             <div class="card">
-                <label>التذبذب (Jitter)</label>
-                <div class="value" id="jitter">--</div>
+                <label>البنق (مضغوط)</label>
+                <div class="value" id="ping-loaded">--</div>
                 <span class="unit">ms</span>
             </div>
         </div>
 
         <div class="gauge-section">
             <div class="gauge">
-                <div class="gauge-outer"></div>
-                <div class="gauge-inner">
-                    <div class="gauge-needle" id="needle"></div>
-                    <div class="gauge-data">
-                        <h2 id="download-speed">0</h2>
-                        <p>Mbps</p>
+                <div class="gauge-body">
+                    <div class="gauge-fill" id="gauge-fill"></div>
+                    <div class="gauge-cover">
+                        <span id="gauge-text">0</span>
+                        <small>Mbps</small>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="controls">
-            <button id="start-btn">بدء فحص الشبكة</button>
+        <div class="progress-area">
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progress-bar"></div>
+            </div>
             <div id="status-bar" class="status">جاهز للاختبار</div>
         </div>
 
-        <footer class="info-footer">
-            <p>يستخدم الفحص 8 مسارات متزامنة (Threads) مع سيرفرات Cloudflare Edge لضمان أقصى دقة.</p>
+        <div class="controls">
+            <button id="start-btn">بدء الفحص الشامل</button>
+        </div>
+
+        <footer class="tech-specs">
+            <small>بروتوكول: HTTP/2 Streaming | سيرفرات: Cloudflare Edge | المسارات: 8 Threads</small>
         </footer>
     </div>
     <script src="script.js"></script>
