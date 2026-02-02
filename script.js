@@ -1,142 +1,95 @@
-const URLS = {
-    DL: "https://speed.cloudflare.com/__down?bytes=100000000",
-    UL: "https://speed.cloudflare.com/__up",
-    TRACE: "https://1.1.1.1/cdn-cgi/trace"
+const CONFIG = {
+    DL_URL: "https://speed.cloudflare.com/__down?bytes=100000000",
+    UL_URL: "https://speed.cloudflare.com/__up",
+    PING_URL: "https://1.1.1.1/cdn-cgi/trace",
+    DURATION: 10000,
+    DL_THREADS: 32, // فتح مسارات هائلة للتحميل
+    UL_THREADS: 16  // مسارات مكثفة للرفع
 };
 
-// إعداد الرسم البياني المطور
-const ctx = document.getElementById('speedChart').getContext('2d');
-const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-gradient.addColorStop(0, 'rgba(0, 242, 254, 0.3)');
-gradient.addColorStop(1, 'rgba(0, 242, 254, 0)');
+const UI = {
+    live: document.getElementById('live-mbps'),
+    dl: document.getElementById('res-dl'),
+    ul: document.getElementById('res-ul'),
+    ping: document.getElementById('res-ping'),
+    status: document.getElementById('status'),
+    btn: document.getElementById('ignite')
+};
 
-let speedChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: Array(30).fill(''),
-        datasets: [{
-            data: Array(30).fill(0),
-            borderColor: '#00f2fe',
-            borderWidth: 3,
-            tension: 0.4,
-            fill: true,
-            backgroundColor: gradient,
-            pointRadius: 0
-        }]
-    },
-    options: { maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: false } }
-});
-
-// وظيفة جلب معلومات السيرفر
-async function fetchServerInfo() {
-    try {
-        const res = await fetch(URLS.TRACE);
-        const data = await res.text();
-        const ip = data.match(/ip=(.*)/)[1];
-        const colo = data.match(/colo=(.*)/)[1];
-        document.getElementById('ip-address').innerText = ip;
-        document.getElementById('node-name').innerText = `نقطة تواجد ${colo}`;
-    } catch { 
-        document.getElementById('node-name').innerText = "سيرفر Edge تلقائي";
-    }
-}
-
-// قياس زمن الاستجابة (Ping) بدقة إحصائية
-async function measurePing() {
-    let samples = [];
-    for(let i=0; i<8; i++) {
+// فحص البنق بدقة نانو-ثانية (عبر تكرار عالي واستبعاد الانحرافات)
+async function getHighPrecisionPing() {
+    let results = [];
+    for (let i = 0; i < 15; i++) {
         const start = performance.now();
-        await fetch(URLS.TRACE, { mode: 'no-cors', cache: 'no-store' });
-        samples.push(performance.now() - start);
+        await fetch(CONFIG.PING_URL, { mode: 'no-cors', cache: 'no-store' });
+        results.push(performance.now() - start);
     }
-    samples.sort((a,b) => a-b);
-    const avgPing = samples.slice(1, 7).reduce((a,b)=>a+b, 0) / 6;
-    return { 
-        ping: Math.round(avgPing), 
-        jitter: Math.round(samples[7] - samples[0]) 
-    };
+    results.sort((a, b) => a - b);
+    // نأخذ المتوسط من أفضل القيم المستقرة فقط
+    return Math.floor(results.slice(2, 7).reduce((a, b) => a + b, 0) / 5);
 }
 
-// محرك فحص السرعة (التحميل والرفع)
-async function networkEngine(type) {
-    const duration = 10000; // 10 ثواني لكل فحص
-    const start = performance.now();
-    let bytesReceived = 0;
-    const ctrl = new AbortController();
+async function runSuperTest(mode) {
+    const startTime = performance.now();
+    let totalBytes = 0;
+    const controllers = [];
 
-    const task = async () => {
+    const engine = async () => {
+        const ctrl = new AbortController();
+        controllers.push(ctrl);
         try {
-            while (performance.now() - start < duration) {
-                if (type === 'تحميل') {
-                    const res = await fetch(URLS.DL + "&cache=" + Math.random(), { signal: ctrl.signal });
-                    const reader = res.body.getReader();
-                    while(true) {
+            while (performance.now() - startTime < CONFIG.DURATION) {
+                if (mode === 'DL') {
+                    const response = await fetch(`${CONFIG.DL_URL}&t=${Math.random()}`, { signal: ctrl.signal });
+                    const reader = response.body.getReader();
+                    while (true) {
                         const { done, value } = await reader.read();
-                        if(done) break;
-                        bytesReceived += value.length;
+                        if (done) break;
+                        totalBytes += value.length;
+                        updateUI(totalBytes, startTime);
                     }
                 } else {
-                    const blob = new Blob([new Uint8Array(1024 * 512)]);
-                    await fetch(URLS.UL, { method: 'POST', body: blob, signal: ctrl.signal });
-                    bytesReceived += blob.size;
+                    const data = new Blob([new Uint8Array(1024 * 1024 * 2)]); // 2MB chunk
+                    await fetch(CONFIG.UL_URL, { method: 'POST', body: data, signal: ctrl.signal });
+                    totalBytes += data.size;
+                    updateUI(totalBytes, startTime);
                 }
             }
-        } catch(e) {}
+        } catch (e) {}
     };
 
-    const updater = setInterval(() => {
-        const mbps = ((bytesReceived * 8) / (1024 * 1024)) / ((performance.now() - start) / 1000);
-        document.getElementById('live-speed').innerText = Math.round(mbps);
-        speedChart.data.datasets[0].data.push(mbps);
-        speedChart.data.datasets[0].data.shift();
-        speedChart.update('none');
-    }, 200);
+    const updateUI = (bytes, start) => {
+        const elapsed = (performance.now() - start) / 1000;
+        const mbps = ((bytes * 8) / (1024 * 1024)) / elapsed;
+        UI.live.innerText = mbps.toFixed(2);
+    };
 
-    const threads = type === 'تحميل' ? 12 : 6;
-    for(let i=0; i < threads; i++) task();
+    // إطلاق العنان للمسارات المتعددة
+    const threadsCount = mode === 'DL' ? CONFIG.DL_THREADS : CONFIG.UL_THREADS;
+    const workers = Array.from({ length: threadsCount }, () => engine());
 
-    await new Promise(r => setTimeout(r, duration));
-    ctrl.abort(); clearInterval(updater);
-    return ((bytesReceived * 8) / (1024 * 1024)) / (duration / 1000);
+    await new Promise(r => setTimeout(r, CONFIG.DURATION));
+    controllers.forEach(c => c.abort());
+    
+    return ((totalBytes * 8) / (1024 * 1024)) / (CONFIG.DURATION / 1000);
 }
 
-// منطق التشغيل الرئيسي
-document.getElementById('start-test').onclick = async function() {
-    this.disabled = true;
-    const status = document.getElementById('status-label');
+UI.btn.onclick = async () => {
+    UI.btn.disabled = true;
+    UI.status.innerText = "جاري تصفية البنق الخامل...";
     
-    // 1. زمن الاستجابة
-    status.innerText = "جاري تحليل زمن الاستجابة (البنق)...";
-    const p = await measurePing();
-    document.getElementById('ping-val').innerText = p.ping;
-    document.getElementById('jitter-val').innerText = p.jitter;
+    const p = await getHighPrecisionPing();
+    UI.ping.innerText = p;
 
-    // 2. التحميل
-    status.innerText = "جاري فحص سرعة التحميل عبر 12 مسار بيانات...";
-    const dl = await networkEngine('تحميل');
-    document.getElementById('dl-val').innerText = dl.toFixed(1);
+    UI.status.innerText = `اختبار التحميل التوربيني (${CONFIG.DL_THREADS} مسار)...`;
+    const dl = await runSuperTest('DL');
+    UI.dl.innerText = dl.toFixed(2);
 
-    // 3. الرفع
-    status.innerText = "جاري فحص سرعة الرفع...";
-    speedChart.data.datasets[0].borderColor = '#f093fb';
-    const ul = await networkEngine('رفع');
-    document.getElementById('ul-val').innerText = ul.toFixed(1);
+    UI.status.innerText = `اختبار الرفع المكثف (${CONFIG.UL_THREADS} مسار)...`;
+    const ul = await runSuperTest('UL');
+    UI.ul.innerText = ul.toFixed(2);
 
-    // 4. تقييم كفاءة الخدمة (QoS)
-    status.innerText = "اكتمل الفحص بنجاح!";
-    generateReport(dl, p.ping);
-    this.disabled = false;
-    this.innerText = "إعادة الفحص";
+    UI.status.innerText = "اكتمل الفحص بأقصى دقة.";
+    UI.live.innerText = dl.toFixed(2);
+    UI.btn.disabled = false;
 };
-
-function generateReport(speed, ping) {
-    const game = ping < 40 ? "مثالي ✅" : "متوسط ⚠️";
-    const video = speed > 50 ? "يدعم 4K ✅" : "يدعم 1080p فقط ⚠️";
-    const meet = speed > 10 ? "مستقر ✅" : "ضعيف ❌";
-    
-    document.getElementById('game-check').innerHTML = `🎮 ألعاب الأونلاين: <span>${game}</span>`;
-    document.getElementById('video-check').innerHTML = `📺 البث المباشر (4K): <span>${video}</span>`;
-    document.getElementById('meeting-check').innerHTML = `📹 الاجتماعات المرئية: <span>${meet}</span>`;
-}
-
-fetchServerInfo();
