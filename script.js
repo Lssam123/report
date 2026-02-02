@@ -1,126 +1,142 @@
-const API = {
+const URLS = {
     DL: "https://speed.cloudflare.com/__down?bytes=100000000",
     UL: "https://speed.cloudflare.com/__up",
     TRACE: "https://1.1.1.1/cdn-cgi/trace"
 };
 
-// إعداد الرسم البياني الملون (Gradient Chart)
-const ctx = document.getElementById('mainChart').getContext('2d');
+// إعداد الرسم البياني المطور
+const ctx = document.getElementById('speedChart').getContext('2d');
 const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-gradient.addColorStop(0, 'rgba(0, 242, 254, 0.4)');
+gradient.addColorStop(0, 'rgba(0, 242, 254, 0.3)');
 gradient.addColorStop(1, 'rgba(0, 242, 254, 0)');
 
-let chart = new Chart(ctx, {
+let speedChart = new Chart(ctx, {
     type: 'line',
     data: {
         labels: Array(30).fill(''),
         datasets: [{
             data: Array(30).fill(0),
             borderColor: '#00f2fe',
-            borderWidth: 4,
+            borderWidth: 3,
+            tension: 0.4,
             fill: true,
             backgroundColor: gradient,
-            tension: 0.4,
             pointRadius: 0
         }]
     },
-    options: { maintainAspectRatio: false, plugins: { legend: false }, scales: { x: { display: false }, y: { display: false } } }
+    options: { maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: false } }
 });
 
-async function getTrace() {
+// وظيفة جلب معلومات السيرفر
+async function fetchServerInfo() {
     try {
-        const res = await fetch(API.TRACE);
+        const res = await fetch(URLS.TRACE);
         const data = await res.text();
-        document.getElementById('isp-node').innerText = data.match(/colo=(.*)/)[1] + " Node";
-        document.getElementById('ip-addr').innerText = data.match(/ip=(.*)/)[1];
-    } catch(e) {}
-}
-
-async function smartPing() {
-    let times = [];
-    for(let i=0; i<10; i++) {
-        const start = performance.now();
-        await fetch(API.TRACE, { mode: 'no-cors', cache: 'no-store' });
-        times.push(performance.now() - start);
+        const ip = data.match(/ip=(.*)/)[1];
+        const colo = data.match(/colo=(.*)/)[1];
+        document.getElementById('ip-address').innerText = ip;
+        document.getElementById('node-name').innerText = `نقطة تواجد ${colo}`;
+    } catch { 
+        document.getElementById('node-name').innerText = "سيرفر Edge تلقائي";
     }
-    times.sort();
-    const avg = times.slice(2, 8).reduce((a,b)=>a+b, 0) / 6;
-    return { ping: Math.round(avg), jitter: Math.round(times[9] - times[0]) };
 }
 
-async function runEngine(mode) {
-    const duration = 10000;
-    const startTime = performance.now();
-    let bytes = 0;
+// قياس زمن الاستجابة (Ping) بدقة إحصائية
+async function measurePing() {
+    let samples = [];
+    for(let i=0; i<8; i++) {
+        const start = performance.now();
+        await fetch(URLS.TRACE, { mode: 'no-cors', cache: 'no-store' });
+        samples.push(performance.now() - start);
+    }
+    samples.sort((a,b) => a-b);
+    const avgPing = samples.slice(1, 7).reduce((a,b)=>a+b, 0) / 6;
+    return { 
+        ping: Math.round(avgPing), 
+        jitter: Math.round(samples[7] - samples[0]) 
+    };
+}
+
+// محرك فحص السرعة (التحميل والرفع)
+async function networkEngine(type) {
+    const duration = 10000; // 10 ثواني لكل فحص
+    const start = performance.now();
+    let bytesReceived = 0;
     const ctrl = new AbortController();
 
-    const worker = async () => {
+    const task = async () => {
         try {
-            while (performance.now() - startTime < duration) {
-                if (mode === 'DL') {
-                    const res = await fetch(API.DL + "&r=" + Math.random(), { signal: ctrl.signal });
+            while (performance.now() - start < duration) {
+                if (type === 'تحميل') {
+                    const res = await fetch(URLS.DL + "&cache=" + Math.random(), { signal: ctrl.signal });
                     const reader = res.body.getReader();
-                    while (true) {
+                    while(true) {
                         const { done, value } = await reader.read();
-                        if (done) break;
-                        bytes += value.length;
+                        if(done) break;
+                        bytesReceived += value.length;
                     }
                 } else {
                     const blob = new Blob([new Uint8Array(1024 * 512)]);
-                    await fetch(API.UL, { method: 'POST', body: blob, signal: ctrl.signal });
-                    bytes += blob.size;
+                    await fetch(URLS.UL, { method: 'POST', body: blob, signal: ctrl.signal });
+                    bytesReceived += blob.size;
                 }
             }
         } catch(e) {}
     };
 
-    const update = setInterval(() => {
-        const mbps = ((bytes * 8) / (1024 * 1024)) / ((performance.now() - startTime) / 1000);
-        document.getElementById('live-mbps').innerText = Math.round(mbps);
-        chart.data.datasets[0].data.push(mbps);
-        chart.data.datasets[0].data.shift();
-        chart.update('none');
+    const updater = setInterval(() => {
+        const mbps = ((bytesReceived * 8) / (1024 * 1024)) / ((performance.now() - start) / 1000);
+        document.getElementById('live-speed').innerText = Math.round(mbps);
+        speedChart.data.datasets[0].data.push(mbps);
+        speedChart.data.datasets[0].data.shift();
+        speedChart.update('none');
     }, 200);
 
-    for(let i=0; i < (mode === 'DL' ? 16 : 8); i++) worker();
+    const threads = type === 'تحميل' ? 12 : 6;
+    for(let i=0; i < threads; i++) task();
+
     await new Promise(r => setTimeout(r, duration));
-    ctrl.abort(); clearInterval(update);
-    return ((bytes * 8) / (1024 * 1024)) / (duration / 1000);
+    ctrl.abort(); clearInterval(updater);
+    return ((bytesReceived * 8) / (1024 * 1024)) / (duration / 1000);
 }
 
-document.getElementById('start-btn').onclick = async function() {
+// منطق التشغيل الرئيسي
+document.getElementById('start-test').onclick = async function() {
     this.disabled = true;
-    const pb = document.getElementById('progress-bar');
+    const status = document.getElementById('status-label');
     
-    // المرحلة 1: البنق
-    pb.style.width = "10%";
-    const p = await smartPing();
-    document.getElementById('ping-val').innerHTML = `${p.ping} <small>ms</small>`;
-    document.getElementById('jitter-val').innerHTML = `${p.jitter} <small>ms</small>`;
+    // 1. زمن الاستجابة
+    status.innerText = "جاري تحليل زمن الاستجابة (البنق)...";
+    const p = await measurePing();
+    document.getElementById('ping-val').innerText = p.ping;
+    document.getElementById('jitter-val').innerText = p.jitter;
 
-    // المرحلة 2: التحميل
-    pb.style.width = "50%";
-    const dl = await runEngine('DL');
+    // 2. التحميل
+    status.innerText = "جاري فحص سرعة التحميل عبر 12 مسار بيانات...";
+    const dl = await networkEngine('تحميل');
     document.getElementById('dl-val').innerText = dl.toFixed(1);
 
-    // المرحلة 3: الرفع
-    pb.style.width = "90%";
-    chart.data.datasets[0].borderColor = '#7117ea';
-    const ul = await runEngine('UL');
+    // 3. الرفع
+    status.innerText = "جاري فحص سرعة الرفع...";
+    speedChart.data.datasets[0].borderColor = '#f093fb';
+    const ul = await networkEngine('رفع');
     document.getElementById('ul-val').innerText = ul.toFixed(1);
 
-    // المرحلة 4: التحليل الذكي
-    pb.style.width = "100%";
-    analyzeUX(dl, p.ping);
+    // 4. تقييم كفاءة الخدمة (QoS)
+    status.innerText = "اكتمل الفحص بنجاح!";
+    generateReport(dl, p.ping);
     this.disabled = false;
+    this.innerText = "إعادة الفحص";
 };
 
-function analyzeUX(speed, ping) {
-    const game = (ping < 30) ? "ممتاز ✅" : (ping < 80 ? "جيد ⚠️" : "ضعيف ❌");
-    const stream = (speed > 25) ? "4K متاح" : "1080p فقط";
-    document.getElementById('game-tag').innerHTML = `🎮 الألعاب: <span>${game}</span>`;
-    document.getElementById('stream-tag').innerHTML = `📺 البث: <span>${stream}</span>`;
-    document.getElementById('work-tag').innerHTML = `💻 العمل: <span>مستقر</span>`;
+function generateReport(speed, ping) {
+    const game = ping < 40 ? "مثالي ✅" : "متوسط ⚠️";
+    const video = speed > 50 ? "يدعم 4K ✅" : "يدعم 1080p فقط ⚠️";
+    const meet = speed > 10 ? "مستقر ✅" : "ضعيف ❌";
+    
+    document.getElementById('game-check').innerHTML = `🎮 ألعاب الأونلاين: <span>${game}</span>`;
+    document.getElementById('video-check').innerHTML = `📺 البث المباشر (4K): <span>${video}</span>`;
+    document.getElementById('meeting-check').innerHTML = `📹 الاجتماعات المرئية: <span>${meet}</span>`;
 }
 
-getTrace();
+fetchServerInfo();
