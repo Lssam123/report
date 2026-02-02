@@ -3,50 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edge Speed Analyzer Ultra</title>
+    <title>Edge Analyzer Ultra | 2024</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="glass-container">
-        <nav>
-            <div class="logo">NETWORK<span>PRO</span></div>
-            <div id="connection-type" class="badge">جاري التحقق من الشبكة...</div>
-        </nav>
+    <div class="main-wrapper">
+        <div class="glass-header">
+            <div class="logo-area">
+                <div class="pulse-icon"></div>
+                <h1>EDGE<span>SPEED</span></h1>
+            </div>
+            <div id="ip-display" class="info-tag">جاري تحديد السيرفر...</div>
+        </div>
 
-        <div class="hero-stats">
-            <div class="main-gauge">
-                <canvas id="speedChart"></canvas>
-                <div class="gauge-center">
-                    <h2 id="current-mbps">0</h2>
-                    <p>Mbps</p>
+        <div class="dynamic-gauge">
+            <div class="speed-value">
+                <span id="speed-num">0</span>
+                <small>Mbps</small>
+            </div>
+            <canvas id="liveChart"></canvas>
+        </div>
+
+        <div class="bento-grid">
+            <div class="bento-item dl">
+                <span>أقصى تحميل</span>
+                <h3 id="max-dl">0.0</h3>
+                <div class="mini-bar"><div id="dl-progress"></div></div>
+            </div>
+            <div class="bento-item ul">
+                <span>أقصى رفع</span>
+                <h3 id="max-ul">0.0</h3>
+                <div class="mini-bar"><div id="ul-progress"></div></div>
+            </div>
+            <div class="bento-item info">
+                <span>زمن الاستجابة (Ping)</span>
+                <div class="ping-row">
+                    <div>خامل: <b id="ping-i">0</b></div>
+                    <div>مضغوط: <b id="ping-l">0</b></div>
                 </div>
             </div>
-        </div>
-
-        <div class="results-grid">
-            <div class="res-card">
-                <span>التحميل (Peak)</span>
-                <strong id="dl-max">0.0</strong>
-            </div>
-            <div class="res-card">
-                <span>الرفع (Peak)</span>
-                <strong id="ul-max">0.0</strong>
-            </div>
-            <div class="res-card">
-                <span>ثبات الاتصال</span>
-                <strong id="stability">--</strong>
+            <div class="bento-item grade">
+                <span>تقييم الشبكة</span>
+                <h2 id="net-grade">--</h2>
             </div>
         </div>
 
-        <div class="latency-bar">
-            <div class="lat-item">البنق الخامل: <span id="p-idle">0</span>ms</div>
-            <div class="lat-item">البنق تحت الضغط: <span id="p-loaded">0</span>ms</div>
-        </div>
-
-        <div class="actions">
-            <button id="start-btn">بدء الفحص التوربيني</button>
-            <p id="status">جاهز لاختبار عرض النطاق الترددي</p>
+        <div class="control-panel">
+            <button id="run-test">ابدأ الفحص الشامل</button>
+            <p id="status-msg">جاهز للاختبار بأقصى أداء</p>
         </div>
     </div>
     <script src="script.js"></script>
