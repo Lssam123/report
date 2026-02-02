@@ -3,56 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edge Analyzer Ultra | 2024</title>
+    <title>Ultimate Network Engine | مشروع تخرج</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="main-wrapper">
-        <div class="glass-header">
-            <div class="logo-area">
-                <div class="pulse-icon"></div>
-                <h1>EDGE<span>SPEED</span></h1>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">CORE<span>NET</span></div>
+            <div class="server-info">
+                <p>سيرفر الفحص: <span id="node">Auto Edge</span></p>
+                <p>بروتوكول: <span id="proto">HTTP/2</span></p>
             </div>
-            <div id="ip-display" class="info-tag">جاري تحديد السيرفر...</div>
-        </div>
+            <div class="metrics-summary">
+                <div class="m-item">جودة البنق: <span id="p-quality">--</span></div>
+                <div class="m-item">الاستقرار: <span id="stability">--</span></div>
+            </div>
+        </aside>
 
-        <div class="dynamic-gauge">
-            <div class="speed-value">
-                <span id="speed-num">0</span>
-                <small>Mbps</small>
-            </div>
-            <canvas id="liveChart"></canvas>
-        </div>
-
-        <div class="bento-grid">
-            <div class="bento-item dl">
-                <span>أقصى تحميل</span>
-                <h3 id="max-dl">0.0</h3>
-                <div class="mini-bar"><div id="dl-progress"></div></div>
-            </div>
-            <div class="bento-item ul">
-                <span>أقصى رفع</span>
-                <h3 id="max-ul">0.0</h3>
-                <div class="mini-bar"><div id="ul-progress"></div></div>
-            </div>
-            <div class="bento-item info">
-                <span>زمن الاستجابة (Ping)</span>
-                <div class="ping-row">
-                    <div>خامل: <b id="ping-i">0</b></div>
-                    <div>مضغوط: <b id="ping-l">0</b></div>
+        <main class="content">
+            <div class="glass-card main-display">
+                <div class="chart-container">
+                    <canvas id="ultraChart"></canvas>
+                </div>
+                <div class="speed-hub">
+                    <h1 id="live-speed">0</h1>
+                    <span>Mbps</span>
                 </div>
             </div>
-            <div class="bento-item grade">
-                <span>تقييم الشبكة</span>
-                <h2 id="net-grade">--</h2>
-            </div>
-        </div>
 
-        <div class="control-panel">
-            <button id="run-test">ابدأ الفحص الشامل</button>
-            <p id="status-msg">جاهز للاختبار بأقصى أداء</p>
-        </div>
+            <div class="stats-grid">
+                <div class="stat-box download">
+                    <label>التحميل (الذروة)</label>
+                    <h2 id="final-dl">0.00</h2>
+                </div>
+                <div class="stat-box upload">
+                    <label>الرفع (الذروة)</label>
+                    <h2 id="final-ul">0.00</h2>
+                </div>
+                <div class="stat-box ping">
+                    <label>البنق (دقيق)</label>
+                    <h2 id="final-ping">0</h2>
+                </div>
+                <div class="stat-box jitter">
+                    <label>التذبذب (Jitter)</label>
+                    <h2 id="final-jitter">0</h2>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="main-btn">ابدأ الفحص الاحترافي</button>
+                <div class="progress-wrap">
+                    <div id="progress-line"></div>
+                </div>
+            </div>
+        </main>
     </div>
     <script src="script.js"></script>
 </body>
