@@ -1,11 +1,15 @@
-body { background: #050505; color: #00ff41; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-.test-container { width: 400px; text-align: center; border: 2px solid #00ff41; padding: 30px; border-radius: 10px; background: #000; box-shadow: 0 0 20px rgba(0,255,65,0.2); }
-.monitor-screen { margin-bottom: 30px; padding: 20px; border-bottom: 1px solid #222; }
-.live-speed { font-size: 4rem; font-weight: bold; }
-.results-table { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px; }
-.result-box { display: flex; justify-content: space-between; background: #111; padding: 10px 15px; border-radius: 5px; border: 1px solid #333; }
-.result-box label { color: #888; }
-.result-box div { font-weight: bold; color: #fff; }
-button { width: 100%; padding: 15px; background: #00ff41; color: #000; border: none; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
-button:disabled { background: #222; color: #444; }
-#status { margin-top: 15px; font-size: 0.8rem; color: #888; }
+body { background: #080808; color: #00d2ff; font-family: 'Courier New', Courier, monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+.test-container { width: 450px; text-align: center; border: 1px solid #1a1a1a; padding: 40px; border-radius: 20px; background: #000; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
+.monitor-screen { margin-bottom: 30px; }
+.live-speed { font-size: 5rem; font-weight: 900; color: #fff; line-height: 1; }
+.label { color: #00d2ff; letter-spacing: 2px; font-size: 0.9rem; margin-top: 10px; }
+.results-table { display: grid; gap: 12px; margin-bottom: 30px; }
+.result-box { display: flex; justify-content: space-between; background: #0a0a0a; padding: 15px 20px; border: 1px solid #1a1a1a; border-radius: 10px; }
+.result-box.highlighted { border-color: #00d2ff; background: rgba(0, 210, 255, 0.05); }
+.result-box label { color: #666; font-size: 0.9rem; }
+.result-box div { font-weight: bold; color: #fff; font-size: 1.2rem; }
+.result-box small { font-size: 0.7rem; color: #00d2ff; }
+button { width: 100%; padding: 20px; background: #00d2ff; color: #000; border: none; font-weight: bold; cursor: pointer; border-radius: 12px; font-size: 1.2rem; transition: 0.3s; }
+button:hover { background: #fff; transform: scale(1.02); }
+button:disabled { background: #1a1a1a; color: #444; transform: none; }
+#status { margin-top: 20px; font-size: 0.85rem; color: #444; }
