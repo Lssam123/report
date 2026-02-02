@@ -3,61 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Network Engine | مشروع تخرج</title>
+    <title>Quantum Network Engine | مشروع تخرج</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-shell">
-        <aside class="sidebar">
-            <div class="brand">CORE<span>NET</span></div>
-            <div class="server-info">
-                <p>سيرفر الفحص: <span id="node">Auto Edge</span></p>
-                <p>بروتوكول: <span id="proto">HTTP/2</span></p>
+    <div class="main-container">
+        <header class="top-bar">
+            <div class="brand">QUANTUM<span>NET</span></div>
+            <div class="connection-info">
+                <span id="ip-addr">--.--.--.--</span>
+                <span class="divider">|</span>
+                <span id="isp-node">Searching Edge...</span>
             </div>
-            <div class="metrics-summary">
-                <div class="m-item">جودة البنق: <span id="p-quality">--</span></div>
-                <div class="m-item">الاستقرار: <span id="stability">--</span></div>
-            </div>
-        </aside>
+        </header>
 
-        <main class="content">
-            <div class="glass-card main-display">
-                <div class="chart-container">
-                    <canvas id="ultraChart"></canvas>
+        <div class="dashboard">
+            <section class="visual-engine">
+                <div class="chart-box">
+                    <canvas id="mainChart"></canvas>
+                    <div class="speed-overlay">
+                        <h1 id="live-mbps">0</h1>
+                        <p>Mbps</p>
+                    </div>
                 </div>
-                <div class="speed-hub">
-                    <h1 id="live-speed">0</h1>
-                    <span>Mbps</span>
-                </div>
-            </div>
+            </section>
 
-            <div class="stats-grid">
-                <div class="stat-box download">
+            <section class="metrics-grid">
+                <div class="metric-card">
                     <label>التحميل (الذروة)</label>
-                    <h2 id="final-dl">0.00</h2>
+                    <div class="val" id="dl-val">0.0</div>
+                    <div class="sparkline" id="dl-spark"></div>
                 </div>
-                <div class="stat-box upload">
+                <div class="metric-card">
                     <label>الرفع (الذروة)</label>
-                    <h2 id="final-ul">0.00</h2>
+                    <div class="val" id="ul-val">0.0</div>
+                    <div class="sparkline" id="ul-spark"></div>
                 </div>
-                <div class="stat-box ping">
-                    <label>البنق (دقيق)</label>
-                    <h2 id="final-ping">0</h2>
+                <div class="metric-card">
+                    <label>زمن الاستجابة</label>
+                    <div class="val" id="ping-val">0 <small>ms</small></div>
                 </div>
-                <div class="stat-box jitter">
+                <div class="metric-card">
                     <label>التذبذب (Jitter)</label>
-                    <h2 id="final-jitter">0</h2>
+                    <div class="val" id="jitter-val">0 <small>ms</small></div>
                 </div>
-            </div>
+            </section>
 
-            <div class="actions">
-                <button id="main-btn">ابدأ الفحص الاحترافي</button>
-                <div class="progress-wrap">
-                    <div id="progress-line"></div>
+            <section class="ux-analysis">
+                <h3>تحليل جودة الخدمة (QoS)</h3>
+                <div class="ux-grid">
+                    <div class="ux-item" id="game-tag">🎮 الألعاب: <span>--</span></div>
+                    <div class="ux-item" id="stream-tag">📺 بث 4K: <span>--</span></div>
+                    <div class="ux-item" id="work-tag">💻 العمل: <span>--</span></div>
                 </div>
+            </section>
+        </div>
+
+        <footer class="controls-footer">
+            <div class="progress-container">
+                <div id="progress-bar"></div>
             </div>
-        </main>
+            <button id="start-btn">بدء الفحص الذكي</button>
+            <p id="status-text">جاهز لتحليل المسارات</p>
+        </footer>
     </div>
     <script src="script.js"></script>
 </body>
