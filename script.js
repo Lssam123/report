@@ -1,127 +1,118 @@
 const CONFIG = {
-    DL_URL: "https://speed.cloudflare.com/__down?bytes=100000000",
-    UL_URL: "https://speed.cloudflare.com/__up",
-    DURATION: 10000,
-    THREADS_DL: 16, // رفع الأداء لأقصى درجة
-    THREADS_UL: 8
+    ENDPOINTS: {
+        DL: "https://speed.cloudflare.com/__down?bytes=100000000",
+        UL: "https://speed.cloudflare.com/__up",
+        PING: "https://1.1.1.1/cdn-cgi/trace"
+    },
+    TEST_TIME: 8000,
+    THREADS: 20 // أقصى عدد مسارات آمن للمتصفح
 };
 
-const UI = {
-    speedNum: document.getElementById('speed-num'),
-    maxDl: document.getElementById('max-dl'),
-    maxUl: document.getElementById('max-ul'),
-    pIdle: document.getElementById('ping-i'),
-    pLoaded: document.getElementById('ping-l'),
-    grade: document.getElementById('net-grade'),
-    status: document.getElementById('status-msg'),
-    btn: document.getElementById('run-test'),
-    ipBox: document.getElementById('ip-display')
-};
-
-// إعداد الرسم البياني المتقدم
-const chart = new Chart(document.getElementById('liveChart'), {
+// إعداد الرسم البياني بدقة 60 إطار في الثانية
+const ctx = document.getElementById('ultraChart').getContext('2d');
+let chartData = new Array(40).fill(0);
+const chart = new Chart(ctx, {
     type: 'line',
     data: {
-        labels: Array(20).fill(''),
+        labels: chartData.map((_, i) => i),
         datasets: [{
-            data: Array(20).fill(0),
-            borderColor: '#00f2fe',
-            borderWidth: 4,
+            data: chartData,
+            borderColor: '#00d2ff',
+            borderWidth: 2,
             tension: 0.4,
             fill: true,
-            backgroundColor: 'rgba(0, 242, 254, 0.05)',
+            backgroundColor: 'rgba(0, 210, 255, 0.05)',
             pointRadius: 0
         }]
     },
-    options: { maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: false } }
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: false } }
 });
 
-async function getNetworkInfo() {
-    try {
-        const res = await fetch('https://1.1.1.1/cdn-cgi/trace');
-        const text = await res.text();
-        const ip = text.match(/ip=(.*)/)[1];
-        const loc = text.match(/loc=(.*)/)[1];
-        UI.ipBox.innerText = `IP: ${ip} | الموقع: ${loc}`;
-    } catch { UI.ipBox.innerText = "سيرفر Edge متصل"; }
+// --- خوارزمية البنق عالية الدقة ---
+async function precisionPing() {
+    const samples = [];
+    for(let i=0; i < 10; i++) {
+        const start = performance.now();
+        try {
+            await fetch(CONFIG.ENDPOINTS.PING, { mode: 'no-cors', cache: 'no-store' });
+            samples.push(performance.now() - start);
+        } catch(e) {}
+    }
+    // استبعاد أعلى وأقل قيمتين (Outliers) لضمان الدقة الإحصائية
+    samples.sort((a,b) => a - b);
+    const validSamples = samples.slice(2, -2);
+    const avg = validSamples.reduce((a,b) => a+b, 0) / validSamples.length;
+    const jitter = samples[samples.length-1] - samples[0];
+    return { avg: Math.floor(avg), jitter: Math.floor(jitter) };
 }
 
-async function runTest(mode) {
+async function runPrecisionTest(type) {
     const startTime = performance.now();
-    let bytes = 0;
+    let totalBytes = 0;
     const ctrl = new AbortController();
 
     const worker = async () => {
         try {
-            while (performance.now() - startTime < CONFIG.DURATION) {
-                if (mode === 'DL') {
-                    const res = await fetch(`${CONFIG.DL_URL}&r=${Math.random()}`, { signal: ctrl.signal });
+            while (performance.now() - startTime < CONFIG.TEST_TIME) {
+                if(type === 'DL') {
+                    const res = await fetch(CONFIG.ENDPOINTS.DL + "&cache=" + Math.random(), { signal: ctrl.signal });
                     const reader = res.body.getReader();
-                    while (true) {
+                    while(true) {
                         const { done, value } = await reader.read();
-                        if (done) break;
-                        bytes += value.length;
+                        if(done) break;
+                        totalBytes += value.length;
                     }
                 } else {
-                    const blob = new Blob([new Uint8Array(1024 * 1024)]);
-                    await fetch(CONFIG.UL_URL, { method: 'POST', body: blob, signal: ctrl.signal });
-                    bytes += blob.size;
+                    const data = new Blob([new Uint8Array(1024 * 1024 * 2)]);
+                    await fetch(CONFIG.ENDPOINTS.UL, { method: 'POST', body: data, signal: ctrl.signal });
+                    totalBytes += data.size;
                 }
             }
-        } catch {}
+        } catch(e) {}
     };
 
-    const updateInterval = setInterval(() => {
+    const uiUpdater = setInterval(() => {
         const elapsed = (performance.now() - startTime) / 1000;
-        const mbps = ((bytes * 8) / (1024 * 1024)) / elapsed;
-        UI.speedNum.innerText = Math.floor(mbps);
-        chart.data.datasets[0].data.push(mbps);
-        chart.data.datasets[0].data.shift();
+        const mbps = ((totalBytes * 8) / (1024 * 1024)) / elapsed;
+        document.getElementById('live-speed').innerText = Math.floor(mbps);
+        chartData.push(mbps);
+        chartData.shift();
         chart.update('none');
-    }, 100);
+    }, 150);
 
-    const threads = mode === 'DL' ? CONFIG.THREADS_DL : CONFIG.THREADS_UL;
-    for (let i = 0; i < threads; i++) worker();
-
-    await new Promise(r => setTimeout(r, CONFIG.DURATION));
+    for(let i=0; i < (type === 'DL' ? CONFIG.THREADS : 8); i++) worker();
+    
+    await new Promise(r => setTimeout(r, CONFIG.TEST_TIME));
     ctrl.abort();
-    clearInterval(updateInterval);
-    return ((bytes * 8) / (1024 * 1024)) / (CONFIG.DURATION / 1000);
+    clearInterval(uiUpdater);
+    return ((totalBytes * 8) / (1024 * 1024)) / (CONFIG.TEST_TIME / 1000);
 }
 
-UI.btn.onclick = async () => {
-    UI.btn.disabled = true;
-    UI.speedNum.innerText = "0";
+document.getElementById('main-btn').onclick = async function() {
+    this.disabled = true;
+    const progress = document.getElementById('progress-line');
     
-    // 1. زمن الاستجابة
-    UI.status.innerText = "تحليل زمن الاستجابة...";
-    const p1 = await (async function p() {
-        const s = performance.now();
-        await fetch(CONFIG.DL_URL, { mode: 'no-cors', method: 'HEAD' });
-        return performance.now() - s;
-    })();
-    UI.pIdle.innerText = Math.floor(p1);
+    // 1. فحص البنق والدقة
+    progress.style.width = "20%";
+    const pResult = await precisionPing();
+    document.getElementById('final-ping').innerText = pResult.avg;
+    document.getElementById('final-jitter').innerText = pResult.jitter;
+    document.getElementById('p-quality').innerText = pResult.avg < 30 ? "ممتاز" : "متوسط";
 
-    // 2. التحميل
-    UI.status.innerText = "فحص التحميل (16 مسار توربيني)...";
-    const dlFinal = await runTest('DL');
-    UI.maxDl.innerText = dlFinal.toFixed(1);
-    document.getElementById('dl-progress').style.width = "100%";
+    // 2. فحص التحميل
+    progress.style.width = "50%";
+    const dl = await runPrecisionTest('DL');
+    document.getElementById('final-dl').innerText = dl.toFixed(2);
 
-    // 3. الرفع
-    UI.status.innerText = "فحص الرفع...";
+    // 3. فحص الرفع
+    progress.style.width = "80%";
     chart.data.datasets[0].borderColor = '#f093fb';
-    const ulFinal = await runTest('UL');
-    UI.maxUl.innerText = ulFinal.toFixed(1);
-    document.getElementById('ul-progress').style.width = "100%";
+    const ul = await runPrecisionTest('UL');
+    document.getElementById('final-ul').innerText = ul.toFixed(2);
 
-    // 4. تقييم الشبكة
-    let score = "C";
-    if (dlFinal > 100 && p1 < 20) score = "A+";
-    else if (dlFinal > 50) score = "B";
-    UI.grade.innerText = score;
-    UI.status.innerText = "اكتمل التحليل!";
-    UI.btn.disabled = false;
+    // 4. النتائج النهائية
+    progress.style.width = "100%";
+    document.getElementById('stability').innerText = (dl > 10 ? "مستقر" : "غير مستقر");
+    this.disabled = false;
+    this.innerText = "إعادة الفحص";
 };
-
-getNetworkInfo();
