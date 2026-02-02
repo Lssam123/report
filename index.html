@@ -2,68 +2,33 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المحلل الذكي للشبكات | مشروع تخرج</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>محرك فحص الشبكة الخارق</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="main-wrapper">
-        <header class="dashboard-header">
-            <div class="brand-identity">
-                <div class="pulse-ring"></div>
-                <h1>نظام<span>كفاءة</span></h1>
-            </div>
-            <div class="connection-details">
-                <p>سيرفر الفحص: <span id="node-name">جاري التحديد...</span></p>
-                <p>عنوان البروتوكول: <span id="ip-address">0.0.0.0</span></p>
-            </div>
-        </header>
+    <div class="test-container">
+        <div class="monitor-screen">
+            <div class="live-speed" id="live-mbps">0.00</div>
+            <div class="label">Mbps</div>
+        </div>
 
-        <section class="gauge-hub">
-            <div class="visual-engine">
-                <canvas id="speedChart"></canvas>
-                <div class="digital-readout">
-                    <h2 id="live-speed">0</h2>
-                    <span>ميغابت/ثانية</span>
-                </div>
+        <div class="results-table">
+            <div class="result-box">
+                <label>البنق الخامل</label>
+                <div id="res-ping">--</div><span>ms</span>
             </div>
-        </section>
-
-        <div class="stats-grid">
-            <div class="stat-card download">
-                <label>سرعة التحميل</label>
-                <div class="stat-value"><span id="dl-val">0.0</span> <small>Mbps</small></div>
-                <div class="progress-track"><div id="dl-bar"></div></div>
+            <div class="result-box">
+                <label>أقصى تحميل</label>
+                <div id="res-dl">--</div><span>Mbps</span>
             </div>
-            <div class="stat-card upload">
-                <label>سرعة الرفع</label>
-                <div class="stat-value"><span id="ul-val">0.0</span> <small>Mbps</small></div>
-                <div class="progress-track"><div id="ul-bar"></div></div>
-            </div>
-            <div class="stat-card ping">
-                <label>زمن الاستجابة</label>
-                <div class="stat-value"><span id="ping-val">0</span> <small>ms</small></div>
-            </div>
-            <div class="stat-card jitter">
-                <label>تذبذب الإشارة</label>
-                <div class="stat-value"><span id="jitter-val">0</span> <small>ms</small></div>
+            <div class="result-box">
+                <label>أقصى رفع</label>
+                <div id="res-ul">--</div><span>Mbps</span>
             </div>
         </div>
 
-        <section class="efficiency-report">
-            <h3>تقرير كفاءة الاتصال (QoS)</h3>
-            <div class="report-grid">
-                <div class="report-item" id="game-check">🎮 ألعاب الأونلاين: <span>بانتظار الفحص</span></div>
-                <div class="report-item" id="video-check">📺 البث المباشر (4K): <span>بانتظار الفحص</span></div>
-                <div class="report-item" id="meeting-check">📹 الاجتماعات المرئية: <span>بانتظار الفحص</span></div>
-            </div>
-        </section>
-
-        <footer class="action-center">
-            <button id="start-test">بدء الفحص الاحترافي</button>
-            <div id="status-label">جاهز لتحليل مسارات البيانات</div>
-        </footer>
+        <button id="ignite">بدء الفحص الخارق</button>
+        <div id="status">جاهز للاختبار بأقصى طاقة</div>
     </div>
     <script src="script.js"></script>
 </body>
