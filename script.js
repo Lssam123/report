@@ -1,126 +1,110 @@
-const CONFIG = {
-    DL_URL: "https://speed.cloudflare.com/__down?bytes=100000000",
-    UL_URL: "https://speed.cloudflare.com/__up",
-    PING_URL: "https://1.1.1.1/cdn-cgi/trace",
-    DURATION: 8000, // 8 ثواني لكل فحص
-    DL_THREADS: 8,
-    UL_THREADS: 4
-};
-
 const UI = {
-    startBtn: document.getElementById('start-btn'),
-    status: document.getElementById('status-bar'),
-    progress: document.getElementById('progress-bar'),
-    dlText: document.getElementById('download-speed'),
-    ulText: document.getElementById('upload-speed'),
-    pIdle: document.getElementById('ping-idle'),
-    pLoaded: document.getElementById('ping-loaded'),
-    gauge: document.getElementById('gauge-fill'),
-    gaugeVal: document.getElementById('gauge-text')
+    mbps: document.getElementById('current-mbps'),
+    dlMax: document.getElementById('dl-max'),
+    ulMax: document.getElementById('ul-max'),
+    status: document.getElementById('status'),
+    btn: document.getElementById('start-btn'),
+    pIdle: document.getElementById('p-idle'),
+    pLoaded: document.getElementById('p-loaded')
 };
 
-async function getLatency() {
+// إعداد الرسم البياني
+const ctx = document.getElementById('speedChart').getContext('2d');
+let speedData = new Array(30).fill(0);
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: speedData.map((_, i) => i),
+        datasets: [{
+            data: speedData,
+            borderColor: '#4facfe',
+            borderWidth: 3,
+            tension: 0.4,
+            pointRadius: 0,
+            fill: true,
+            backgroundColor: 'rgba(79, 172, 254, 0.1)'
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { display: false }, x: { display: false } }, plugins: { legend: { display: false } } }
+});
+
+async function measurePing() {
     const start = performance.now();
     try {
-        await fetch(CONFIG.PING_URL, { mode: 'no-cors', cache: 'no-store' });
+        await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-store' });
         return performance.now() - start;
     } catch { return 0; }
 }
 
-function updateGauge(mbps) {
-    const max = 100; // سقف العداد افتراضياً
-    const rotation = Math.min(mbps / max, 1) / 2;
-    UI.gauge.style.transform = `rotate(${rotation}turn)`;
-    UI.gaugeVal.innerText = Math.floor(mbps);
-}
-
-// --- محرك التحميل ---
-async function testDownload() {
-    let totalBytes = 0;
+async function runSpeedTest(type = 'download') {
+    const duration = 10000; // 10 ثواني
     const startTime = performance.now();
+    let bytesTotal = 0;
+    let maxSpeed = 0;
     const ctrl = new AbortController();
-    let pings = [];
 
-    const downloadWorker = async () => {
+    const worker = async () => {
         try {
-            const res = await fetch(CONFIG.DL_URL + "&r=" + Math.random(), { signal: ctrl.signal });
-            const reader = res.body.getReader();
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                totalBytes += value.length;
-                const elapsed = (performance.now() - startTime) / 1000;
-                const mbps = ((totalBytes * 8) / (1024 * 1024)) / elapsed;
-                UI.dlText.innerText = mbps.toFixed(1);
-                updateGauge(mbps);
+            while (performance.now() - startTime < duration) {
+                if (type === 'download') {
+                    const res = await fetch(`https://speed.cloudflare.com/__down?bytes=50000000&r=${Math.random()}`, { signal: ctrl.signal });
+                    const reader = res.body.getReader();
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        bytesTotal += value.length;
+                    }
+                } else {
+                    const data = new Blob([new Uint8Array(1024 * 1024 * 2)]);
+                    await fetch("https://speed.cloudflare.com/__up", { method: 'POST', body: data, signal: ctrl.signal });
+                    bytesTotal += data.size;
+                }
             }
         } catch {}
     };
 
-    const pingTask = setInterval(async () => {
-        const p = await getLatency();
-        if (p > 0) { pings.push(p); UI.pLoaded.innerText = Math.floor(p); }
-    }, 500);
+    // تحديث الرسم البياني والواجهة
+    const tracker = setInterval(() => {
+        const elapsed = (performance.now() - startTime) / 1000;
+        const mbps = ((bytesTotal * 8) / (1024 * 1024)) / elapsed;
+        
+        UI.mbps.innerText = mbps.toFixed(1);
+        if (mbps > maxSpeed) maxSpeed = mbps;
 
-    for (let i = 0; i < CONFIG.DL_THREADS; i++) downloadWorker();
-    
-    await new Promise(r => setTimeout(r, CONFIG.DURATION));
+        speedData.push(mbps);
+        speedData.shift();
+        chart.update('none');
+    }, 200);
+
+    const threads = type === 'download' ? 12 : 6;
+    for (let i = 0; i < threads; i++) worker();
+
+    await new Promise(r => setTimeout(r, duration));
     ctrl.abort();
-    clearInterval(pingTask);
-    return pings;
+    clearInterval(tracker);
+    return maxSpeed;
 }
 
-// --- محرك الرفع ---
-async function testUpload() {
-    let totalBytes = 0;
-    const startTime = performance.now();
-    const ctrl = new AbortController();
-    const data = new Blob([new Uint8Array(1024 * 1024)]); // 1MB chunk
-
-    const uploadWorker = async () => {
-        try {
-            while (performance.now() - startTime < CONFIG.DURATION) {
-                await fetch(CONFIG.UL_URL, {
-                    method: 'POST',
-                    body: data,
-                    signal: ctrl.signal
-                });
-                totalBytes += data.size;
-                const elapsed = (performance.now() - startTime) / 1000;
-                const mbps = ((totalBytes * 8) / (1024 * 1024)) / elapsed;
-                UI.ulText.innerText = mbps.toFixed(1);
-                updateGauge(mbps);
-            }
-        } catch {}
-    };
-
-    for (let i = 0; i < CONFIG.UL_THREADS; i++) uploadWorker();
-    await new Promise(r => setTimeout(r, CONFIG.DURATION));
-    ctrl.abort();
-}
-
-UI.startBtn.onclick = async () => {
-    UI.startBtn.disabled = true;
-    UI.progress.style.width = "0%";
+UI.btn.onclick = async () => {
+    UI.btn.disabled = true;
+    UI.status.innerText = "جاري فحص البنق الخامل...";
     
-    // 1. Idle Ping
-    UI.status.innerText = "فحص زمن الاستجابة الخامل...";
-    const p1 = await getLatency();
+    const p1 = await measurePing();
     UI.pIdle.innerText = Math.floor(p1);
-    UI.progress.style.width = "15%";
 
-    // 2. Download
-    UI.status.innerText = "جاري فحص التحميل (8 مسارات Edge)...";
-    await testDownload();
-    UI.progress.style.width = "60%";
+    UI.status.innerText = "فحص التحميل التوربيني (12 مسار)...";
+    chart.data.datasets[0].borderColor = '#4facfe';
+    const maxDl = await runSpeedTest('download');
+    UI.dlMax.innerText = maxDl.toFixed(1);
 
-    // 3. Upload
-    UI.status.innerText = "جاري فحص الرفع (4 مسارات Edge)...";
-    UI.gauge.style.filter = "hue-rotate(150deg)"; // تغيير لون العداد للرفع
-    await testUpload();
+    UI.status.innerText = "فحص الرفع...";
+    chart.data.datasets[0].borderColor = '#f093fb';
+    const maxUl = await runSpeedTest('upload');
+    UI.ulMax.innerText = maxUl.toFixed(1);
+
+    const p2 = await measurePing();
+    UI.pLoaded.innerText = Math.floor(p2);
     
-    UI.progress.style.width = "100%";
-    UI.status.innerText = "اكتمل الفحص بنجاح!";
-    UI.startBtn.disabled = false;
-    UI.gauge.style.filter = "none";
+    UI.status.innerText = "اكتمل الفحص بنجاح";
+    UI.btn.disabled = false;
 };
