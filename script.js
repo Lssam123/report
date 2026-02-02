@@ -1,110 +1,127 @@
-const UI = {
-    mbps: document.getElementById('current-mbps'),
-    dlMax: document.getElementById('dl-max'),
-    ulMax: document.getElementById('ul-max'),
-    status: document.getElementById('status'),
-    btn: document.getElementById('start-btn'),
-    pIdle: document.getElementById('p-idle'),
-    pLoaded: document.getElementById('p-loaded')
+const CONFIG = {
+    DL_URL: "https://speed.cloudflare.com/__down?bytes=100000000",
+    UL_URL: "https://speed.cloudflare.com/__up",
+    DURATION: 10000,
+    THREADS_DL: 16, // رفع الأداء لأقصى درجة
+    THREADS_UL: 8
 };
 
-// إعداد الرسم البياني
-const ctx = document.getElementById('speedChart').getContext('2d');
-let speedData = new Array(30).fill(0);
-const chart = new Chart(ctx, {
+const UI = {
+    speedNum: document.getElementById('speed-num'),
+    maxDl: document.getElementById('max-dl'),
+    maxUl: document.getElementById('max-ul'),
+    pIdle: document.getElementById('ping-i'),
+    pLoaded: document.getElementById('ping-l'),
+    grade: document.getElementById('net-grade'),
+    status: document.getElementById('status-msg'),
+    btn: document.getElementById('run-test'),
+    ipBox: document.getElementById('ip-display')
+};
+
+// إعداد الرسم البياني المتقدم
+const chart = new Chart(document.getElementById('liveChart'), {
     type: 'line',
     data: {
-        labels: speedData.map((_, i) => i),
+        labels: Array(20).fill(''),
         datasets: [{
-            data: speedData,
-            borderColor: '#4facfe',
-            borderWidth: 3,
+            data: Array(20).fill(0),
+            borderColor: '#00f2fe',
+            borderWidth: 4,
             tension: 0.4,
-            pointRadius: 0,
             fill: true,
-            backgroundColor: 'rgba(79, 172, 254, 0.1)'
+            backgroundColor: 'rgba(0, 242, 254, 0.05)',
+            pointRadius: 0
         }]
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { display: false }, x: { display: false } }, plugins: { legend: { display: false } } }
+    options: { maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: false } }
 });
 
-async function measurePing() {
-    const start = performance.now();
+async function getNetworkInfo() {
     try {
-        await fetch("https://1.1.1.1/cdn-cgi/trace", { mode: 'no-cors', cache: 'no-store' });
-        return performance.now() - start;
-    } catch { return 0; }
+        const res = await fetch('https://1.1.1.1/cdn-cgi/trace');
+        const text = await res.text();
+        const ip = text.match(/ip=(.*)/)[1];
+        const loc = text.match(/loc=(.*)/)[1];
+        UI.ipBox.innerText = `IP: ${ip} | الموقع: ${loc}`;
+    } catch { UI.ipBox.innerText = "سيرفر Edge متصل"; }
 }
 
-async function runSpeedTest(type = 'download') {
-    const duration = 10000; // 10 ثواني
+async function runTest(mode) {
     const startTime = performance.now();
-    let bytesTotal = 0;
-    let maxSpeed = 0;
+    let bytes = 0;
     const ctrl = new AbortController();
 
     const worker = async () => {
         try {
-            while (performance.now() - startTime < duration) {
-                if (type === 'download') {
-                    const res = await fetch(`https://speed.cloudflare.com/__down?bytes=50000000&r=${Math.random()}`, { signal: ctrl.signal });
+            while (performance.now() - startTime < CONFIG.DURATION) {
+                if (mode === 'DL') {
+                    const res = await fetch(`${CONFIG.DL_URL}&r=${Math.random()}`, { signal: ctrl.signal });
                     const reader = res.body.getReader();
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
-                        bytesTotal += value.length;
+                        bytes += value.length;
                     }
                 } else {
-                    const data = new Blob([new Uint8Array(1024 * 1024 * 2)]);
-                    await fetch("https://speed.cloudflare.com/__up", { method: 'POST', body: data, signal: ctrl.signal });
-                    bytesTotal += data.size;
+                    const blob = new Blob([new Uint8Array(1024 * 1024)]);
+                    await fetch(CONFIG.UL_URL, { method: 'POST', body: blob, signal: ctrl.signal });
+                    bytes += blob.size;
                 }
             }
         } catch {}
     };
 
-    // تحديث الرسم البياني والواجهة
-    const tracker = setInterval(() => {
+    const updateInterval = setInterval(() => {
         const elapsed = (performance.now() - startTime) / 1000;
-        const mbps = ((bytesTotal * 8) / (1024 * 1024)) / elapsed;
-        
-        UI.mbps.innerText = mbps.toFixed(1);
-        if (mbps > maxSpeed) maxSpeed = mbps;
-
-        speedData.push(mbps);
-        speedData.shift();
+        const mbps = ((bytes * 8) / (1024 * 1024)) / elapsed;
+        UI.speedNum.innerText = Math.floor(mbps);
+        chart.data.datasets[0].data.push(mbps);
+        chart.data.datasets[0].data.shift();
         chart.update('none');
-    }, 200);
+    }, 100);
 
-    const threads = type === 'download' ? 12 : 6;
+    const threads = mode === 'DL' ? CONFIG.THREADS_DL : CONFIG.THREADS_UL;
     for (let i = 0; i < threads; i++) worker();
 
-    await new Promise(r => setTimeout(r, duration));
+    await new Promise(r => setTimeout(r, CONFIG.DURATION));
     ctrl.abort();
-    clearInterval(tracker);
-    return maxSpeed;
+    clearInterval(updateInterval);
+    return ((bytes * 8) / (1024 * 1024)) / (CONFIG.DURATION / 1000);
 }
 
 UI.btn.onclick = async () => {
     UI.btn.disabled = true;
-    UI.status.innerText = "جاري فحص البنق الخامل...";
+    UI.speedNum.innerText = "0";
     
-    const p1 = await measurePing();
+    // 1. زمن الاستجابة
+    UI.status.innerText = "تحليل زمن الاستجابة...";
+    const p1 = await (async function p() {
+        const s = performance.now();
+        await fetch(CONFIG.DL_URL, { mode: 'no-cors', method: 'HEAD' });
+        return performance.now() - s;
+    })();
     UI.pIdle.innerText = Math.floor(p1);
 
-    UI.status.innerText = "فحص التحميل التوربيني (12 مسار)...";
-    chart.data.datasets[0].borderColor = '#4facfe';
-    const maxDl = await runSpeedTest('download');
-    UI.dlMax.innerText = maxDl.toFixed(1);
+    // 2. التحميل
+    UI.status.innerText = "فحص التحميل (16 مسار توربيني)...";
+    const dlFinal = await runTest('DL');
+    UI.maxDl.innerText = dlFinal.toFixed(1);
+    document.getElementById('dl-progress').style.width = "100%";
 
+    // 3. الرفع
     UI.status.innerText = "فحص الرفع...";
     chart.data.datasets[0].borderColor = '#f093fb';
-    const maxUl = await runSpeedTest('upload');
-    UI.ulMax.innerText = maxUl.toFixed(1);
+    const ulFinal = await runTest('UL');
+    UI.maxUl.innerText = ulFinal.toFixed(1);
+    document.getElementById('ul-progress').style.width = "100%";
 
-    const p2 = await measurePing();
-    UI.pLoaded.innerText = Math.floor(p2);
-    
-    UI.status.innerText = "اكتمل الفحص بنجاح";
+    // 4. تقييم الشبكة
+    let score = "C";
+    if (dlFinal > 100 && p1 < 20) score = "A+";
+    else if (dlFinal > 50) score = "B";
+    UI.grade.innerText = score;
+    UI.status.innerText = "اكتمل التحليل!";
     UI.btn.disabled = false;
 };
+
+getNetworkInfo();
