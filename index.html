@@ -3,69 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum Network Engine | مشروع تخرج</title>
+    <title>المحلل الذكي للشبكات | مشروع تخرج</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="main-container">
-        <header class="top-bar">
-            <div class="brand">QUANTUM<span>NET</span></div>
-            <div class="connection-info">
-                <span id="ip-addr">--.--.--.--</span>
-                <span class="divider">|</span>
-                <span id="isp-node">Searching Edge...</span>
+    <div class="main-wrapper">
+        <header class="dashboard-header">
+            <div class="brand-identity">
+                <div class="pulse-ring"></div>
+                <h1>نظام<span>كفاءة</span></h1>
+            </div>
+            <div class="connection-details">
+                <p>سيرفر الفحص: <span id="node-name">جاري التحديد...</span></p>
+                <p>عنوان البروتوكول: <span id="ip-address">0.0.0.0</span></p>
             </div>
         </header>
 
-        <div class="dashboard">
-            <section class="visual-engine">
-                <div class="chart-box">
-                    <canvas id="mainChart"></canvas>
-                    <div class="speed-overlay">
-                        <h1 id="live-mbps">0</h1>
-                        <p>Mbps</p>
-                    </div>
+        <section class="gauge-hub">
+            <div class="visual-engine">
+                <canvas id="speedChart"></canvas>
+                <div class="digital-readout">
+                    <h2 id="live-speed">0</h2>
+                    <span>ميغابت/ثانية</span>
                 </div>
-            </section>
+            </div>
+        </section>
 
-            <section class="metrics-grid">
-                <div class="metric-card">
-                    <label>التحميل (الذروة)</label>
-                    <div class="val" id="dl-val">0.0</div>
-                    <div class="sparkline" id="dl-spark"></div>
-                </div>
-                <div class="metric-card">
-                    <label>الرفع (الذروة)</label>
-                    <div class="val" id="ul-val">0.0</div>
-                    <div class="sparkline" id="ul-spark"></div>
-                </div>
-                <div class="metric-card">
-                    <label>زمن الاستجابة</label>
-                    <div class="val" id="ping-val">0 <small>ms</small></div>
-                </div>
-                <div class="metric-card">
-                    <label>التذبذب (Jitter)</label>
-                    <div class="val" id="jitter-val">0 <small>ms</small></div>
-                </div>
-            </section>
-
-            <section class="ux-analysis">
-                <h3>تحليل جودة الخدمة (QoS)</h3>
-                <div class="ux-grid">
-                    <div class="ux-item" id="game-tag">🎮 الألعاب: <span>--</span></div>
-                    <div class="ux-item" id="stream-tag">📺 بث 4K: <span>--</span></div>
-                    <div class="ux-item" id="work-tag">💻 العمل: <span>--</span></div>
-                </div>
-            </section>
+        <div class="stats-grid">
+            <div class="stat-card download">
+                <label>سرعة التحميل</label>
+                <div class="stat-value"><span id="dl-val">0.0</span> <small>Mbps</small></div>
+                <div class="progress-track"><div id="dl-bar"></div></div>
+            </div>
+            <div class="stat-card upload">
+                <label>سرعة الرفع</label>
+                <div class="stat-value"><span id="ul-val">0.0</span> <small>Mbps</small></div>
+                <div class="progress-track"><div id="ul-bar"></div></div>
+            </div>
+            <div class="stat-card ping">
+                <label>زمن الاستجابة</label>
+                <div class="stat-value"><span id="ping-val">0</span> <small>ms</small></div>
+            </div>
+            <div class="stat-card jitter">
+                <label>تذبذب الإشارة</label>
+                <div class="stat-value"><span id="jitter-val">0</span> <small>ms</small></div>
+            </div>
         </div>
 
-        <footer class="controls-footer">
-            <div class="progress-container">
-                <div id="progress-bar"></div>
+        <section class="efficiency-report">
+            <h3>تقرير كفاءة الاتصال (QoS)</h3>
+            <div class="report-grid">
+                <div class="report-item" id="game-check">🎮 ألعاب الأونلاين: <span>بانتظار الفحص</span></div>
+                <div class="report-item" id="video-check">📺 البث المباشر (4K): <span>بانتظار الفحص</span></div>
+                <div class="report-item" id="meeting-check">📹 الاجتماعات المرئية: <span>بانتظار الفحص</span></div>
             </div>
-            <button id="start-btn">بدء الفحص الذكي</button>
-            <p id="status-text">جاهز لتحليل المسارات</p>
+        </section>
+
+        <footer class="action-center">
+            <button id="start-test">بدء الفحص الاحترافي</button>
+            <div id="status-label">جاهز لتحليل مسارات البيانات</div>
         </footer>
     </div>
     <script src="script.js"></script>
