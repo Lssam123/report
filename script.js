@@ -1,10 +1,16 @@
 const CONFIG = {
-    DL_URL: "https://speed.cloudflare.com/__down?bytes=500000000", // زيادة الحجم لـ 500MB لضمان استمرار الفحص
+    // روابط الفحص (Cloudflare تعتبر الأسرع عالمياً للفحص الخام)
+    DL_URL: "https://speed.cloudflare.com/__down?bytes=500000000", 
     UL_URL: "https://speed.cloudflare.com/__up",
     PING_URL: "https://1.1.1.1/cdn-cgi/trace",
-    THREADS: 32, 
-    WARM_UP: 3000,      // زيادة وقت التسخين لـ 3 ثوانٍ لاستقرار البروتوكول
-    TEST_DURATION: 15000 // زيادة مدة الفحص لـ 15 ثانية لدقة متناهية
+    
+    // الأوقات المحددة (بالملي ثانية)
+    DL_DURATION: 15000, 
+    UL_DURATION: 15000,
+    PING_DURATION: 5000,
+    
+    WARM_UP: 3000,      // وقت تسخين الشبكة (3 ثوانٍ) لضمان استقرار التدفق
+    THREADS: 32         // أقصى عدد مسارات متوازية لإشباع القناة
 };
 
 const UI = {
@@ -17,10 +23,12 @@ const UI = {
     btn: document.getElementById('start-btn')
 };
 
-// خوارزمية البنق الاحترافية (Micro-sampling)
-async function getHighPrecisionPing() {
+// دالة قياس البنق المتقدمة (تعمل لمدة زمنية محددة وتأخذ متوسط العينات)
+async function measurePrecisionPing(duration) {
+    const startTime = performance.now();
     let samples = [];
-    for (let i = 0; i < 25; i++) {
+    
+    while (performance.now() - startTime < duration) {
         const start = performance.now();
         try {
             await fetch(`${CONFIG.PING_URL}?cb=${crypto.randomUUID()}`, { 
@@ -28,123 +36,127 @@ async function getHighPrecisionPing() {
             });
             samples.push(performance.now() - start);
         } catch (e) {}
+        // تأخير بسيط جداً بين العينات لمنع حظر الجهاز
+        await new Promise(r => setTimeout(r, 50)); 
     }
+    
+    if (samples.length === 0) return 0;
+    
+    // معالجة إحصائية: حذف أعلى وأقل 20% من النتائج (القيم الشاذة)
     samples.sort((a, b) => a - b);
-    // حذف أطراف العينات (الأعلى والأقل) لحساب الوسط الحقيقي
-    const middle = samples.slice(5, 20);
-    return Math.round(middle.reduce((a, b) => a + b, 0) / middle.length);
+    const startIdx = Math.floor(samples.length * 0.2);
+    const endIdx = Math.floor(samples.length * 0.8);
+    const validSamples = samples.slice(startIdx, endIdx);
+    
+    return Math.round(validSamples.reduce((a, b) => a + b, 0) / validSamples.length);
 }
 
-async function runProfessionalEngine(mode) {
+// المحرك الرئيسي للتحميل والرفع
+async function runNetworkEngine(mode) {
+    const duration = mode === 'DL' ? CONFIG.DL_DURATION : CONFIG.UL_DURATION;
     const startTime = performance.now();
     let totalBytes = 0;
-    let calculationStartTime = 0;
+    let actualStartTime = 0;
     let isStable = false;
     let loadedPings = [];
     const controller = new AbortController();
 
-    // فحص البنق المثقل بشكل دوري أثناء الضغط
-    const pingInterval = setInterval(async () => {
+    // قياس البنق المثقل (تحت الضغط) بشكل متكرر
+    const pingTracker = setInterval(async () => {
         if (isStable) {
-            const p = await getHighPrecisionPing();
+            const p = await measurePrecisionPing(200); // عينة سريعة
             loadedPings.push(p);
             UI.pLoaded.innerText = p;
         }
-    }, 400);
+    }, 500);
 
     const worker = async (id) => {
-        // إضافة تأخير بسيط بين انطلاق كل مسار (Staggered Start) لتجنب صدمة الشبكة
-        await new Promise(r => setTimeout(r, id * 50)); 
+        // انطلاق تدريجي للمسارات لمنع اختناق المعالج
+        await new Promise(r => setTimeout(r, id * 40)); 
         
         try {
-            while (performance.now() - startTime < CONFIG.TEST_DURATION) {
+            while (performance.now() - startTime < duration) {
                 if (mode === 'DL') {
-                    const res = await fetch(`${CONFIG.DL_URL}&r=${Math.random()}`, { 
-                        signal: controller.signal,
-                        priority: 'high'
-                    });
+                    const res = await fetch(`${CONFIG.DL_URL}&r=${Math.random()}`, { signal: controller.signal });
                     const reader = res.body.getReader();
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
                         
+                        // بدء الحساب الفعلي بعد فترة التسخين
                         if (!isStable && (performance.now() - startTime > CONFIG.WARM_UP)) {
                             isStable = true;
-                            calculationStartTime = performance.now();
+                            actualStartTime = performance.now();
                             totalBytes = 0;
                         }
-                        
                         totalBytes += value.length;
-                        updateDisplay(totalBytes, calculationStartTime);
+                        updateUI(totalBytes, actualStartTime);
                     }
                 } else {
-                    // الرفع: استخدام Chunk ضخم لتقليل الضغط على المعالج وزيادة دقة النقل
-                    const data = new Uint8Array(4 * 1024 * 1024); // 4MB
+                    const chunk = new Uint8Array(4 * 1024 * 1024); // 4MB Chunk للرفع
                     await fetch(CONFIG.UL_URL, {
                         method: 'POST',
-                        body: data,
+                        body: chunk,
                         signal: controller.signal,
                         cache: 'no-store'
                     });
-                    
                     if (!isStable && (performance.now() - startTime > CONFIG.WARM_UP)) {
                         isStable = true;
-                        calculationStartTime = performance.now();
+                        actualStartTime = performance.now();
                         totalBytes = 0;
                     }
-                    totalBytes += data.byteLength;
-                    updateDisplay(totalBytes, calculationStartTime);
+                    totalBytes += chunk.byteLength;
+                    updateUI(totalBytes, actualStartTime);
                 }
             }
         } catch (e) {}
     };
 
-    function updateDisplay(bytes, start) {
+    function updateUI(bytes, start) {
         if (!isStable) return;
-        const now = performance.now();
-        const duration = (now - start) / 1000;
-        if (duration > 0.1) {
-            const mbps = ((bytes * 8) / (1024 * 1024)) / duration;
+        const elapsed = (performance.now() - start) / 1000;
+        if (elapsed > 0) {
+            const mbps = ((bytes * 8) / (1024 * 1024)) / elapsed;
             UI.live.innerText = mbps.toFixed(2);
         }
     }
 
-    // إطلاق المسارات الـ 32 بنظام التدرج
-    const workers = [];
-    for (let i = 0; i < CONFIG.THREADS; i++) {
-        workers.push(worker(i));
-    }
-
-    await new Promise(r => setTimeout(r, CONFIG.TEST_DURATION));
-    controller.abort();
-    clearInterval(pingInterval);
-
-    // حساب النتيجة النهائية بدقة (المتوسط العام لفترة الاستقرار)
-    const finalDuration = (performance.now() - calculationStartTime) / 1000;
-    const finalMbps = ((totalBytes * 8) / (1024 * 1024)) / finalDuration;
+    // تشغيل 32 مساراً
+    const workers = Array.from({ length: CONFIG.THREADS }, (_, i) => worker(i));
     
-    if (loadedPings.length > 0) {
-        UI.pLoaded.innerText = Math.round(loadedPings.reduce((a,b)=>a+b, 0) / loadedPings.length);
-    }
+    await new Promise(r => setTimeout(r, duration));
+    controller.abort();
+    clearInterval(pingTracker);
 
-    return finalMbps;
+    // حساب النتيجة النهائية بدقة
+    const finalTime = (performance.now() - actualStartTime) / 1000;
+    return ((totalBytes * 8) / (1024 * 1024)) / finalTime;
 }
 
+// تنفيذ الفحص بالترتيب المطلوب
 UI.btn.onclick = async () => {
     UI.btn.disabled = true;
-    UI.status.innerText = "تحليل البنق الصافي (Idle)...";
-    UI.pIdle.innerText = await getHighPrecisionPing();
+    UI.status.innerText = "بدء الفحص الاحترافي بالترتيب المبرمج...";
 
-    UI.status.innerText = "فحص التحميل الاحترافي (15 ثانية)...";
-    const dlResult = await runProfessionalEngine('DL');
+    // 1. فحص التحميل (15 ثانية)
+    UI.status.innerText = "1/3 جاري فحص سرعة التحميل (15 ثانية)...";
+    const dlResult = await runNetworkEngine('DL');
     UI.dl.innerText = dlResult.toFixed(2);
 
-    UI.status.innerText = "فحص الرفع الاحترافي (15 ثانية)...";
-    UI.pLoaded.innerText = "0"; // تصفير للقياس أثناء الرفع
-    const ulResult = await runProfessionalEngine('UL');
+    // 2. فحص الرفع (15 ثانية)
+    UI.status.innerText = "2/3 جاري فحص سرعة الرفع (15 ثانية)...";
+    UI.pLoaded.innerText = "0"; // قياس البنق المثقل أثناء الرفع أيضاً
+    const ulResult = await runNetworkEngine('UL');
     UI.ul.innerText = ulResult.toFixed(2);
 
-    UI.status.innerText = "اكتمل الفحص بأعلى معايير الدقة.";
+    // 3. فحص البنق (5 ثوانٍ)
+    UI.status.innerText = "3/3 جاري تحليل البنق الصافي بدقة (5 ثوانٍ)...";
+    UI.live.innerText = "0.00";
+    const idlePing = await measurePrecisionPing(CONFIG.PING_DURATION);
+    UI.pIdle.innerText = idlePing;
+
+    UI.status.innerText = "اكتمل الفحص الشامل بدقة مطلقة.";
     UI.live.innerText = dlResult.toFixed(2);
     UI.btn.disabled = false;
+    UI.btn.innerText = "إعادة الفحص";
 };
