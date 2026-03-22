@@ -3,69 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مقياس السرعة الذكي Pro V2</title>
-    <script src="https://bernii.github.io/gauge.js/dist/gauge.min.js"></script>
+    <title>فحص الشبكة المتقدم</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #10101e; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background-color: #17172c; padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); width: 450px; text-align: center; border: 1px solid #2a2a4a; }
-        h2 { margin-top: 0; color: #fff; font-size: 24px; letter-spacing: 1px; }
-        
-        /* تصميم منطقة العداد */
-        .gauge-container { position: relative; width: 300px; height: 180px; margin: 0 auto; }
-        #speedGauge { width: 100%; height: 100%; }
-        .speed-text-overlay { position: absolute; bottom: 20px; left: 0; width: 100%; text-align: center; }
-        .speed-text-overlay .value { font-size: 48px; font-weight: bold; color: #00f2fe; }
-        .speed-text-overlay .unit { font-size: 16px; color: #a2a8d3; display: block; margin-top: -5px; }
-
-        /* تصميم شبكة النتائج */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; text-align: right; }
-        .box { background-color: #1f1f3a; padding: 15px; border-radius: 12px; border: 1px solid #2a2a4a; transition: 0.3s; }
-        .box:hover { border-color: #00f2fe; }
-        .box.full { grid-column: span 2; text-align: center; background-color: #17172c; border-color: #2a2a4a; }
-        
-        .label { font-size: 12px; color: #a2a8d3; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-        .value { font-size: 20px; font-weight: bold; color: #fff; }
-        .box.full .value { color: #4facfe; } /* لون مميز للسيرفر الأفضل */
-        .unit { font-size: 12px; color: #8187b1; margin-right: 5px; }
-
-        button { background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%); color: #10101e; border: none; padding: 15px; width: 100%; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(0,242,254,0.3); }
-        button:hover { box-shadow: 0 6px 20px rgba(0,242,254,0.5); transform: translateY(-2px); }
-        button:disabled { background: #3a3a5a; color: #8187b1; cursor: not-allowed; box-shadow: none; transform: none; }
-        
-        #status { margin-top: 20px; font-size: 14px; color: #00f2fe; font-weight: bold; min-height: 1em; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #121212; color: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background-color: #1e1e1e; padding: 30px; border-radius: 8px; border: 1px solid #333; width: 500px; }
+        h2 { margin: 0 0 20px 0; font-size: 20px; font-weight: normal; color: #fff; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .box { background-color: #252525; padding: 15px; border-radius: 6px; border: 1px solid #333; display: flex; flex-direction: column; }
+        .box.full { grid-column: span 2; flex-direction: row; justify-content: space-between; align-items: center; }
+        .label { font-size: 13px; color: #888; margin-bottom: 8px; }
+        .value { font-size: 24px; font-weight: bold; color: #fff; }
+        .value span.unit { font-size: 14px; color: #666; font-weight: normal; margin-right: 4px; }
+        button { background-color: #007bff; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-size: 15px; cursor: pointer; transition: 0.2s; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #444; color: #888; cursor: not-allowed; }
+        #status { margin-top: 15px; font-size: 13px; color: #aaa; text-align: center; height: 16px; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>مقياس السرعة Pro</h2>
+        <h2>إحصائيات الاتصال</h2>
         
-        <div class="gauge-container">
-            <canvas id="speedGauge"></canvas>
-            <div class="speed-text-overlay">
-                <span class="value" id="mainSpeedValue">0.00</span>
-                <span class="unit">Mbps</span>
-            </div>
-        </div>
-
         <div class="grid">
             <div class="box full">
-                <span class="label">أفضل خادم سعودي (HTTP Ping)</span>
+                <span class="label">المزود الأفضل للاستجابة</span>
                 <span class="value" id="bestServer">--</span>
-                <span class="unit" id="bestPing">(-- ms)</span>
+            </div>
+            
+            <div class="box">
+                <span class="label">الاستجابة (Ping)</span>
+                <div class="value"><span id="pingIdle">--</span><span class="unit">ms</span></div>
             </div>
             <div class="box">
                 <span class="label">التحميل (Download)</span>
-                <span class="value" id="downloadSpeed">--</span> <span class="unit">Mbps</span>
+                <div class="value"><span id="downloadSpeed">--</span><span class="unit">Mbps</span></div>
+            </div>
+            
+            <div class="box">
+                <span class="label">الاستجابة المثقلة (تحميل)</span>
+                <div class="value"><span id="pingLoadedDown">--</span><span class="unit">ms</span></div>
             </div>
             <div class="box">
                 <span class="label">الرفع (Upload)</span>
-                <span class="value" id="uploadSpeed">--</span> <span class="unit">Mbps</span>
+                <div class="value"><span id="uploadSpeed">--</span><span class="unit">Mbps</span></div>
+            </div>
+            
+            <div class="box">
+                <span class="label">الاستجابة المثقلة (رفع)</span>
+                <div class="value"><span id="pingLoadedUp">--</span><span class="unit">ms</span></div>
             </div>
         </div>
 
-        <button id="startBtn">بدء الفحص الشامل</button>
-        <div id="status">جاهز للبدء...</div>
+        <button id="startBtn">بدء الفحص</button>
+        <div id="status"></div>
     </div>
 
     <script src="script.js"></script>
