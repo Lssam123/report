@@ -2,38 +2,74 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>نظام فحص الشبكة الخارق</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مقياس سرعة الإنترنت</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 350px;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        .speed-result {
+            font-size: 32px;
+            font-weight: bold;
+            color: #27ae60;
+            margin: 20px 0;
+        }
+        .unit {
+            font-size: 16px;
+            color: #7f8c8d;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body>
+
     <div class="container">
-        <div class="main-display">
-            <h1 id="live-mbps">0.00</h1>
-            <p>ميغابت / ثانية</p>
+        <h1>اختبار سرعة الإنترنت</h1>
+        <div id="status">اضغط على الزر للبدء</div>
+        <div class="speed-result">
+            <span id="speed-value">0.00</span> 
+            <span class="unit">ميجابت/ثانية (Mbps)</span>
         </div>
-
-        <div class="results-grid">
-            <div class="card">
-                <label>البنق (غير مثقل)</label>
-                <div class="value"><span id="res-ping-idle">0</span> <small>ms</small></div>
-            </div>
-            <div class="card highlight">
-                <label>البنق (مثقل - تحت الضغط)</label>
-                <div class="value"><span id="res-ping-loaded">0</span> <small>ms</small></div>
-            </div>
-            <div class="card">
-                <label>سرعة التحميل</label>
-                <div class="value"><span id="res-dl">0.0</span> <small>Mbps</small></div>
-            </div>
-            <div class="card">
-                <label>سرعة الرفع</label>
-                <div class="value"><span id="res-ul">0.0</span> <small>Mbps</small></div>
-            </div>
-        </div>
-
-        <button id="start-btn">بدء الفحص الخارق</button>
-        <div id="status">جاهز للاختبار بأقصى عدد مسارات</div>
+        <button id="startBtn">ابدأ الفحص</button>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
