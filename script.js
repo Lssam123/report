@@ -1,10 +1,10 @@
-// --- 1. إعداد العداد الدائري ---
+// --- 1. إعداد العداد ---
 const canvas = document.getElementById('speedGauge');
 const gauge = new Gauge(canvas).setOptions({
-    angle: -0.2, lineWidth: 0.12, radiusScale: 1, pointer: { length: 0.5, strokeWidth: 0.035, color: '#ffffff' },
-    limitMax: false, limitMin: true, colorStart: '#3b82f6', colorStop: '#10b981', strokeColor: '#1e293b', generateGradient: true
+    angle: -0.2, lineWidth: 0.15, radiusScale: 1, pointer: { length: 0.5, strokeWidth: 0.035, color: '#f8fafc' },
+    limitMax: false, limitMin: true, colorStart: '#3b82f6', colorStop: '#10b981', strokeColor: '#334155', generateGradient: true
 });
-gauge.maxValue = 100; gauge.setMinValue(0); gauge.animationSpeed = 45; gauge.set(0);
+gauge.maxValue = 100; gauge.setMinValue(0); gauge.animationSpeed = 40; gauge.set(0);
 
 const ui = {
     btn: document.getElementById('startBtn'), status: document.getElementById('statusText'), mainVal: document.getElementById('mainValue'),
@@ -12,59 +12,58 @@ const ui = {
     loadedPing: document.getElementById('loadedPing'), ulSpeed: document.getElementById('ulSpeed')
 };
 
-// --- 2. إعدادات الفحص الأساسية ---
-const TEST_DURATION_MS = 10000; // 10 ثواني بالضبط لكل مرحلة
-// رابط فحص البنق (رد فارغ 204 من أقرب نقطة كلاودفلير محلية - الأسرع على الإطلاق)
-const EDGE_PING_URL = "https://cp.cloudflare.com/generate_204"; 
+// إعدادات الفحص
+const TEST_DURATION = 10000; // 10 ثواني دقيقة
+const PING_URL = "https://speed.cloudflare.com/__down?bytes=0"; // رد سريع جداً بـ 0 بايت
 
-let isTestingLoadedPing = false;
-let loadedPingsArray = [];
+let isTestingLoaded = false;
+let loadedPings = [];
 
-// --- 3. دورة الفحص الشاملة ---
+// --- 2. دورة التشغيل الأساسية ---
 ui.btn.addEventListener('click', async () => {
     resetUI();
     ui.btn.disabled = true;
 
     try {
-        // المرحلة 1: قياس البنق الأساسي (بدقة Speedtest)
-        ui.status.innerText = "جاري قياس استجابة الشبكة (Latency)...";
-        const basePing = await measureAccuratePing();
+        // 1. فحص البنق الأساسي
+        ui.status.innerText = "جاري قياس الاستجابة الأساسية (Ping)...";
+        const basePing = await measureRawPing();
         ui.idlePing.innerHTML = `${basePing} <span>ms</span>`;
         await sleep(500);
 
-        // المرحلة 2: التحميل والبنق المثقل معاً
+        // 2. فحص التحميل + البنق المثقل
         ui.status.innerText = "جاري قياس التحميل والبنق المثقل (10 ثواني)...";
-        isTestingLoadedPing = true; loadedPingsArray = [];
-        startLoadedPingLoop(); // تشغيل حلقة البنق المثقل
+        isTestingLoaded = true; loadedPings = [];
+        startLoadedPingLoop(); // تشغيل البنق المثقل
         
-        const dlResult = await measureBandwidth('download');
+        const dlResult = await measureDownload();
         
-        isTestingLoadedPing = false; // إيقاف البنق المثقل فور انتهاء التحميل
+        isTestingLoaded = false; // إيقاف البنق المثقل
         ui.dlSpeed.innerHTML = `${dlResult} <span>Mbps</span>`;
-        ui.loadedPing.innerHTML = `${calculateMedian(loadedPingsArray)} <span>ms</span>`;
+        ui.loadedPing.innerHTML = `${calculateMedianPing(loadedPings)} <span>ms</span>`;
         await sleep(1000);
 
-        // المرحلة 3: الرفع (بدون بنق مثقل كما طلبت)
+        // 3. فحص الرفع
         gauge.set(0); ui.mainVal.innerText = "0.00";
         ui.status.innerText = "جاري قياس الرفع (10 ثواني)...";
         
-        const ulResult = await measureBandwidth('upload');
+        const ulResult = await measureUpload();
         ui.ulSpeed.innerHTML = `${ulResult} <span>Mbps</span>`;
 
         ui.status.style.color = "#10b981";
-        ui.status.innerText = "تم الفحص بنجاح. النتائج جاهزة للمقارنة.";
-    } catch (error) {
+        ui.status.innerText = "تم إنجاز الفحص بنجاح. الأرقام جاهزة للمقارنة.";
+    } catch (e) {
         ui.status.style.color = "#ef4444";
-        ui.status.innerText = "حدث خطأ غير متوقع. يرجى التحقق من الاتصال.";
-        console.error(error);
+        ui.status.innerText = "حدث خطأ. يرجى التأكد من الاتصال.";
+        console.error(e);
     } finally {
         ui.btn.disabled = false;
         ui.btn.innerText = "إعادة الاختبار";
-        isTestingLoadedPing = false;
+        isTestingLoaded = false;
     }
 });
 
-// --- 4. الدوال المساعدة ---
+// --- 3. الدوال المساعدة ---
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function resetUI() {
@@ -74,120 +73,122 @@ function resetUI() {
     ui.idlePing.innerHTML=def; ui.dlSpeed.innerHTML=def; ui.loadedPing.innerHTML=def; ui.ulSpeed.innerHTML=def;
 }
 
-function updateGauge(speed) {
+function updateUI(speed) {
     if (speed > gauge.maxValue * 0.9) gauge.maxValue = Math.ceil((speed + 50) / 100) * 100;
     gauge.set(speed);
     ui.mainVal.innerText = speed.toFixed(2);
 }
 
-// دالة لحساب "الوسيط" (Median) بدلاً من المتوسط لضمان استبعاد القراءات الشاذة مثلما يفعل Speedtest
-function calculateMedian(arr) {
+// حساب الوسيط لاستبعاد أي قراءات وهمية
+function calculateMedianPing(arr) {
     if (arr.length === 0) return "--";
     const sorted = [...arr].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
     return sorted.length % 2 !== 0 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
 }
 
-// --- 5. هندسة استجابة الشبكة (Ping Engine) ---
-// نرسل 6 طلبات متتالية سريعة، نتجاهل الأول (غالباً يكون بطيئاً بسبب الـ DNS) ونأخذ وسيط البقية
-async function measureAccuratePing() {
+// --- 4. دالة البنق الأساسي ---
+async function measureRawPing() {
     let pings = [];
-    for (let i = 0; i < 6; i++) {
+    // نرسل 5 طلبات ونأخذ الأسرع، لأن أسرع طلب يمثل قدرة الخط الحقيقية بعيداً عن تباطؤ المتصفح
+    for (let i = 0; i < 5; i++) {
         let start = performance.now();
         try {
-            await fetch(EDGE_PING_URL + '?t=' + Math.random(), { method: 'HEAD', mode: 'no-cors', cache: 'no-store' });
-            if (i > 0) pings.push(Math.round(performance.now() - start)); // تجاهل الطلب الأول
+            await fetch(PING_URL + '&t=' + Math.random(), { cache: 'no-store' });
+            pings.push(Math.round(performance.now() - start));
         } catch(e) {}
-        await sleep(50);
     }
-    return calculateMedian(pings);
+    return pings.length > 0 ? Math.min(...pings) : "--";
 }
 
-// حلقة البنق المثقل التي تعمل أثناء التحميل فقط
+// البنق المثقل يعمل في الخلفية أثناء التحميل
 async function startLoadedPingLoop() {
-    while (isTestingLoadedPing) {
+    while (isTestingLoaded) {
         let start = performance.now();
         try {
-            await fetch(EDGE_PING_URL + '?t=' + Math.random(), { method: 'HEAD', mode: 'no-cors', cache: 'no-store' });
-            loadedPingsArray.push(Math.round(performance.now() - start));
+            await fetch(PING_URL + '&t=' + Math.random(), { cache: 'no-store' });
+            loadedPings.push(Math.round(performance.now() - start));
         } catch(e) {}
-        await sleep(150); // قياس كل 150 ملي ثانية
+        await sleep(200);
     }
 }
 
-// --- 6. هندسة قياس السرعة (Multi-threaded Bandwidth Engine) ---
-// هذه الدالة تفتح 4 مسارات (Workers) في نفس الوقت لضمان سحب كامل سرعة الخط تماماً مثل Speedtest
-function measureBandwidth(type) {
-    return new Promise((resolve) => {
-        let totalProcessedBytes = 0;
+// --- 5. دالة التحميل (الدقة المطلقة عبر ReadableStream) ---
+function measureDownload() {
+    return new Promise(async (resolve) => {
+        const controller = new AbortController();
+        const url = "https://speed.cloudflare.com/__down?bytes=100000000"; // طلب 100 ميجا
+        let totalBytes = 0;
         let finalSpeed = 0;
-        let startTime = performance.now();
-        let isAborted = false;
-        
-        const concurrentConnections = 4; // عدد الاتصالات المتزامنة لضغط الخط
-        let activeRequests = [];
+        const startTime = performance.now();
 
-        // تحديث العداد اللحظي كل 200 ملي ثانية
-        const uiInterval = setInterval(() => {
-            if (isAborted) return;
-            const durationInSeconds = (performance.now() - startTime) / 1000;
-            if (durationInSeconds > 0.2 && totalProcessedBytes > 0) {
-                finalSpeed = ((totalProcessedBytes * 8) / durationInSeconds) / 1000000;
-                updateGauge(finalSpeed);
-            }
-        }, 200);
-
-        // دالة إنشاء اتصال واحد (Worker)
-        function createWorker() {
-            if (isAborted) return;
-            const xhr = new XMLHttpRequest();
-            activeRequests.push(xhr);
-            
-            // في التحميل نطلب 25 ميجا، وفي الرفع نرسل 10 ميجا لتجنب إغلاق المتصفح للعملية
-            const url = type === 'download' 
-                ? "https://speed.cloudflare.com/__down?bytes=25000000" 
-                : "https://speed.cloudflare.com/__up";
-
-            xhr.open(type === 'download' ? 'GET' : 'POST', url, true);
-
-            // تتبع البيانات
-            let lastLoaded = 0;
-            const progressHandler = (e) => {
-                if (isAborted) return;
-                const chunk = e.loaded - lastLoaded;
-                totalProcessedBytes += chunk;
-                lastLoaded = e.loaded;
-            };
-
-            if (type === 'download') xhr.onprogress = progressHandler;
-            else xhr.upload.onprogress = progressHandler;
-
-            // عند انتهاء الحزمة، نفتح واحدة جديدة فوراً (Loop) لإبقاء الخط مشبعاً
-            xhr.onload = () => {
-                if (!isAborted) createWorker();
-            };
-
-            if (type === 'upload') {
-                const payload = new Uint8Array(10 * 1024 * 1024); // 10MB
-                xhr.setRequestHeader("Content-Type", "application/octet-stream");
-                xhr.send(payload);
-            } else {
-                xhr.send();
-            }
-        }
-
-        // تشغيل المسارات الـ 4 في نفس الوقت
-        for (let i = 0; i < concurrentConnections; i++) {
-            createWorker();
-        }
-
-        // إيقاف الفحص بدقة بعد 10 ثواني (المدة القياسية لـ Speedtest)
-        setTimeout(() => {
-            isAborted = true;
-            clearInterval(uiInterval);
-            // إغلاق جميع الاتصالات النشطة
-            activeRequests.forEach(req => req.abort());
+        // قاطع الاتصال بعد 10 ثواني
+        const timeout = setTimeout(() => {
+            controller.abort();
             resolve(finalSpeed.toFixed(2));
-        }, TEST_DURATION_MS);
+        }, TEST_DURATION);
+
+        try {
+            const response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+            const reader = response.body.getReader();
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                totalBytes += value.length; // حساب دقيق جداً لكل بايت
+                
+                const duration = (performance.now() - startTime) / 1000;
+                if (duration > 0.2) {
+                    finalSpeed = ((totalBytes * 8) / duration) / 1000000;
+                    updateUI(finalSpeed);
+                }
+            }
+        } catch (e) {
+            // تجاهل خطأ التوقف المتعمد بعد 10 ثواني
+        }
+        
+        clearTimeout(timeout);
+        resolve(finalSpeed.toFixed(2));
+    });
+}
+
+// --- 6. دالة الرفع (الخوارزمية المعتمدة للمتصفحات) ---
+function measureUpload() {
+    return new Promise((resolve) => {
+        const numWorkers = 2; // مسارين متوازيين لضمان تشبع الخط وتجاوز حظر المتصفح
+        let xhrs = [];
+        let loadedBytesArray = new Array(numWorkers).fill(0);
+        let finalSpeed = 0;
+        const startTime = performance.now();
+
+        // قاطع الاتصال بعد 10 ثواني
+        const timeout = setTimeout(() => {
+            xhrs.forEach(xhr => xhr.abort());
+            resolve(finalSpeed.toFixed(2));
+        }, TEST_DURATION);
+
+        for (let i = 0; i < numWorkers; i++) {
+            let xhr = new XMLHttpRequest();
+            xhrs.push(xhr);
+            xhr.open('POST', 'https://speed.cloudflare.com/__up', true);
+            xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+            
+            // تتبع ما تم رفعه من هذا المسار فقط
+            xhr.upload.onprogress = (e) => {
+                loadedBytesArray[i] = e.loaded;
+                // جمع ما تم رفعه من كلا المسارين
+                let totalBytes = loadedBytesArray.reduce((a, b) => a + b, 0);
+                const duration = (performance.now() - startTime) / 1000;
+                
+                if (duration > 0.2) {
+                    finalSpeed = ((totalBytes * 8) / duration) / 1000000;
+                    updateUI(finalSpeed);
+                }
+            };
+
+            // إنشاء ملف وهمي بحجم 20 ميجا لكل مسار
+            const payload = new Uint8Array(20 * 1024 * 1024);
+            xhr.send(payload);
+        }
     });
 }
