@@ -3,60 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>فحص الشبكة المتقدم</title>
+    <title>مقياس الشبكة الاحترافي | Time-Based</title>
+    <script src="https://bernii.github.io/gauge.js/dist/gauge.min.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #121212; color: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background-color: #1e1e1e; padding: 30px; border-radius: 8px; border: 1px solid #333; width: 500px; }
-        h2 { margin: 0 0 20px 0; font-size: 20px; font-weight: normal; color: #fff; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .box { background-color: #252525; padding: 15px; border-radius: 6px; border: 1px solid #333; display: flex; flex-direction: column; }
-        .box.full { grid-column: span 2; flex-direction: row; justify-content: space-between; align-items: center; }
-        .label { font-size: 13px; color: #888; margin-bottom: 8px; }
-        .value { font-size: 24px; font-weight: bold; color: #fff; }
-        .value span.unit { font-size: 14px; color: #666; font-weight: normal; margin-right: 4px; }
-        button { background-color: #007bff; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-size: 15px; cursor: pointer; transition: 0.2s; }
-        button:hover { background-color: #0056b3; }
-        button:disabled { background-color: #444; color: #888; cursor: not-allowed; }
-        #status { margin-top: 15px; font-size: 13px; color: #aaa; text-align: center; height: 16px; }
+        :root { --bg: #0b0f19; --card: #151b2b; --text: #e2e8f0; --accent: #3b82f6; --ping: #10b981; --border: #1e293b; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .dashboard { background-color: var(--card); padding: 40px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 20px 50px rgba(0,0,0,0.5); width: 600px; text-align: center; }
+        
+        .gauge-wrapper { position: relative; width: 350px; height: 200px; margin: 0 auto 30px auto; }
+        #speedGauge { width: 100%; height: 100%; }
+        .gauge-center { position: absolute; bottom: 10px; left: 0; width: 100%; text-align: center; }
+        .gauge-value { font-size: 54px; font-weight: 800; color: var(--accent); line-height: 1; }
+        .gauge-unit { font-size: 16px; color: #64748b; font-weight: 500; }
+
+        .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
+        .metric-box { background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 15px; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; }
+        .metric-label { font-size: 12px; color: #64748b; margin-bottom: 5px; font-weight: 600; text-transform: uppercase; }
+        .metric-val { font-size: 20px; font-weight: bold; color: var(--text); }
+        .metric-val span { font-size: 12px; color: #64748b; font-weight: normal; margin-right: 3px; }
+        
+        /* تلوين خاص لمؤشرات البنق لتفريقها عن السرعة */
+        .ping-val { color: var(--ping); }
+
+        button { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; padding: 16px; width: 100%; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3); }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5); }
+        button:disabled { background: var(--border); color: #64748b; cursor: not-allowed; transform: none; box-shadow: none; }
+        
+        #statusInfo { margin-top: 20px; font-size: 14px; color: var(--accent); font-weight: 600; height: 20px; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>إحصائيات الاتصال</h2>
-        
-        <div class="grid">
-            <div class="box full">
-                <span class="label">المزود الأفضل للاستجابة</span>
-                <span class="value" id="bestServer">--</span>
-            </div>
-            
-            <div class="box">
-                <span class="label">الاستجابة (Ping)</span>
-                <div class="value"><span id="pingIdle">--</span><span class="unit">ms</span></div>
-            </div>
-            <div class="box">
-                <span class="label">التحميل (Download)</span>
-                <div class="value"><span id="downloadSpeed">--</span><span class="unit">Mbps</span></div>
-            </div>
-            
-            <div class="box">
-                <span class="label">الاستجابة المثقلة (تحميل)</span>
-                <div class="value"><span id="pingLoadedDown">--</span><span class="unit">ms</span></div>
-            </div>
-            <div class="box">
-                <span class="label">الرفع (Upload)</span>
-                <div class="value"><span id="uploadSpeed">--</span><span class="unit">Mbps</span></div>
-            </div>
-            
-            <div class="box">
-                <span class="label">الاستجابة المثقلة (رفع)</span>
-                <div class="value"><span id="pingLoadedUp">--</span><span class="unit">ms</span></div>
+    <div class="dashboard">
+        <div class="gauge-wrapper">
+            <canvas id="speedGauge"></canvas>
+            <div class="gauge-center">
+                <div class="gauge-value" id="mainDisplay">0.00</div>
+                <div class="gauge-unit">Mbps</div>
             </div>
         </div>
 
-        <button id="startBtn">بدء الفحص</button>
-        <div id="status"></div>
+        <div class="metrics-grid">
+            <div class="metric-box">
+                <span class="metric-label">استجابة (غير مثقل)</span>
+                <span class="metric-val ping-val" id="idlePing">-- <span>ms</span></span>
+            </div>
+            <div class="metric-box">
+                <span class="metric-label">تحميل (Download)</span>
+                <span class="metric-val" id="dlSpeed">-- <span>Mbps</span></span>
+            </div>
+            <div class="metric-box">
+                <span class="metric-label">مثقل للتحميل</span>
+                <span class="metric-val ping-val" id="dlPing">-- <span>ms</span></span>
+            </div>
+            <div class="metric-box" style="grid-column: 2;">
+                <span class="metric-label">رفع (Upload)</span>
+                <span class="metric-val" id="ulSpeed">-- <span>Mbps</span></span>
+            </div>
+            <div class="metric-box">
+                <span class="metric-label">مثقل للرفع</span>
+                <span class="metric-val ping-val" id="ulPing">-- <span>ms</span></span>
+            </div>
+        </div>
+
+        <button id="startBtn">بدء الفحص الزمني</button>
+        <div id="statusInfo">جاهز للبدء</div>
     </div>
 
     <script src="script.js"></script>
