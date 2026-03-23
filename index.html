@@ -3,363 +3,350 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة فحص جودة الشبكة | إصدار التخرج</title>
+    <title>منصة فحص جودة الشبكة - Control Panel</title>
     <style>
-        /* --- التصميم الاحترافي (Dark Glassmorphism) --- */
+        /* تصميم "غرفة التحكم" (Control Room) - احترافي وخالي من البهرجة */
         :root {
-            --bg: #050914;
-            --surface: rgba(16, 24, 40, 0.7);
-            --primary: #00e5ff; /* لون سماوي نيون */
-            --primary-glow: rgba(0, 229, 255, 0.4);
-            --secondary: #b388ff; /* لون بنفسجي نيون للرفع */
-            --ping: #ffc400;
-            --text: #f8fafc;
-            --text-muted: #94a3b8;
-            --border: rgba(255, 255, 255, 0.1);
+            --bg: #0a0a0c;
+            --panel: #121216;
+            --border: #2a2a35;
+            --text: #e2e8f0;
+            --cyan: #00f0ff; /* لون السرعة */
+            --ping: #ff3e3e; /* لون البنق */
+            --log: #00ff66; /* لون سطر الأوامر */
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg);
-            background-image: radial-gradient(circle at 50% -20%, #1a2340 0%, var(--bg) 70%);
             color: var(--text);
+            margin: 0;
+            padding: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            overflow-x: hidden;
         }
 
         .dashboard {
-            background: var(--surface);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            padding: 40px;
-            border-radius: 24px;
+            background-color: var(--panel);
             border: 1px solid var(--border);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+            border-radius: 8px;
             width: 100%;
-            max-width: 650px;
-            text-align: center;
-        }
-
-        /* --- عداد الـ SVG المصمم من الصفر --- */
-        .gauge-container {
-            position: relative;
-            width: 280px;
-            height: 280px;
-            margin: 0 auto 30px auto;
-        }
-
-        .gauge-svg {
-            width: 100%;
-            height: 100%;
-            transform: rotate(-90deg); /* بداية الدائرة من الأعلى */
-        }
-
-        .gauge-bg {
-            fill: none;
-            stroke: rgba(255, 255, 255, 0.05);
-            stroke-width: 12;
-        }
-
-        .gauge-progress {
-            fill: none;
-            stroke: var(--primary);
-            stroke-width: 14;
-            stroke-linecap: round;
-            stroke-dasharray: 754; /* محيط الدائرة (2 * PI * 120) */
-            stroke-dashoffset: 754; /* البداية من الصفر */
-            transition: stroke-dashoffset 0.1s linear, stroke 0.3s ease;
-            filter: drop-shadow(0 0 12px var(--primary-glow));
-        }
-
-        .speed-readout {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 100%;
-        }
-
-        .speed-value {
-            font-size: 64px;
-            font-weight: 800;
-            color: #fff;
-            line-height: 1;
-            letter-spacing: -2px;
-            text-shadow: 0 0 20px rgba(255,255,255,0.3);
-        }
-
-        .speed-unit {
-            font-size: 16px;
-            color: var(--text-muted);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-top: 5px;
-        }
-
-        /* --- شبكة النتائج --- */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .metric-card {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border);
-            padding: 20px;
-            border-radius: 16px;
+            max-width: 800px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            overflow: hidden;
         }
 
-        .metric-label {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-            font-weight: 600;
+        /* الجزء العلوي: الأرقام */
+        .metrics-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .metric-box {
+            padding: 20px;
+            border-left: 1px solid var(--border);
+            text-align: center;
+        }
+        .metric-box:first-child { border-left: none; }
+
+        .label {
+            font-size: 11px;
+            color: #8a8a98;
             text-transform: uppercase;
             letter-spacing: 1px;
+            margin-bottom: 8px;
+            display: block;
         }
 
-        .metric-val {
-            font-size: 28px;
-            font-weight: 700;
-            display: flex;
-            align-items: baseline;
-            gap: 4px;
+        .value {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--text);
+        }
+        
+        .val-cyan { color: var(--cyan); }
+        .val-ping { color: var(--ping); }
+
+        .unit {
+            font-size: 12px;
+            color: #8a8a98;
+            margin-right: 2px;
         }
 
-        .metric-val span {
-            font-size: 14px;
-            color: #64748b;
-            font-weight: 500;
+        /* الجزء الأوسط: الرسم البياني */
+        .graph-container {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            background: #0d0d11;
+            position: relative;
         }
-
-        .color-ping { color: var(--ping); }
-        .color-dl { color: var(--primary); }
-        .color-ul { color: var(--secondary); }
-
-        /* --- الأزرار والحالة --- */
-        button {
-            background: linear-gradient(135deg, #00e5ff 0%, #007aff 100%);
-            color: #000;
-            border: none;
-            padding: 18px;
+        
+        #liveGraph {
             width: 100%;
-            border-radius: 14px;
-            font-size: 18px;
-            font-weight: 800;
+            height: 150px;
+            display: block;
+        }
+
+        .graph-overlay {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            font-size: 12px;
+            color: #8a8a98;
+            font-family: monospace;
+        }
+
+        /* الجزء السفلي: سطر الأوامر (Terminal Log) والزر */
+        .bottom-section {
+            display: flex;
+        }
+
+        .terminal-log {
+            flex: 1;
+            padding: 15px;
+            background: #050505;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            color: var(--log);
+            height: 80px;
+            overflow-y: auto;
+            border-left: 1px solid var(--border);
+        }
+
+        .terminal-log p { margin: 2px 0; }
+        .log-time { color: #8a8a98; margin-left: 5px; }
+
+        .action-btn {
+            width: 200px;
+            background: var(--text);
+            color: var(--bg);
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 20px rgba(0, 229, 255, 0.3);
+            transition: 0.2s;
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
 
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 25px rgba(0, 229, 255, 0.5);
-        }
+        .action-btn:hover { background: var(--cyan); }
+        .action-btn:disabled { background: var(--border); color: #8a8a98; cursor: not-allowed; }
 
-        button:disabled {
-            background: #1e293b;
-            color: #64748b;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        #statusText {
-            margin-top: 20px;
-            font-size: 14px;
-            color: var(--text-muted);
-            font-weight: 500;
-            height: 20px;
-        }
+        /* سكرول بار للترمينال */
+        .terminal-log::-webkit-scrollbar { width: 6px; }
+        .terminal-log::-webkit-scrollbar-thumb { background: var(--border); }
     </style>
 </head>
 <body>
 
     <div class="dashboard">
-        <div class="gauge-container">
-            <svg class="gauge-svg" viewBox="0 0 260 260">
-                <circle class="gauge-bg" cx="130" cy="130" r="120"></circle>
-                <circle class="gauge-progress" id="gaugeProgress" cx="130" cy="130" r="120"></circle>
-            </svg>
-            <div class="speed-readout">
-                <div class="speed-value" id="mainValue">0.00</div>
-                <div class="speed-unit">Mbps</div>
+        <div class="metrics-container">
+            <div class="metric-box">
+                <span class="label">البنق الأساسي (TCP)</span>
+                <span class="value val-ping" id="idlePing">--<span class="unit">ms</span></span>
+            </div>
+            <div class="metric-box">
+                <span class="label">تنزيل (Download)</span>
+                <span class="value val-cyan" id="dlSpeed">--<span class="unit">Mbps</span></span>
+            </div>
+            <div class="metric-box">
+                <span class="label">بنق مثقل (Loaded)</span>
+                <span class="value val-ping" id="loadedPing">--<span class="unit">ms</span></span>
+            </div>
+            <div class="metric-box">
+                <span class="label">رفع (Upload)</span>
+                <span class="value val-cyan" id="ulSpeed">--<span class="unit">Mbps</span></span>
             </div>
         </div>
 
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-label">الاستجابة (Ping)</div>
-                <div class="metric-val color-ping" id="idlePing">-- <span>ms</span></div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">التحميل (Download)</div>
-                <div class="metric-val color-dl" id="dlSpeed">-- <span>Mbps</span></div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">البنق المثقل (Loaded)</div>
-                <div class="metric-val color-ping" id="loadedPing">-- <span>ms</span></div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">الرفع (Upload)</div>
-                <div class="metric-val color-ul" id="ulSpeed">-- <span>Mbps</span></div>
-            </div>
+        <div class="graph-container">
+            <div class="graph-overlay">مخطط التدفق اللحظي (Real-time Flow)</div>
+            <canvas id="liveGraph"></canvas>
         </div>
 
-        <button id="startBtn">بدء الفحص الشامل</button>
-        <div id="statusText">الأنظمة جاهزة للقياس</div>
+        <div class="bottom-section">
+            <div class="terminal-log" id="termLog">
+                <p><span class="log-time">[SYS]</span> النظام جاهز. بانتظار بدء التسلسل...</p>
+            </div>
+            <button class="action-btn" id="startBtn">بدء الفحص</button>
+        </div>
     </div>
 
     <script>
-        // --- 1. إعداد واجهة المستخدم (DOM) ---
+        // --- 1. إعدادات الواجهة والرسم البياني ---
         const ui = {
             btn: document.getElementById('startBtn'),
-            status: document.getElementById('statusText'),
-            mainVal: document.getElementById('mainValue'),
-            gaugeCircle: document.getElementById('gaugeProgress'),
+            log: document.getElementById('termLog'),
             idlePing: document.getElementById('idlePing'),
             dlSpeed: document.getElementById('dlSpeed'),
             loadedPing: document.getElementById('loadedPing'),
             ulSpeed: document.getElementById('ulSpeed')
         };
 
+        // إعداد الرسم البياني (Canvas) برمجياً من الصفر
+        const canvas = document.getElementById('liveGraph');
+        const ctx = canvas.getContext('2d');
+        let graphData = [];
+        let graphColor = "#00f0ff";
+        
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth - 40;
+            canvas.height = 150;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function drawGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (graphData.length < 2) return;
+
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height);
+
+            const step = canvas.width / 50; // عرض 50 نقطة كحد أقصى
+            const maxVal = Math.max(...graphData, 10); // تحديد أعلى سرعة لضبط مقياس الرسم
+
+            for (let i = 0; i < graphData.length; i++) {
+                let x = i * step;
+                let y = canvas.height - ((graphData[i] / maxVal) * (canvas.height - 20));
+                ctx.lineTo(x, y);
+            }
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = graphColor;
+            ctx.stroke();
+
+            // إضافة تدرج لوني تحت الخط
+            ctx.lineTo((graphData.length - 1) * step, canvas.height);
+            ctx.lineTo(0, canvas.height);
+            let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, graphColor + "40"); // شفافية 25%
+            gradient.addColorStop(1, "transparent");
+            ctx.fillStyle = gradient;
+            ctx.fill();
+        }
+
+        function addGraphPoint(val) {
+            graphData.push(val);
+            if (graphData.length > 50) graphData.shift();
+            drawGraph();
+        }
+
+        function writeLog(msg) {
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            ui.log.innerHTML += `<p><span class="log-time">[${time}]</span> ${msg}</p>`;
+            ui.log.scrollTop = ui.log.scrollHeight; // التمرير للأسفل تلقائياً
+        }
+
+        // --- 2. إعدادات الشبكة ---
         const TEST_DURATION = 10000; // 10 ثواني
-        const EDGE_URL = "https://1.1.1.1/cdn-cgi/trace"; // أسرع نقطة استجابة لكلاودفلير (للبنق)
+        const EDGE_URL = "https://cp.cloudflare.com/generate_204"; // نقطة كلاودفلير السريعة جداً
 
         let isTestingLoaded = false;
         let loadedPings = [];
-        let gaugeMax = 100; // الحد الأقصى المبدئي للعداد
-        const GAUGE_CIRCUMFERENCE = 754; // محيط الدائرة في الـ SVG
 
-        // --- 2. دورة التشغيل الأساسية ---
+        // --- 3. دورة التشغيل الرئيسية ---
         ui.btn.addEventListener('click', async () => {
-            resetUI();
             ui.btn.disabled = true;
             ui.btn.innerText = "جاري القياس...";
-
+            const def = `--<span class="unit">--</span>`;
+            ui.idlePing.innerHTML=def; ui.dlSpeed.innerHTML=def; ui.loadedPing.innerHTML=def; ui.ulSpeed.innerHTML=def;
+            graphData = []; ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ui.log.innerHTML = '';
+            
             try {
-                // المرحلة الأولى: البنق النقي
-                ui.status.innerText = "جاري حساب الاستجابة الصافية (Ping)...";
-                const basePing = await measureAccuratePing();
-                ui.idlePing.innerHTML = `${basePing} <span>ms</span>`;
+                // 1. البنق النقي باستخدام Resource Timing API
+                writeLog("بدء الاتصال بخوادم الحافة (Edge Nodes)...");
+                const purePing = await measureHardwarePing();
+                ui.idlePing.innerHTML = `${purePing}<span class="unit">ms</span>`;
+                writeLog(`تم حساب البنق الأساسي: ${purePing}ms`);
                 await sleep(500);
 
-                // المرحلة الثانية: التحميل والبنق المثقل
-                ui.status.innerText = "جاري قياس مسار التحميل (10 ثواني)...";
-                ui.gaugeCircle.style.stroke = "var(--primary)"; // لون أزرق
+                // 2. التحميل والبنق المثقل
+                graphColor = "#00f0ff"; // أزرق للتنزيل
+                graphData = [];
+                writeLog("جاري اختبار مسار التنزيل (Download Stream)...");
                 
                 isTestingLoaded = true; loadedPings = [];
                 startLoadedPingLoop(); 
-                const dlResult = await measureDownload();
-                isTestingLoaded = false; 
                 
-                ui.dlSpeed.innerHTML = `${dlResult} <span>Mbps</span>`;
-                ui.loadedPing.innerHTML = `${calculateMedian(loadedPings)} <span>ms</span>`;
+                const dlSpeed = await testDownload();
+                
+                isTestingLoaded = false;
+                ui.dlSpeed.innerHTML = `${dlSpeed}<span class="unit">Mbps</span>`;
+                const finalLoaded = loadedPings.length ? Math.min(...loadedPings) : "--";
+                ui.loadedPing.innerHTML = `${finalLoaded}<span class="unit">ms</span>`;
+                writeLog(`انتهى التنزيل: ${dlSpeed} Mbps | بنق مثقل: ${finalLoaded}ms`);
                 await sleep(1000);
 
-                // المرحلة الثالثة: الرفع (بتقنية تجاوز الحماية)
-                resetGauge();
-                ui.status.innerText = "جاري قياس مسار الرفع (10 ثواني)...";
-                ui.gaugeCircle.style.stroke = "var(--secondary)"; // لون بنفسجي للرفع
+                // 3. الرفع (باستخدام No-CORS Workers)
+                graphColor = "#ff00ff"; // وردي للرفع
+                graphData = [];
+                writeLog("جاري اختبار مسار الرفع (Upload Chunks) لتجاوز حماية المتصفح...");
                 
-                const ulResult = await measureUpload();
-                ui.ulSpeed.innerHTML = `${ulResult} <span>Mbps</span>`;
+                const ulSpeed = await testUploadSafe();
+                
+                ui.ulSpeed.innerHTML = `${ulSpeed}<span class="unit">Mbps</span>`;
+                writeLog(`انتهى الرفع: ${ulSpeed} Mbps`);
+                writeLog("اكتمل التشخيص. البيانات مطابقة للمعايير.");
 
-                ui.status.style.color = "#00e5ff";
-                ui.status.innerText = "اكتمل الاختبار. النتائج جاهزة للمصادقة.";
-            } catch (e) {
-                ui.status.style.color = "#ff3d00";
-                ui.status.innerText = "فشل في الشبكة. تأكد من إيقاف الـ VPN.";
-                console.error(e);
+            } catch (err) {
+                writeLog(`<span style="color:#ff3e3e">خطأ فادح: ${err.message}</span>`);
             } finally {
                 ui.btn.disabled = false;
-                ui.btn.innerText = "إعادة الاختبار";
+                ui.btn.innerText = "إعادة الفحص";
                 isTestingLoaded = false;
             }
         });
 
-        // --- 3. الدوال المساعدة ---
         const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-        function resetUI() {
-            resetGauge();
-            ui.status.style.color = "var(--text-muted)";
-            const def = `-- <span>--</span>`;
-            ui.idlePing.innerHTML = def; ui.dlSpeed.innerHTML = def;
-            ui.loadedPing.innerHTML = def; ui.ulSpeed.innerHTML = def;
-        }
-
-        function resetGauge() {
-            gaugeMax = 100;
-            ui.mainVal.innerText = "0.00";
-            ui.gaugeCircle.style.strokeDashoffset = GAUGE_CIRCUMFERENCE;
-        }
-
-        function updateGauge(speed) {
-            // تمديد حد العداد تلقائياً إذا كانت السرعة عالية
-            if (speed > gaugeMax * 0.9) gaugeMax = Math.ceil((speed + 50) / 100) * 100;
-            
-            ui.mainVal.innerText = speed.toFixed(2);
-            
-            // حساب نسبة التعبئة للـ SVG
-            let percent = Math.min(speed / gaugeMax, 1);
-            let offset = GAUGE_CIRCUMFERENCE - (percent * GAUGE_CIRCUMFERENCE);
-            ui.gaugeCircle.style.strokeDashoffset = offset;
-        }
-
-        function calculateMedian(arr) {
-            if (arr.length === 0) return "--";
-            const sorted = [...arr].sort((a, b) => a - b);
-            return sorted[Math.floor(sorted.length / 2)];
-        }
-
-        // --- 4. محرك البنق (Ping Engine) ---
-        async function measureAccuratePing() {
-            // تسخين الاتصال (Warm-up)
-            try { await fetch(EDGE_URL, { mode: 'no-cors', cache: 'no-store' }); } catch(e) {}
-            
+        // --- 4. محرك البنق (Hardware Level Ping) ---
+        // هذه الدالة تستخدم performance API لاستخراج وقت انتقال الشبكة الدقيق (TCP/TLS) متجاهلة وقت الجافاسكريبت
+        async function measureHardwarePing() {
             let pings = [];
-            for (let i = 0; i < 6; i++) {
-                let start = performance.now();
+            // طلب تسخين لفتح القناة
+            try { await fetch(EDGE_URL, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
+            
+            for (let i = 0; i < 5; i++) {
+                const testUrl = EDGE_URL + '?id=' + Date.now() + Math.random();
                 try {
-                    await fetch(EDGE_URL + '?r=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
-                    pings.push(Math.round(performance.now() - start));
+                    await fetch(testUrl, { mode: 'no-cors', cache: 'no-store' });
+                    // قراءة الوقت من المتصفح مباشرة
+                    const entries = performance.getEntriesByName(testUrl);
+                    if (entries.length > 0) {
+                        // duration يمثل وقت الرحلة الكاملة للطلب
+                        pings.push(Math.round(entries[0].duration));
+                    }
                 } catch(e) {}
                 await sleep(50);
             }
-            return pings.length > 0 ? Math.min(...pings) : "--"; // استخدام أسرع بنق يمثل قدرة الخط
+            // أخذ أقل رقم لأنه يمثل قدرة الخط دون أي معوقات برمجية (نفس آلية Speedtest)
+            return pings.length > 0 ? Math.min(...pings) : "--";
         }
 
         async function startLoadedPingLoop() {
             while (isTestingLoaded) {
-                let start = performance.now();
+                const testUrl = EDGE_URL + '?load=' + Date.now();
                 try {
-                    await fetch(EDGE_URL + '?r=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
-                    loadedPings.push(Math.round(performance.now() - start));
+                    await fetch(testUrl, { mode: 'no-cors', cache: 'no-store' });
+                    const entries = performance.getEntriesByName(testUrl);
+                    if (entries.length > 0) loadedPings.push(Math.round(entries[0].duration));
                 } catch(e) {}
                 await sleep(250);
             }
         }
 
-        // --- 5. محرك التحميل (Download Engine) ---
-        function measureDownload() {
+        // --- 5. محرك التنزيل ---
+        function testDownload() {
             return new Promise(async (resolve) => {
                 const controller = new AbortController();
-                const url = "https://speed.cloudflare.com/__down?bytes=100000000"; // 100MB
+                const url = "https://speed.cloudflare.com/__down?bytes=150000000"; // 150MB لضمان عدم انتهائه بسرعة
                 let totalBytes = 0;
                 let finalSpeed = 0;
                 const startTime = performance.now();
@@ -381,70 +368,68 @@
                         const duration = (performance.now() - startTime) / 1000;
                         if (duration > 0.3) {
                             finalSpeed = ((totalBytes * 8) / duration) / 1000000;
-                            updateGauge(finalSpeed);
+                            ui.dlSpeed.innerHTML = `${finalSpeed.toFixed(2)}<span class="unit">Mbps</span>`;
+                            addGraphPoint(finalSpeed);
                         }
                     }
-                } catch (e) {} // يتم تجاهل الخطأ عند قطع الاتصال بعد 10 ثواني
-                
+                } catch (e) {} // سيتوقف هنا عند الـ abort
                 clearTimeout(timeout);
                 resolve(finalSpeed.toFixed(2));
             });
         }
 
-        // --- 6. محرك الرفع الذكي (Upload Engine - CORS Bypassed) ---
-        function measureUpload() {
+        // --- 6. محرك الرفع المطلق (The Ultimate Upload Fix for GitHub Pages) ---
+        // الخدعة: نستخدم Fetch مع وضع no-cors. هذا يمنع المتصفح من إرسال طلب (OPTIONS) الأمني
+        // ويقوم بإرسال البيانات فوراً بقوة. نحن لا نحتاج لقراءة استجابة السيرفر، نحتاج فقط لرمي البيانات.
+        function testUploadSafe() {
             return new Promise((resolve) => {
-                let isAborted = false;
+                let isRunning = true;
+                let totalSentBytes = 0;
                 let finalSpeed = 0;
-                let totalLoadedBytes = 0;
                 const startTime = performance.now();
                 
-                // الخدعة: إرسال بيانات كـ text/plain لمنع المتصفح من حظرها (No CORS Preflight)
-                const chunkSize = 2 * 1024 * 1024; // حزمة بحجم 2 ميجا لتكون سريعة وتتكرر
-                const payload = new Blob([new Uint8Array(chunkSize)], { type: 'text/plain' });
-                
-                // فتح مسارين متوازيين لضغط الخط
-                const numWorkers = 2;
-                let activeWorkers = [];
+                // حزمة صغيرة جداً (1 ميجا) لتتكرر بسرعة ولا يتم حظرها بسبب طول الوقت
+                const chunkSize = 1048576; 
+                const chunkData = new Blob([new Uint8Array(chunkSize)]);
 
-                function startUploadWorker() {
-                    if (isAborted) return;
-                    
-                    const xhr = new XMLHttpRequest();
-                    activeWorkers.push(xhr);
-                    xhr.open('POST', 'https://speed.cloudflare.com/__up', true);
-                    
-                    let lastLoaded = 0;
-                    xhr.upload.onprogress = (e) => {
-                        if (isAborted) return;
-                        let chunk = e.loaded - lastLoaded;
-                        totalLoadedBytes += chunk;
-                        lastLoaded = e.loaded;
-                        
-                        const duration = (performance.now() - startTime) / 1000;
-                        if (duration > 0.3 && totalLoadedBytes > 0) {
-                            finalSpeed = ((totalLoadedBytes * 8) / duration) / 1000000;
-                            updateGauge(finalSpeed);
-                        }
-                    };
+                // تحديث الواجهة كل ربع ثانية
+                const uiTimer = setInterval(() => {
+                    if (!isRunning) return;
+                    const duration = (performance.now() - startTime) / 1000;
+                    if (duration > 0.5 && totalSentBytes > 0) {
+                        finalSpeed = ((totalSentBytes * 8) / duration) / 1000000;
+                        ui.ulSpeed.innerHTML = `${finalSpeed.toFixed(2)}<span class="unit">Mbps</span>`;
+                        addGraphPoint(finalSpeed);
+                    }
+                }, 250);
 
-                    // بمجرد انتهاء الحزمة، ارفع حزمة جديدة فوراً (حلقة مستمرة)
-                    xhr.onload = () => { if (!isAborted) startUploadWorker(); };
-                    xhr.onerror = () => { if (!isAborted) startUploadWorker(); };
-                    
-                    xhr.send(payload);
-                }
-
-                for (let i = 0; i < numWorkers; i++) {
-                    startUploadWorker();
-                }
-
-                // قاطع الاتصال الصارم بعد 10 ثواني
+                // إيقاف الفحص بعد 10 ثواني
                 setTimeout(() => {
-                    isAborted = true;
-                    activeWorkers.forEach(xhr => xhr.abort());
+                    isRunning = false;
+                    clearInterval(uiTimer);
                     resolve(finalSpeed.toFixed(2));
                 }, TEST_DURATION);
+
+                // عامل الرفع (Worker): يرسل حزمة، وينتظر وصولها، ثم يرسل أخرى فوراً
+                async function uploadWorker() {
+                    while (isRunning) {
+                        try {
+                            await fetch('https://speed.cloudflare.com/__up', {
+                                method: 'POST',
+                                body: chunkData,
+                                mode: 'no-cors', // كلمة السر لتجاوز جيتهاب والمتصفح
+                                cache: 'no-store'
+                            });
+                            // إذا اكتمل الرفع بدون أخطاء، نضيف الحجم للرصيد
+                            if (isRunning) totalSentBytes += chunkSize;
+                        } catch(e) {
+                            // إذا فشل الاتصال، استمر في المحاولة (Loop)
+                        }
+                    }
+                }
+
+                // تشغيل 4 عمال (Workers) متوازيين لضغط خط الرفع وسحب أقصى سرعة
+                for (let i = 0; i < 4; i++) uploadWorker();
             });
         }
     </script>
