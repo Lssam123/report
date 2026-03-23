@@ -3,31 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مقياس الشبكة والألعاب الاحترافي</title>
+    <title>مقياس الشبكة الاحترافي | النسخة النهائية</title>
     <script src="https://bernii.github.io/gauge.js/dist/gauge.min.js"></script>
     <style>
-        :root { --bg: #0b0f19; --card: #151b2b; --text: #e2e8f0; --accent: #3b82f6; --ping: #f59e0b; --border: #1e293b; }
-        body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .dashboard { background-color: var(--card); padding: 40px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 20px 50px rgba(0,0,0,0.5); width: 600px; text-align: center; }
+        :root { --bg: #090e17; --card: #111827; --text: #f3f4f6; --accent: #0ea5e9; --ping: #f59e0b; --border: #1f2937; }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .dashboard { background-color: var(--card); padding: 40px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); width: 650px; text-align: center; }
         
-        .gauge-wrapper { position: relative; width: 350px; height: 180px; margin: 0 auto 30px auto; }
+        .gauge-wrapper { position: relative; width: 380px; height: 200px; margin: 0 auto 30px auto; }
         #speedGauge { width: 100%; height: 100%; }
-        .gauge-center { position: absolute; bottom: 0; left: 0; width: 100%; text-align: center; }
-        .gauge-value { font-size: 54px; font-weight: 800; color: var(--accent); line-height: 1; text-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
-        .gauge-unit { font-size: 16px; color: #64748b; font-weight: 500; }
+        .gauge-center { position: absolute; bottom: -10px; left: 0; width: 100%; text-align: center; }
+        .gauge-value { font-size: 60px; font-weight: 800; color: var(--accent); line-height: 1; letter-spacing: -1px; }
+        .gauge-unit { font-size: 16px; color: #9ca3af; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
 
         .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
-        .metric-box { background: rgba(0,0,0,0.3); border: 1px solid var(--border); padding: 15px; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; }
-        .metric-label { font-size: 11px; color: #94a3b8; margin-bottom: 5px; font-weight: 600; text-transform: uppercase; }
-        .metric-val { font-size: 22px; font-weight: bold; color: var(--text); }
-        .metric-val span { font-size: 12px; color: #64748b; font-weight: normal; margin-right: 3px; }
+        .metric-box { background: rgba(17, 24, 39, 0.5); border: 1px solid var(--border); padding: 18px 15px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; transition: 0.3s; }
+        .metric-box:hover { border-color: #374151; background: rgba(31, 41, 55, 0.5); }
+        .metric-label { font-size: 12px; color: #9ca3af; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; }
+        .metric-val { font-size: 24px; font-weight: bold; color: var(--text); display: flex; align-items: baseline; justify-content: center; gap: 4px; }
+        .metric-val span { font-size: 13px; color: #6b7280; font-weight: 500; }
         .ping-val { color: var(--ping); }
 
-        button { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; padding: 16px; width: 100%; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4); }
-        button:disabled { background: var(--border); color: #64748b; cursor: not-allowed; transform: none; box-shadow: none; }
+        button { background: var(--accent); color: white; border: none; padding: 18px; width: 100%; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.2); }
+        button:hover { background: #0284c7; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4); }
+        button:disabled { background: #374151; color: #9ca3af; cursor: not-allowed; transform: none; box-shadow: none; }
         
-        #statusInfo { margin-top: 20px; font-size: 14px; color: #10b981; font-weight: 600; height: 20px; }
+        #statusInfo { margin-top: 20px; font-size: 15px; color: #10b981; font-weight: 600; height: 20px; letter-spacing: 0.5px; }
     </style>
 </head>
 <body>
@@ -43,29 +44,29 @@
 
         <div class="metrics-grid">
             <div class="metric-box">
-                <span class="metric-label">استجابة الألعاب (أساسي)</span>
+                <span class="metric-label">استجابة (غير مثقل)</span>
                 <span class="metric-val ping-val" id="idlePing">-- <span>ms</span></span>
             </div>
             <div class="metric-box">
-                <span class="metric-label">تحميل (Download)</span>
+                <span class="metric-label">التحميل (10 ثوان)</span>
                 <span class="metric-val" id="dlSpeed">-- <span>Mbps</span></span>
             </div>
             <div class="metric-box">
-                <span class="metric-label">مثقل (أثناء التحميل)</span>
+                <span class="metric-label">مثقل أثناء التحميل</span>
                 <span class="metric-val ping-val" id="dlPing">-- <span>ms</span></span>
             </div>
             <div class="metric-box" style="grid-column: 2;">
-                <span class="metric-label">رفع (Upload)</span>
+                <span class="metric-label">الرفع (10 ثوان)</span>
                 <span class="metric-val" id="ulSpeed">-- <span>Mbps</span></span>
             </div>
             <div class="metric-box">
-                <span class="metric-label">مثقل (أثناء الرفع)</span>
+                <span class="metric-label">مثقل أثناء الرفع</span>
                 <span class="metric-val ping-val" id="ulPing">-- <span>ms</span></span>
             </div>
         </div>
 
-        <button id="startBtn">بدء التشخيص الدقيق</button>
-        <div id="statusInfo">النظام جاهز للاختبار</div>
+        <button id="startBtn">بدء تشخيص الشبكة والألعاب</button>
+        <div id="statusInfo">جاهز لإجراء الاختبار</div>
     </div>
 
     <script src="script.js"></script>
