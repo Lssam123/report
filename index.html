@@ -3,70 +3,450 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة فحص جودة الشبكة | مشروع تخرج</title>
-    <script src="https://bernii.github.io/gauge.js/dist/gauge.min.js"></script>
+    <title>منصة فحص جودة الشبكة | إصدار التخرج</title>
     <style>
-        :root { --bg: #0f172a; --surface: #1e293b; --primary: #3b82f6; --ping: #f59e0b; --text: #f8fafc; --text-dim: #94a3b8; --border: #334155; }
-        * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        
-        .app-container { background-color: var(--surface); padding: 40px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.4); width: 100%; max-width: 600px; text-align: center; }
-        
-        .gauge-section { position: relative; width: 100%; max-width: 360px; height: 180px; margin: 0 auto 40px auto; }
-        #speedGauge { width: 100%; height: 100%; }
-        .speed-readout { position: absolute; bottom: -10px; left: 0; width: 100%; text-align: center; }
-        .speed-value { font-size: 58px; font-weight: 800; color: var(--primary); line-height: 1; text-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
-        .speed-unit { font-size: 15px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        /* --- التصميم الاحترافي (Dark Glassmorphism) --- */
+        :root {
+            --bg: #050914;
+            --surface: rgba(16, 24, 40, 0.7);
+            --primary: #00e5ff; /* لون سماوي نيون */
+            --primary-glow: rgba(0, 229, 255, 0.4);
+            --secondary: #b388ff; /* لون بنفسجي نيون للرفع */
+            --ping: #ffc400;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+        }
 
-        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
-        .result-card { background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border); padding: 20px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        
-        .card-title { font-size: 13px; color: var(--text-dim); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; }
-        .card-value { font-size: 26px; font-weight: 700; color: var(--text); display: flex; align-items: baseline; gap: 4px; }
-        .card-value span { font-size: 13px; color: #64748b; font-weight: 500; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            background-image: radial-gradient(circle at 50% -20%, #1a2340 0%, var(--bg) 70%);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .dashboard {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+            width: 100%;
+            max-width: 650px;
+            text-align: center;
+        }
+
+        /* --- عداد الـ SVG المصمم من الصفر --- */
+        .gauge-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 0 auto 30px auto;
+        }
+
+        .gauge-svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg); /* بداية الدائرة من الأعلى */
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.05);
+            stroke-width: 12;
+        }
+
+        .gauge-progress {
+            fill: none;
+            stroke: var(--primary);
+            stroke-width: 14;
+            stroke-linecap: round;
+            stroke-dasharray: 754; /* محيط الدائرة (2 * PI * 120) */
+            stroke-dashoffset: 754; /* البداية من الصفر */
+            transition: stroke-dashoffset 0.1s linear, stroke 0.3s ease;
+            filter: drop-shadow(0 0 12px var(--primary-glow));
+        }
+
+        .speed-readout {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+        }
+
+        .speed-value {
+            font-size: 64px;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1;
+            letter-spacing: -2px;
+            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+        }
+
+        .speed-unit {
+            font-size: 16px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 5px;
+        }
+
+        /* --- شبكة النتائج --- */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .metric-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .metric-val {
+            font-size: 28px;
+            font-weight: 700;
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .metric-val span {
+            font-size: 14px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
         .color-ping { color: var(--ping); }
+        .color-dl { color: var(--primary); }
+        .color-ul { color: var(--secondary); }
 
-        .action-btn { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; }
-        .action-btn:hover { background: #2563eb; transform: translateY(-2px); }
-        .action-btn:disabled { background: var(--border); color: var(--text-dim); cursor: not-allowed; transform: none; }
-        
-        .status-bar { margin-top: 20px; font-size: 14px; color: #10b981; font-weight: 600; height: 20px; }
+        /* --- الأزرار والحالة --- */
+        button {
+            background: linear-gradient(135deg, #00e5ff 0%, #007aff 100%);
+            color: #000;
+            border: none;
+            padding: 18px;
+            width: 100%;
+            border-radius: 14px;
+            font-size: 18px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(0, 229, 255, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px rgba(0, 229, 255, 0.5);
+        }
+
+        button:disabled {
+            background: #1e293b;
+            color: #64748b;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #statusText {
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 500;
+            height: 20px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        <div class="gauge-section">
-            <canvas id="speedGauge"></canvas>
+    <div class="dashboard">
+        <div class="gauge-container">
+            <svg class="gauge-svg" viewBox="0 0 260 260">
+                <circle class="gauge-bg" cx="130" cy="130" r="120"></circle>
+                <circle class="gauge-progress" id="gaugeProgress" cx="130" cy="130" r="120"></circle>
+            </svg>
             <div class="speed-readout">
                 <div class="speed-value" id="mainValue">0.00</div>
                 <div class="speed-unit">Mbps</div>
             </div>
         </div>
 
-        <div class="results-grid">
-            <div class="result-card">
-                <div class="card-title">البنق الأساسي</div>
-                <div class="card-value color-ping" id="idlePing">-- <span>ms</span></div>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">الاستجابة (Ping)</div>
+                <div class="metric-val color-ping" id="idlePing">-- <span>ms</span></div>
             </div>
-            <div class="result-card">
-                <div class="card-title">التحميل (Download)</div>
-                <div class="card-value" id="dlSpeed">-- <span>Mbps</span></div>
+            <div class="metric-card">
+                <div class="metric-label">التحميل (Download)</div>
+                <div class="metric-val color-dl" id="dlSpeed">-- <span>Mbps</span></div>
             </div>
-            <div class="result-card">
-                <div class="card-title">البنق المثقل</div>
-                <div class="card-value color-ping" id="loadedPing">-- <span>ms</span></div>
+            <div class="metric-card">
+                <div class="metric-label">البنق المثقل (Loaded)</div>
+                <div class="metric-val color-ping" id="loadedPing">-- <span>ms</span></div>
             </div>
-            <div class="result-card">
-                <div class="card-title">الرفع (Upload)</div>
-                <div class="card-value" id="ulSpeed">-- <span>Mbps</span></div>
+            <div class="metric-card">
+                <div class="metric-label">الرفع (Upload)</div>
+                <div class="metric-val color-ul" id="ulSpeed">-- <span>Mbps</span></div>
             </div>
         </div>
 
-        <button class="action-btn" id="startBtn">بدء الاختبار المرجعي</button>
-        <div class="status-bar" id="statusText">النظام جاهز للاختبار</div>
+        <button id="startBtn">بدء الفحص الشامل</button>
+        <div id="statusText">الأنظمة جاهزة للقياس</div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        // --- 1. إعداد واجهة المستخدم (DOM) ---
+        const ui = {
+            btn: document.getElementById('startBtn'),
+            status: document.getElementById('statusText'),
+            mainVal: document.getElementById('mainValue'),
+            gaugeCircle: document.getElementById('gaugeProgress'),
+            idlePing: document.getElementById('idlePing'),
+            dlSpeed: document.getElementById('dlSpeed'),
+            loadedPing: document.getElementById('loadedPing'),
+            ulSpeed: document.getElementById('ulSpeed')
+        };
+
+        const TEST_DURATION = 10000; // 10 ثواني
+        const EDGE_URL = "https://1.1.1.1/cdn-cgi/trace"; // أسرع نقطة استجابة لكلاودفلير (للبنق)
+
+        let isTestingLoaded = false;
+        let loadedPings = [];
+        let gaugeMax = 100; // الحد الأقصى المبدئي للعداد
+        const GAUGE_CIRCUMFERENCE = 754; // محيط الدائرة في الـ SVG
+
+        // --- 2. دورة التشغيل الأساسية ---
+        ui.btn.addEventListener('click', async () => {
+            resetUI();
+            ui.btn.disabled = true;
+            ui.btn.innerText = "جاري القياس...";
+
+            try {
+                // المرحلة الأولى: البنق النقي
+                ui.status.innerText = "جاري حساب الاستجابة الصافية (Ping)...";
+                const basePing = await measureAccuratePing();
+                ui.idlePing.innerHTML = `${basePing} <span>ms</span>`;
+                await sleep(500);
+
+                // المرحلة الثانية: التحميل والبنق المثقل
+                ui.status.innerText = "جاري قياس مسار التحميل (10 ثواني)...";
+                ui.gaugeCircle.style.stroke = "var(--primary)"; // لون أزرق
+                
+                isTestingLoaded = true; loadedPings = [];
+                startLoadedPingLoop(); 
+                const dlResult = await measureDownload();
+                isTestingLoaded = false; 
+                
+                ui.dlSpeed.innerHTML = `${dlResult} <span>Mbps</span>`;
+                ui.loadedPing.innerHTML = `${calculateMedian(loadedPings)} <span>ms</span>`;
+                await sleep(1000);
+
+                // المرحلة الثالثة: الرفع (بتقنية تجاوز الحماية)
+                resetGauge();
+                ui.status.innerText = "جاري قياس مسار الرفع (10 ثواني)...";
+                ui.gaugeCircle.style.stroke = "var(--secondary)"; // لون بنفسجي للرفع
+                
+                const ulResult = await measureUpload();
+                ui.ulSpeed.innerHTML = `${ulResult} <span>Mbps</span>`;
+
+                ui.status.style.color = "#00e5ff";
+                ui.status.innerText = "اكتمل الاختبار. النتائج جاهزة للمصادقة.";
+            } catch (e) {
+                ui.status.style.color = "#ff3d00";
+                ui.status.innerText = "فشل في الشبكة. تأكد من إيقاف الـ VPN.";
+                console.error(e);
+            } finally {
+                ui.btn.disabled = false;
+                ui.btn.innerText = "إعادة الاختبار";
+                isTestingLoaded = false;
+            }
+        });
+
+        // --- 3. الدوال المساعدة ---
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+        function resetUI() {
+            resetGauge();
+            ui.status.style.color = "var(--text-muted)";
+            const def = `-- <span>--</span>`;
+            ui.idlePing.innerHTML = def; ui.dlSpeed.innerHTML = def;
+            ui.loadedPing.innerHTML = def; ui.ulSpeed.innerHTML = def;
+        }
+
+        function resetGauge() {
+            gaugeMax = 100;
+            ui.mainVal.innerText = "0.00";
+            ui.gaugeCircle.style.strokeDashoffset = GAUGE_CIRCUMFERENCE;
+        }
+
+        function updateGauge(speed) {
+            // تمديد حد العداد تلقائياً إذا كانت السرعة عالية
+            if (speed > gaugeMax * 0.9) gaugeMax = Math.ceil((speed + 50) / 100) * 100;
+            
+            ui.mainVal.innerText = speed.toFixed(2);
+            
+            // حساب نسبة التعبئة للـ SVG
+            let percent = Math.min(speed / gaugeMax, 1);
+            let offset = GAUGE_CIRCUMFERENCE - (percent * GAUGE_CIRCUMFERENCE);
+            ui.gaugeCircle.style.strokeDashoffset = offset;
+        }
+
+        function calculateMedian(arr) {
+            if (arr.length === 0) return "--";
+            const sorted = [...arr].sort((a, b) => a - b);
+            return sorted[Math.floor(sorted.length / 2)];
+        }
+
+        // --- 4. محرك البنق (Ping Engine) ---
+        async function measureAccuratePing() {
+            // تسخين الاتصال (Warm-up)
+            try { await fetch(EDGE_URL, { mode: 'no-cors', cache: 'no-store' }); } catch(e) {}
+            
+            let pings = [];
+            for (let i = 0; i < 6; i++) {
+                let start = performance.now();
+                try {
+                    await fetch(EDGE_URL + '?r=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
+                    pings.push(Math.round(performance.now() - start));
+                } catch(e) {}
+                await sleep(50);
+            }
+            return pings.length > 0 ? Math.min(...pings) : "--"; // استخدام أسرع بنق يمثل قدرة الخط
+        }
+
+        async function startLoadedPingLoop() {
+            while (isTestingLoaded) {
+                let start = performance.now();
+                try {
+                    await fetch(EDGE_URL + '?r=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
+                    loadedPings.push(Math.round(performance.now() - start));
+                } catch(e) {}
+                await sleep(250);
+            }
+        }
+
+        // --- 5. محرك التحميل (Download Engine) ---
+        function measureDownload() {
+            return new Promise(async (resolve) => {
+                const controller = new AbortController();
+                const url = "https://speed.cloudflare.com/__down?bytes=100000000"; // 100MB
+                let totalBytes = 0;
+                let finalSpeed = 0;
+                const startTime = performance.now();
+
+                const timeout = setTimeout(() => {
+                    controller.abort();
+                    resolve(finalSpeed.toFixed(2));
+                }, TEST_DURATION);
+
+                try {
+                    const response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+                    const reader = response.body.getReader();
+                    
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        totalBytes += value.length;
+                        
+                        const duration = (performance.now() - startTime) / 1000;
+                        if (duration > 0.3) {
+                            finalSpeed = ((totalBytes * 8) / duration) / 1000000;
+                            updateGauge(finalSpeed);
+                        }
+                    }
+                } catch (e) {} // يتم تجاهل الخطأ عند قطع الاتصال بعد 10 ثواني
+                
+                clearTimeout(timeout);
+                resolve(finalSpeed.toFixed(2));
+            });
+        }
+
+        // --- 6. محرك الرفع الذكي (Upload Engine - CORS Bypassed) ---
+        function measureUpload() {
+            return new Promise((resolve) => {
+                let isAborted = false;
+                let finalSpeed = 0;
+                let totalLoadedBytes = 0;
+                const startTime = performance.now();
+                
+                // الخدعة: إرسال بيانات كـ text/plain لمنع المتصفح من حظرها (No CORS Preflight)
+                const chunkSize = 2 * 1024 * 1024; // حزمة بحجم 2 ميجا لتكون سريعة وتتكرر
+                const payload = new Blob([new Uint8Array(chunkSize)], { type: 'text/plain' });
+                
+                // فتح مسارين متوازيين لضغط الخط
+                const numWorkers = 2;
+                let activeWorkers = [];
+
+                function startUploadWorker() {
+                    if (isAborted) return;
+                    
+                    const xhr = new XMLHttpRequest();
+                    activeWorkers.push(xhr);
+                    xhr.open('POST', 'https://speed.cloudflare.com/__up', true);
+                    
+                    let lastLoaded = 0;
+                    xhr.upload.onprogress = (e) => {
+                        if (isAborted) return;
+                        let chunk = e.loaded - lastLoaded;
+                        totalLoadedBytes += chunk;
+                        lastLoaded = e.loaded;
+                        
+                        const duration = (performance.now() - startTime) / 1000;
+                        if (duration > 0.3 && totalLoadedBytes > 0) {
+                            finalSpeed = ((totalLoadedBytes * 8) / duration) / 1000000;
+                            updateGauge(finalSpeed);
+                        }
+                    };
+
+                    // بمجرد انتهاء الحزمة، ارفع حزمة جديدة فوراً (حلقة مستمرة)
+                    xhr.onload = () => { if (!isAborted) startUploadWorker(); };
+                    xhr.onerror = () => { if (!isAborted) startUploadWorker(); };
+                    
+                    xhr.send(payload);
+                }
+
+                for (let i = 0; i < numWorkers; i++) {
+                    startUploadWorker();
+                }
+
+                // قاطع الاتصال الصارم بعد 10 ثواني
+                setTimeout(() => {
+                    isAborted = true;
+                    activeWorkers.forEach(xhr => xhr.abort());
+                    resolve(finalSpeed.toFixed(2));
+                }, TEST_DURATION);
+            });
+        }
+    </script>
 </body>
 </html>
