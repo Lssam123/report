@@ -1,108 +1,85 @@
-// --- 1. إعداد العداد ---
+// --- 1. إعداد واجهة المستخدم والعداد ---
 const canvas = document.getElementById('speedGauge');
 const gauge = new Gauge(canvas).setOptions({
-    angle: -0.2, lineWidth: 0.15, radiusScale: 1, pointer: { length: 0.55, strokeWidth: 0.035, color: '#e2e8f0' },
-    limitMax: false, limitMin: true, colorStart: '#3b82f6', colorStop: '#10b981', strokeColor: '#1e293b', generateGradient: true
+    angle: -0.2, lineWidth: 0.15, radiusScale: 1, pointer: { length: 0.55, strokeWidth: 0.035, color: '#f3f4f6' },
+    limitMax: false, limitMin: true, colorStart: '#0ea5e9', colorStop: '#10b981', strokeColor: '#1f2937', generateGradient: true
 });
-gauge.maxValue = 100; gauge.setMinValue(0); gauge.animationSpeed = 40; gauge.set(0);
-
-// --- 2. المتغيرات والسيرفرات المخفية ---
-const TEST_DURATION_MS = 10000; // 10 ثواني دقيقة
-// تم إضافة جميع الشركات المطلوبة
-const telecomServers = [
-    "https://www.stc.com.sa/", 
-    "https://www.mobily.com.sa/", 
-    "https://sa.zain.com/", 
-    "https://salam.sa/",
-    "https://www.go.com.sa/"
-];
+gauge.maxValue = 100; gauge.setMinValue(0); gauge.animationSpeed = 50; gauge.set(0);
 
 const ui = {
-    btn: document.getElementById('startBtn'),
-    status: document.getElementById('statusInfo'),
-    main: document.getElementById('mainDisplay'),
-    idlePing: document.getElementById('idlePing'),
-    dlSpeed: document.getElementById('dlSpeed'),
-    dlPing: document.getElementById('dlPing'),
-    ulSpeed: document.getElementById('ulSpeed'),
-    ulPing: document.getElementById('ulPing')
+    btn: document.getElementById('startBtn'), status: document.getElementById('statusInfo'), main: document.getElementById('mainDisplay'),
+    idlePing: document.getElementById('idlePing'), dlSpeed: document.getElementById('dlSpeed'), dlPing: document.getElementById('dlPing'),
+    ulSpeed: document.getElementById('ulSpeed'), ulPing: document.getElementById('ulPing')
 };
 
-let bestServerUrl = "";
+// --- 2. إعدادات الشبكة والسيرفرات المخفية ---
+const TEST_DURATION = 10000; // 10 ثواني بالضبط لكل عملية قياس
+const telecomServers = [
+    "https://www.stc.com.sa/", "https://www.mobily.com.sa/", 
+    "https://sa.zain.com/", "https://salam.sa/", "https://www.go.com.sa/"
+];
 
-// --- 3. دورة الفحص ---
+let bestPingUrl = "";
+let isTestingPing = false; // القفل الذي يزامن البنق مع السرعة
+let currentPingsArray = [];
+
+// --- 3. دورة الاختبار الشاملة ---
 ui.btn.addEventListener('click', async () => {
     resetUI();
     ui.btn.disabled = true;
 
     try {
-        // الخطوة 1: فحص البنق الأولي (محاكاة الألعاب)
-        ui.status.innerText = "جاري تهيئة مسارات الألعاب وتحديد أفضل استجابة...";
-        const idle = await getSecretBestPing();
-        bestServerUrl = idle.url;
-        ui.idlePing.innerHTML = `${idle.ping} <span>ms</span>`;
+        // الخطوة 1: اختيار أفضل سيرفر مخفي وقياس البنق الأساسي (لمدة ثانيتين لضمان دقة القراءة)
+        ui.status.innerText = "جاري تهيئة الاتصال وتحديد أسرع مسار للألعاب...";
+        bestPingUrl = await findBestServer();
+        
+        isTestingPing = true; currentPingsArray = [];
+        startGamingPingLoop(); // تشغيل البنق
+        await sleep(2000); // قياس لمدة ثانيتين
+        isTestingPing = false; // إيقاف البنق
+        ui.idlePing.innerHTML = `${calculateAveragePing()} <span>ms</span>`;
         await sleep(500);
 
-        // الخطوة 2: التحميل مع مزامنة البنق
-        ui.status.innerText = "جاري فحص التحميل وتأثير الاختناق (10 ثواني)...";
-        const dlResult = await runPhase('download');
-        ui.dlSpeed.innerHTML = `${dlResult.speed} <span>Mbps</span>`;
-        ui.dlPing.innerHTML = `${dlResult.ping} <span>ms</span>`;
+        // الخطوة 2: التحميل والبنق المثقل (مزامنة تامة لمدة 10 ثواني)
+        ui.status.innerText = "جاري قياس التحميل وتأثير الاختناق (10 ثواني)...";
+        isTestingPing = true; currentPingsArray = [];
+        startGamingPingLoop(); // البنق يبدأ مع التحميل
+        const dlResult = await measureSpeedXHR('download');
+        isTestingPing = false; // البنق يتوقف فور انتهاء التحميل
+        
+        ui.dlSpeed.innerHTML = `${dlResult} <span>Mbps</span>`;
+        ui.dlPing.innerHTML = `${calculateAveragePing()} <span>ms</span>`;
         await sleep(1000);
 
-        // الخطوة 3: الرفع الموازي مع مزامنة البنق
+        // الخطوة 3: الرفع والبنق المثقل (مزامنة تامة لمدة 10 ثواني)
         gauge.set(0); ui.main.innerText = "0.00";
-        ui.status.innerText = "جاري فحص الرفع وتأثير الاختناق (10 ثواني)...";
-        const ulResult = await runPhase('upload');
-        ui.ulSpeed.innerHTML = `${ulResult.speed} <span>Mbps</span>`;
-        ui.ulPing.innerHTML = `${ulResult.ping} <span>ms</span>`;
+        ui.status.innerText = "جاري قياس الرفع وتأثير الاختناق (10 ثواني)...";
+        isTestingPing = true; currentPingsArray = [];
+        startGamingPingLoop(); // البنق يبدأ مع الرفع
+        const ulResult = await measureSpeedXHR('upload');
+        isTestingPing = false; // البنق يتوقف فور انتهاء الرفع
 
-        ui.status.innerText = "تم الفحص بنجاح. بيانات دقيقة جاهزة.";
+        ui.ulSpeed.innerHTML = `${ulResult} <span>Mbps</span>`;
+        ui.ulPing.innerHTML = `${calculateAveragePing()} <span>ms</span>`;
+
+        ui.status.innerText = "تم الفحص بدقة احترافية عالية.";
     } catch (e) {
         ui.status.innerText = "حدث خطأ في تقييم الشبكة.";
         console.error(e);
     } finally {
         ui.btn.disabled = false;
         ui.btn.innerText = "إعادة الفحص المتقدم";
+        isTestingPing = false; // ضمان إيقاف أي عمليات في الخلفية
     }
 });
 
-// --- 4. العمليات الأساسية ---
+// --- 4. العمليات المساعدة (Utility Functions) ---
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
 function resetUI() {
     gauge.set(0); gauge.maxValue = 100; ui.main.innerText = "0.00";
     const def = `-- <span>--</span>`;
     ui.idlePing.innerHTML=def; ui.dlSpeed.innerHTML=def; ui.dlPing.innerHTML=def; ui.ulSpeed.innerHTML=def; ui.ulPing.innerHTML=def;
-}
-
-// العثور على أسرع سيرفر للبنق دون إظهار اسمه
-async function getSecretBestPing() {
-    let best = { ping: Infinity, url: null };
-    for (let url of telecomServers) {
-        let p = await pingSingle(url, new AbortController().signal);
-        if (p < best.ping) best = { ping: p, url: url };
-    }
-    return best.ping === Infinity ? { ping: "-", url: null } : best;
-}
-
-// طلب بنق واحد
-async function pingSingle(url, signal) {
-    const start = performance.now();
-    try {
-        // نطلب ترويسة فقط لتكون سريعة جداً مثل حزم الألعاب
-        await fetch(url + '?_t=' + Math.random(), { method: 'HEAD', mode: 'no-cors', cache: 'no-store', signal });
-        return Math.round(performance.now() - start);
-    } catch (e) { return Infinity; }
-}
-
-// حلقة محاكاة بنق الألعاب (تعمل بشكل متزامن تماماً مع مدة الاختبار)
-async function runGamingPingLoop(url, array, signal) {
-    while (!signal.aborted) {
-        let p = await pingSingle(url, signal);
-        if (p !== Infinity) array.push(p);
-        // تأخير 100ms يحاكي معدل التحديث السريع (Tick Rate) لسيرفرات الألعاب
-        if (!signal.aborted) await sleep(100); 
-    }
 }
 
 function updateGauge(speed) {
@@ -111,68 +88,105 @@ function updateGauge(speed) {
     ui.main.innerText = speed.toFixed(2);
 }
 
-// --- 5. هندسة الفحص المتقدم (التحميل والرفع) ---
-async function runPhase(type) {
-    return new Promise(async (resolve) => {
-        const controller = new AbortController(); // المتحكم المشترك للبنق والسرعة
-        const signal = controller.signal;
-        
-        let loadedPings = [];
-        let finalSpeed = 0;
-        let processedBytes = 0;
-        const startTime = performance.now();
-
-        // 1. بدء حلقة بنق الألعاب المتزامنة
-        if (bestServerUrl) runGamingPingLoop(bestServerUrl, loadedPings, signal);
-
-        // 2. إعداد مؤقت لقطع كل العمليات (البنق + الفحص) في نفس اللحظة بالملي ثانية
-        setTimeout(() => { controller.abort(); }, TEST_DURATION_MS);
-
-        // مؤقت لتحديث واجهة المستخدم (كل 200 ملي ثانية لعدم إرهاق المتصفح)
-        const uiInterval = setInterval(() => {
-            const duration = (performance.now() - startTime) / 1000;
-            if (duration > 0.2 && processedBytes > 0) {
-                finalSpeed = ((processedBytes * 8) / duration) / 1000000;
-                updateGauge(finalSpeed);
-            }
-        }, 200);
-
+// --- 5. هندسة استجابة الألعاب (Gaming Ping Engine) ---
+async function findBestServer() {
+    let bestUrl = telecomServers[0];
+    let minPing = Infinity;
+    for (let url of telecomServers) {
+        let start = performance.now();
         try {
-            if (type === 'download') {
-                // استخدام Streams للتحميل اللحظي
-                const res = await fetch(`https://speed.cloudflare.com/__down?bytes=500000000`, { cache: 'no-store', signal });
-                const reader = res.body.getReader();
-                while (true) {
-                    const {done, value} = await reader.read();
-                    if (done) break;
-                    processedBytes += value.length;
+            await fetch(url + '?_t=' + Date.now(), { method: 'HEAD', mode: 'no-cors', cache: 'no-store' });
+            let p = performance.now() - start;
+            if (p < minPing) { minPing = p; bestUrl = url; }
+        } catch(e) {}
+    }
+    return bestUrl;
+}
+
+// حلقة البنق المستمرة (Game Tick Simulator)
+async function startGamingPingLoop() {
+    while (isTestingPing && bestPingUrl) {
+        let start = performance.now();
+        try {
+            await fetch(bestPingUrl + '?_t=' + Date.now(), { method: 'HEAD', mode: 'no-cors', cache: 'no-store' });
+            currentPingsArray.push(Math.round(performance.now() - start));
+        } catch(e) {}
+        // الانتظار 100 ملي ثانية لمحاكاة تحديث سيرفرات الألعاب
+        await sleep(100); 
+    }
+}
+
+function calculateAveragePing() {
+    if (currentPingsArray.length === 0) return "--";
+    const sum = currentPingsArray.reduce((a, b) => a + b, 0);
+    return Math.round(sum / currentPingsArray.length);
+}
+
+// --- 6. هندسة السرعة المتقدمة (XHR Chunking System) ---
+// هذه الدالة تضمن استمرار الفحص لمدة 10 ثواني بالضبط عبر استدعاء حزم متتالية
+function measureSpeedXHR(type) {
+    return new Promise((resolve) => {
+        let totalProcessedBytes = 0;
+        let finalSpeed = 0;
+        let startTime = performance.now();
+        let isAborted = false;
+        let activeXHR = null;
+
+        // إعداد بيانات الرفع (توليد 20 ميجابايت من البيانات الوهمية للحزمة الواحدة)
+        const uploadPayload = type === 'upload' ? new Uint8Array(20 * 1024 * 1024) : null;
+
+        // دالة تقوم بفتح اتصال وتحميل/رفع حزمة، وعند الانتهاء تطلب حزمة أخرى
+        function startChunk() {
+            if (isAborted) return;
+            activeXHR = new XMLHttpRequest();
+            
+            const url = type === 'download' 
+                ? "https://speed.cloudflare.com/__down?bytes=50000000" // حزمة تحميل 50 ميجا
+                : "https://speed.cloudflare.com/__up";                 // مسار الرفع
+
+            activeXHR.open(type === 'download' ? 'GET' : 'POST', url, true);
+
+            // تتبع التدفق اللحظي للبيانات وحساب السرعة
+            const progressHandler = (e) => {
+                if (isAborted) return;
+                const now = performance.now();
+                const durationInSeconds = (now - startTime) / 1000;
+                
+                // حساب السرعة الإجمالية (الحزم السابقة + ما تم إنجازه من الحزمة الحالية)
+                if (durationInSeconds > 0.1 && e.loaded > 0) {
+                    finalSpeed = (((totalProcessedBytes + e.loaded) * 8) / durationInSeconds) / 1000000;
+                    updateGauge(finalSpeed);
                 }
+            };
+
+            if (type === 'download') activeXHR.onprogress = progressHandler;
+            else activeXHR.upload.onprogress = progressHandler;
+
+            // عند نجاح الحزمة، نضيف حجمها للرصيد ونبدأ حزمة جديدة فوراً
+            activeXHR.onload = () => {
+                if (!isAborted) {
+                    totalProcessedBytes += type === 'download' ? 50000000 : uploadPayload.length;
+                    startChunk(); // الاستمرار في ضغط الشبكة (Loop)
+                }
+            };
+
+            // إرسال الطلب
+            if (type === 'upload') {
+                activeXHR.setRequestHeader("Content-Type", "application/octet-stream");
+                activeXHR.send(uploadPayload);
             } else {
-                // الخدعة الاحترافية للرفع: إرسال حزم (1MB) متعددة لتفادي حظر السيرفر، مع إبقائها ضمن نفس الـ AbortController
-                const chunkSize = 1048576; // 1MB
-                const blob = new Blob([new Uint8Array(chunkSize)], {type: 'application/octet-stream'});
-                const concurrentWorkers = 4; // 4 مسارات متوازية لضغط الشبكة
-                
-                async function uploadWorker() {
-                    while (!signal.aborted) {
-                        try {
-                            await fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: blob, signal });
-                            processedBytes += chunkSize;
-                        } catch(e) { /* طبيعي جداً أن تظهر رسالة AbortError هنا عند انتهاء الوقت */ }
-                    }
-                }
-                
-                let workers = [];
-                for(let i=0; i<concurrentWorkers; i++) workers.push(uploadWorker());
-                await Promise.allSettled(workers);
+                activeXHR.send();
             }
-        } catch (err) {
-            // تجاهل خطأ التوقف المتعمد
         }
 
-        // 3. إنهاء الفحص والمزامنة
-        clearInterval(uiInterval);
-        const avgPing = loadedPings.length ? Math.round(loadedPings.reduce((a,b)=>a+b)/loadedPings.length) : "--";
-        resolve({ speed: finalSpeed.toFixed(2), ping: avgPing });
+        // بدء أول حزمة
+        startChunk();
+
+        // قاطع الاتصال الصارم (يقطع العملية بالملي ثانية بعد 10 ثواني)
+        setTimeout(() => {
+            isAborted = true;
+            if (activeXHR) activeXHR.abort(); // قطع الاتصال الحالي فوراً
+            resolve(finalSpeed.toFixed(2));
+        }, TEST_DURATION);
     });
 }
