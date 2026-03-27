@@ -1,3 +1,4 @@
+// --- إعدادات الواجهة ---
 const ui = {
     btn: document.getElementById('startBtn'),
     status: document.getElementById('statusText'),
@@ -8,8 +9,8 @@ const ui = {
     ulSpeed: document.getElementById('ulSpeed')
 };
 
-const TEST_DURATION = 10000; // 10 ثواني
-const GAUGE_CIRCUMFERENCE = 880; // محيط الدائرة للـ SVG الجديد (2 * PI * 140)
+const TEST_DURATION = 10000; // 10 ثواني لكل فحص
+const GAUGE_CIRCUMFERENCE = 942; // محيط العداد للتصميم الجديد (Speedtest Clone)
 let gaugeMaxSpeed = 100;
 
 // نقطة فحص البنق (كلاودفلير لتعطي بنق الألعاب الحقيقي)
@@ -19,49 +20,48 @@ const PING_URL = "https://1.1.1.1/cdn-cgi/trace";
 ui.btn.addEventListener('click', async () => {
     resetUI();
     ui.btn.disabled = true;
+    ui.btn.innerText = "TESTING...";
 
     try {
-        // 1. البنق الصافي (محاكاة الألعاب)
-        ui.btn.innerText = "فحص الاستجابة...";
-        ui.status.innerText = "جاري حساب الاستجابة الصافية للشبكة...";
+        // 1. البنق الصافي
+        ui.status.innerText = "جاري حساب استجابة الشبكة (Ping)...";
         const rawPing = await measureGamingPing();
         ui.idlePing.innerText = rawPing;
         await sleep(500);
 
         // 2. التنزيل
-        ui.btn.innerText = "فحص التنزيل...";
         ui.status.innerText = "جاري قياس سرعة التنزيل (10 ثواني)...";
         
-        // لون العداد أزرق للتنزيل
-        ui.gaugeLine.style.stroke = "url(#gaugeGradient)";
-        ui.gaugeLine.style.filter = "drop-shadow(0 0 12px rgba(0, 242, 254, 0.5))";
+        // لون العداد سماوي للتنزيل
+        ui.gaugeLine.style.stroke = "var(--accent-cyan)";
+        ui.gaugeLine.style.filter = "drop-shadow(0 0 10px rgba(0, 229, 255, 0.4))";
         
         const dlSpeed = await testDownload();
         ui.dlSpeed.innerText = dlSpeed;
         await sleep(1000);
 
-        // 3. الرفع (باستخدام Workers)
+        // 3. الرفع (باستخدام 4 مسارات لجيتهاب)
         resetGauge();
-        ui.btn.innerText = "فحص الرفع...";
         ui.status.innerText = "جاري قياس سرعة الرفع (10 ثواني)...";
         
-        // لون العداد أخضر للرفع
-        ui.gaugeLine.style.stroke = "url(#uploadGradient)";
-        ui.gaugeLine.style.filter = "drop-shadow(0 0 12px rgba(0, 242, 96, 0.5))";
+        // لون العداد بنفسجي للرفع
+        ui.gaugeLine.style.stroke = "var(--accent-purple)";
+        ui.gaugeLine.style.filter = "drop-shadow(0 0 10px rgba(189, 0, 255, 0.4))";
         
         const ulSpeed = await testUploadBulletproof();
         ui.ulSpeed.innerText = ulSpeed;
 
-        ui.status.innerText = "اكتمل الفحص بنجاح. النتائج دقيقة وجاهزة.";
-        ui.status.style.color = "#00f2fe";
+        ui.status.innerText = "اكتمل الفحص بنجاح. النتائج دقيقة وجاهزة للمقارنة.";
+        ui.status.style.color = "var(--accent-cyan)";
+        ui.btn.innerText = "AGAIN";
 
     } catch (err) {
         ui.status.innerText = "حدث خطأ. يرجى التأكد من الاتصال.";
-        ui.status.style.color = "#ff0844";
+        ui.status.style.color = "#ff4757";
+        ui.btn.innerText = "RETRY";
         console.error(err);
     } finally {
         ui.btn.disabled = false;
-        ui.btn.innerText = "إعادة الفحص";
     }
 });
 
@@ -92,7 +92,6 @@ function updateGauge(speed) {
 // --- محرك البنق (Gaming Ping) ---
 async function measureGamingPing() {
     let pings = [];
-    // تسخين الاتصال لتجاوز وقت معالجة المتصفح (TLS Handshake)
     try { await fetch(PING_URL, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
     
     for(let i=0; i<5; i++) {
@@ -104,7 +103,6 @@ async function measureGamingPing() {
         await sleep(50);
     }
     
-    // استخراج أسرع استجابة (الحد الأدنى) وخصم 2ms كتعويض لمعالجة الجافاسكريبت الداخلية.
     if (pings.length > 0) {
         let rawPing = Math.min(...pings) - 2;
         return rawPing > 1 ? Math.round(rawPing) : 1; 
@@ -146,8 +144,7 @@ function testDownload() {
     });
 }
 
-// --- محرك الرفع الغاشم (Bulletproof Upload for GitHub Pages) ---
-// يعتمد على إرسال حزم بوضعية no-cors لضمان عدم حظر المتصفح للعملية
+// --- محرك الرفع الغاشم (Bulletproof Upload) ---
 function testUploadBulletproof() {
     return new Promise((resolve) => {
         let isRunning = true;
@@ -158,7 +155,6 @@ function testUploadBulletproof() {
         const CHUNK_SIZE = 2 * 1024 * 1024; // 2 ميجابايت للحزمة
         const chunkData = new Blob([new Uint8Array(CHUNK_SIZE)]);
 
-        // تحديث الواجهة اللحظي
         const uiTimer = setInterval(() => {
             if (!isRunning) return;
             const duration = (performance.now() - globalStartTime) / 1000;
@@ -168,7 +164,6 @@ function testUploadBulletproof() {
             }
         }, 250);
 
-        // إيقاف الفحص بعد 10 ثواني
         setTimeout(() => {
             isRunning = false;
             clearInterval(uiTimer);
@@ -181,7 +176,7 @@ function testUploadBulletproof() {
                     await fetch('https://speed.cloudflare.com/__up', {
                         method: 'POST',
                         body: chunkData,
-                        mode: 'no-cors', // تخطي الحظر الأمني
+                        mode: 'no-cors',
                         cache: 'no-store'
                     });
                     
@@ -192,7 +187,7 @@ function testUploadBulletproof() {
             }
         }
 
-        // تشغيل 4 مسارات لضمان سحب أقصى سرعة للخط
+        // تشغيل 4 مسارات لضمان سحب أقصى سرعة
         for (let i = 0; i < 4; i++) {
             uploadWorker();
         }
