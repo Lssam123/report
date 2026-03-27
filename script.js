@@ -5,19 +5,15 @@ const ui = {
     gaugeLine: document.getElementById('gaugeProgress'),
     idlePing: document.getElementById('idlePing'),
     dlSpeed: document.getElementById('dlSpeed'),
-    loadedPing: document.getElementById('loadedPing'),
     ulSpeed: document.getElementById('ulSpeed')
 };
 
-const TEST_DURATION = 10000; // 10 ثواني لكل فحص
-const GAUGE_CIRCUMFERENCE = 754; // محيط الدائرة (2 * PI * 120)
+const TEST_DURATION = 10000; // 10 ثواني
+const GAUGE_CIRCUMFERENCE = 880; // محيط الدائرة للـ SVG الجديد (2 * PI * 140)
 let gaugeMaxSpeed = 100;
 
-// نقطة فحص البنق (نقطة كلاودفلير الأسرع في السعودية لتعطي بنق الألعاب الحقيقي)
-const EDGE_PING_URL = "https://1.1.1.1/cdn-cgi/trace";
-
-let isTestingLoaded = false;
-let loadedPings = [];
+// نقطة فحص البنق (كلاودفلير لتعطي بنق الألعاب الحقيقي)
+const PING_URL = "https://1.1.1.1/cdn-cgi/trace";
 
 // --- دورة التشغيل الرئيسية ---
 ui.btn.addEventListener('click', async () => {
@@ -25,54 +21,47 @@ ui.btn.addEventListener('click', async () => {
     ui.btn.disabled = true;
 
     try {
-        // 1. البنق الصافي (محاكاة بنق الألعاب)
-        ui.btn.innerText = "جاري فحص الاستجابة...";
-        ui.status.innerText = "يتم الآن حساب استجابة الشبكة الصافية...";
+        // 1. البنق الصافي (محاكاة الألعاب)
+        ui.btn.innerText = "فحص الاستجابة...";
+        ui.status.innerText = "جاري حساب الاستجابة الصافية للشبكة...";
         const rawPing = await measureGamingPing();
-        ui.idlePing.innerHTML = `${rawPing}<span>ms</span>`;
+        ui.idlePing.innerText = rawPing;
         await sleep(500);
 
-        // 2. التنزيل والبنق المثقل
+        // 2. التنزيل
         ui.btn.innerText = "فحص التنزيل...";
-        ui.status.innerText = "جاري قياس التنزيل وتأثير الاختناق (10 ثواني)...";
+        ui.status.innerText = "جاري قياس سرعة التنزيل (10 ثواني)...";
         
-        // تغيير لون العداد إلى السماوي للتنزيل
-        ui.gaugeLine.style.stroke = "var(--glow-cyan)";
-        ui.gaugeLine.style.filter = "drop-shadow(0 0 10px var(--glow-cyan))";
-        
-        isTestingLoaded = true; loadedPings = [];
-        startLoadedPingLoop(); 
+        // لون العداد أزرق للتنزيل
+        ui.gaugeLine.style.stroke = "url(#gaugeGradient)";
+        ui.gaugeLine.style.filter = "drop-shadow(0 0 12px rgba(0, 242, 254, 0.5))";
         
         const dlSpeed = await testDownload();
-        
-        isTestingLoaded = false;
-        ui.dlSpeed.innerHTML = `${dlSpeed}<span>Mbps</span>`;
-        ui.loadedPing.innerHTML = `${calculateMedian(loadedPings)}<span>ms</span>`;
+        ui.dlSpeed.innerText = dlSpeed;
         await sleep(1000);
 
-        // 3. الرفع (الخوارزمية الجديدة والمضمونة لجيتهاب)
+        // 3. الرفع (باستخدام Workers)
         resetGauge();
         ui.btn.innerText = "فحص الرفع...";
-        ui.status.innerText = "جاري قياس الرفع (10 ثواني)...";
+        ui.status.innerText = "جاري قياس سرعة الرفع (10 ثواني)...";
         
-        // تغيير لون العداد إلى البنفسجي للرفع
-        ui.gaugeLine.style.stroke = "var(--glow-purple)";
-        ui.gaugeLine.style.filter = "drop-shadow(0 0 10px var(--glow-purple))";
+        // لون العداد أخضر للرفع
+        ui.gaugeLine.style.stroke = "url(#uploadGradient)";
+        ui.gaugeLine.style.filter = "drop-shadow(0 0 12px rgba(0, 242, 96, 0.5))";
         
         const ulSpeed = await testUploadBulletproof();
-        ui.ulSpeed.innerHTML = `${ulSpeed}<span>Mbps</span>`;
+        ui.ulSpeed.innerText = ulSpeed;
 
-        ui.status.innerText = "اكتمل التشخيص بنجاح. النتائج دقيقة وجاهزة للمناقشة.";
-        ui.status.style.color = "var(--glow-cyan)";
+        ui.status.innerText = "اكتمل الفحص بنجاح. النتائج دقيقة وجاهزة.";
+        ui.status.style.color = "#00f2fe";
 
     } catch (err) {
-        ui.status.innerText = "حدث خطأ. يرجى إيقاف مانع الإعلانات أو الـ VPN.";
-        ui.status.style.color = "var(--glow-orange)";
+        ui.status.innerText = "حدث خطأ. يرجى التأكد من الاتصال.";
+        ui.status.style.color = "#ff0844";
         console.error(err);
     } finally {
         ui.btn.disabled = false;
-        ui.btn.innerText = "إعادة الاختبار";
-        isTestingLoaded = false;
+        ui.btn.innerText = "إعادة الفحص";
     }
 });
 
@@ -82,9 +71,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 function resetUI() {
     resetGauge();
     ui.status.style.color = "var(--text-muted)";
-    const def = `--<span>--</span>`;
-    ui.idlePing.innerHTML = def; ui.dlSpeed.innerHTML = def;
-    ui.loadedPing.innerHTML = def; ui.ulSpeed.innerHTML = def;
+    ui.idlePing.innerText = "--"; 
+    ui.dlSpeed.innerText = "--";
+    ui.ulSpeed.innerText = "--";
 }
 
 function resetGauge() {
@@ -100,47 +89,27 @@ function updateGauge(speed) {
     ui.gaugeLine.style.strokeDashoffset = GAUGE_CIRCUMFERENCE - (percent * GAUGE_CIRCUMFERENCE);
 }
 
-function calculateMedian(arr) {
-    if (arr.length === 0) return "--";
-    const sorted = [...arr].sort((a, b) => a - b);
-    return sorted[Math.floor(sorted.length / 2)];
-}
-
-// --- محرك البنق (Gaming Ping / Raw Network Latency) ---
+// --- محرك البنق (Gaming Ping) ---
 async function measureGamingPing() {
     let pings = [];
     // تسخين الاتصال لتجاوز وقت معالجة المتصفح (TLS Handshake)
-    try { await fetch(EDGE_PING_URL, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
+    try { await fetch(PING_URL, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
     
-    // إرسال 5 طلبات سريعة جداً
     for(let i=0; i<5; i++) {
         let start = performance.now();
         try {
-            await fetch(EDGE_PING_URL + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
+            await fetch(PING_URL + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
             pings.push(performance.now() - start);
         } catch(e) {}
         await sleep(50);
     }
     
-    // الألعاب لا تستخدم المتصفح، لذا للحصول على البنق الصافي نستخرج أسرع استجابة
-    // ونخصم منها وقتاً طفيفاً (2ms) كتعويض عن وقت معالجة أوامر الجافاسكريبت الداخلية.
+    // استخراج أسرع استجابة (الحد الأدنى) وخصم 2ms كتعويض لمعالجة الجافاسكريبت الداخلية.
     if (pings.length > 0) {
         let rawPing = Math.min(...pings) - 2;
         return rawPing > 1 ? Math.round(rawPing) : 1; 
     }
     return "--";
-}
-
-async function startLoadedPingLoop() {
-    while (isTestingLoaded) {
-        let start = performance.now();
-        try {
-            await fetch(EDGE_PING_URL + '?load=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
-            let p = (performance.now() - start) - 2;
-            loadedPings.push(Math.round(p > 1 ? p : 1));
-        } catch(e) {}
-        await sleep(250);
-    }
 }
 
 // --- محرك التنزيل ---
@@ -178,9 +147,7 @@ function testDownload() {
 }
 
 // --- محرك الرفع الغاشم (Bulletproof Upload for GitHub Pages) ---
-// هذه الخوارزمية تتجاهل onprogress تماماً، لأن المتصفح يحظره أمنياً (CORS).
-// بدلاً من ذلك، نفتح 4 مسارات ترمي حزم بحجم 2 ميجابايت باستمرار (no-cors).
-// ونحسب السرعة بناءً على عدد الحزم التي وصلت للسيرفر بنجاح خلال الوقت.
+// يعتمد على إرسال حزم بوضعية no-cors لضمان عدم حظر المتصفح للعملية
 function testUploadBulletproof() {
     return new Promise((resolve) => {
         let isRunning = true;
@@ -191,47 +158,41 @@ function testUploadBulletproof() {
         const CHUNK_SIZE = 2 * 1024 * 1024; // 2 ميجابايت للحزمة
         const chunkData = new Blob([new Uint8Array(CHUNK_SIZE)]);
 
-        // مؤقت تحديث الواجهة (يعمل كل ربع ثانية)
+        // تحديث الواجهة اللحظي
         const uiTimer = setInterval(() => {
             if (!isRunning) return;
             const duration = (performance.now() - globalStartTime) / 1000;
             if (duration > 0.5 && totalSentBytes > 0) {
                 finalSpeed = ((totalSentBytes * 8) / duration) / 1000000;
                 updateGauge(finalSpeed);
-                ui.ulSpeed.innerHTML = `${finalSpeed.toFixed(2)}<span>Mbps</span>`;
             }
         }, 250);
 
-        // مؤقت إيقاف الفحص بعد 10 ثواني
+        // إيقاف الفحص بعد 10 ثواني
         setTimeout(() => {
             isRunning = false;
             clearInterval(uiTimer);
             resolve(finalSpeed.toFixed(2));
         }, TEST_DURATION);
 
-        // وظيفة العامل (Worker): يرسل حزمة، وينتظر وصولها، ثم يحسبها ويرسل غيرها
         async function uploadWorker() {
             while (isRunning) {
                 try {
                     await fetch('https://speed.cloudflare.com/__up', {
                         method: 'POST',
                         body: chunkData,
-                        mode: 'no-cors', // كلمة السر لتخطي حظر جيتهاب
+                        mode: 'no-cors', // تخطي الحظر الأمني
                         cache: 'no-store'
                     });
                     
-                    // إذا لم يتم إيقاف الفحص، أضف حجم الحزمة للرصيد الكلي
-                    if (isRunning) {
-                        totalSentBytes += CHUNK_SIZE;
-                    }
+                    if (isRunning) totalSentBytes += CHUNK_SIZE;
                 } catch(e) {
-                    // في حال فشل الإرسال، ننتظر قليلاً جداً ونحاول مجدداً
                     await sleep(50);
                 }
             }
         }
 
-        // تشغيل 4 عمال متوازيين لضمان سحب أقصى طاقة للشبكة
+        // تشغيل 4 مسارات لضمان سحب أقصى سرعة للخط
         for (let i = 0; i < 4; i++) {
             uploadWorker();
         }
