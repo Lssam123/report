@@ -3,24 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ookla Speedtest Clone | مشروع تخرج</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>منصة تشخيص الشبكات المتقدمة | Cyber-HUD</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-        /* --- تصميم يحاكي Speedtest.net مع إضافة البنق المثقل --- */
+        /* --- تصميم Cyber-HUD المتقدم --- */
         :root {
-            --bg-color: #111424; 
-            --panel-bg: #181c31;
-            --text-main: #ffffff;
-            --text-muted: #8b92a5;
-            --accent-cyan: #00e5ff;
-            --accent-purple: #bd00ff;
-            --accent-red: #ff4757; /* لون للبنق المثقل */
-            --track-color: #242945;
+            --bg-deep: #030712;
+            --panel-bg: rgba(17, 24, 39, 0.7);
+            --border-glow: rgba(0, 229, 255, 0.2);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            
+            /* ألوان الفحص (تتغير ديناميكياً) */
+            --color-ping: #ff2a5f;
+            --color-dl: #00e5ff;
+            --color-ul: #b517ff;
+            
+            --active-color: var(--color-dl); /* اللون الافتراضي */
         }
 
         body {
-            font-family: 'Montserrat', 'Segoe UI', sans-serif;
-            background-color: var(--bg-color);
+            font-family: 'Rajdhani', sans-serif;
+            background-color: var(--bg-deep);
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0, 229, 255, 0.05) 0%, transparent 60%),
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 30px 30px, 30px 30px;
             color: var(--text-main);
             display: flex;
             justify-content: center;
@@ -28,198 +37,256 @@
             min-height: 100vh;
             margin: 0;
             padding: 20px;
+            overflow-x: hidden;
         }
 
-        .dashboard {
+        .hud-container {
             width: 100%;
-            max-width: 900px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        /* --- الشبكة العلوية (4 خانات الآن) --- */
-        .top-metrics {
+            max-width: 950px;
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            width: 100%;
-            margin-bottom: 50px;
-            padding: 0 10px;
-        }
-
-        .metric-group {
-            display: flex;
-            flex-direction: column;
+            grid-template-columns: 1fr 350px 1fr;
+            grid-template-rows: auto auto;
+            gap: 30px;
             align-items: center;
-            text-align: center;
-            background: rgba(255, 255, 255, 0.02);
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .metric-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .icon { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
-        .icon-ping { background-color: #fff; }
-        .icon-dl { background-color: var(--accent-cyan); }
-        .icon-loaded { background-color: var(--accent-red); }
-        .icon-ul { background-color: var(--accent-purple); }
-
-        .metric-val {
-            font-size: 36px;
-            font-weight: 800;
-            line-height: 1;
-        }
-
-        .metric-unit {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-top: 5px;
-        }
-
-        /* --- العداد الدائري النحيف --- */
-        .gauge-container {
+        /* --- العداد والرسم البياني المركزي --- */
+        .center-console {
+            grid-column: 2;
+            grid-row: 1 / span 2;
+            background: var(--panel-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--border-glow);
+            border-radius: 50%;
+            padding: 20px;
             position: relative;
-            width: 320px;
-            height: 320px;
-            margin-bottom: 50px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8), inset 0 0 20px var(--border-glow);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: border-color 0.4s ease, box-shadow 0.4s ease;
         }
 
         .gauge-svg {
-            width: 100%;
-            height: 100%;
+            width: 310px;
+            height: 310px;
             transform: rotate(-90deg);
         }
 
         .gauge-track {
             fill: none;
-            stroke: var(--track-color);
-            stroke-width: 6;
+            stroke: rgba(255, 255, 255, 0.05);
+            stroke-width: 8;
         }
 
         .gauge-fill {
             fill: none;
-            stroke: var(--accent-cyan);
-            stroke-width: 6;
+            stroke: var(--active-color);
+            stroke-width: 10;
             stroke-linecap: round;
-            stroke-dasharray: 942; 
-            stroke-dashoffset: 942;
-            transition: stroke-dashoffset 0.15s linear, stroke 0.3s ease;
-            filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.4));
+            stroke-dasharray: 880; /* محيط الدائرة (2*PI*140) */
+            stroke-dashoffset: 880;
+            transition: stroke-dashoffset 0.1s linear, stroke 0.4s ease;
+            filter: drop-shadow(0 0 8px var(--active-color));
         }
 
-        .gauge-center {
+        /* الرسم البياني الحي داخل العداد */
+        .live-chart-container {
             position: absolute;
-            top: 50%;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 50px;
+            opacity: 0.8;
+        }
+
+        .speed-data {
+            position: absolute;
+            top: 45%;
             left: 50%;
             transform: translate(-50%, -50%);
             text-align: center;
+            width: 100%;
         }
 
-        .gauge-main-val {
-            font-size: 64px;
-            font-weight: 800;
-            letter-spacing: -2px;
+        .speed-val {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 68px;
+            line-height: 1;
+            color: #fff;
+            text-shadow: 0 0 15px var(--active-color);
+            transition: text-shadow 0.4s ease;
         }
 
-        /* --- الزر المركزي --- */
-        .start-btn {
-            background-color: transparent;
+        .speed-unit {
+            font-size: 16px;
+            color: var(--text-muted);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        /* --- البطاقات الجانبية الزجاجية --- */
+        .hud-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+
+        .hud-panel:hover { transform: scale(1.02); }
+
+        /* أشرطة التمييز للبطاقات */
+        .hud-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 4px; height: 100%;
+        }
+        .panel-ping::before { background: var(--color-ping); box-shadow: 0 0 15px var(--color-ping); }
+        .panel-loaded::before { background: #ff7300; box-shadow: 0 0 15px #ff7300; }
+        .panel-dl::before { background: var(--color-dl); box-shadow: 0 0 15px var(--color-dl); }
+        .panel-ul::before { background: var(--color-ul); box-shadow: 0 0 15px var(--color-ul); }
+
+        .panel-label {
+            font-size: 15px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .panel-value {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 38px;
+            color: #fff;
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+        }
+
+        .panel-unit {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 16px;
+            color: var(--text-muted);
+        }
+
+        /* مواقع البطاقات */
+        .pos-tl { grid-column: 1; grid-row: 1; text-align: right; }
+        .pos-bl { grid-column: 1; grid-row: 2; text-align: right; }
+        .pos-tr { grid-column: 3; grid-row: 1; text-align: left; }
+        .pos-br { grid-column: 3; grid-row: 2; text-align: left; }
+
+        /* --- أزرار التحكم --- */
+        .control-section {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            background: transparent;
             color: var(--text-main);
-            border: 2px solid var(--accent-cyan);
-            padding: 15px 50px;
-            border-radius: 50px;
-            font-size: 20px;
-            font-weight: 600;
+            border: 2px solid var(--active-color);
+            padding: 18px 60px;
+            border-radius: 8px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 22px;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-family: inherit;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 4px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.1);
         }
 
-        .start-btn:hover {
-            background-color: var(--accent-cyan);
-            color: var(--bg-color);
-            box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+        .action-btn:hover {
+            background: var(--active-color);
+            color: #000;
+            box-shadow: 0 0 30px var(--active-color);
         }
 
-        .start-btn:disabled {
-            border-color: var(--track-color);
-            color: var(--text-muted);
-            cursor: not-allowed;
-            background-color: transparent;
+        .action-btn:disabled {
+            border-color: #334155;
+            color: #64748b;
+            background: transparent;
             box-shadow: none;
+            cursor: not-allowed;
         }
 
-        .status {
-            margin-top: 20px;
+        .status-log {
+            margin-top: 15px;
+            font-family: 'Share Tech Mono', monospace;
             font-size: 14px;
-            color: var(--text-muted);
+            color: var(--active-color);
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
 
-        /* التجاوب مع الجوال */
-        @media (max-width: 768px) {
-            .top-metrics { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-            .gauge-container { width: 260px; height: 260px; }
-            .gauge-main-val { font-size: 48px; }
+        /* دعم الجوال */
+        @media (max-width: 900px) {
+            .hud-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            .center-console { grid-column: 1; grid-row: 1; }
+            .pos-tl, .pos-bl, .pos-tr, .pos-br { grid-column: 1; text-align: center; }
+            .hud-panel::before { top: auto; bottom: 0; width: 100%; height: 4px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="dashboard">
+    <div class="hud-container">
         
-        <div class="top-metrics">
-            <div class="metric-group">
-                <div class="metric-label"><span class="icon icon-ping"></span> Ping</div>
-                <div class="metric-val" id="idlePing">--</div>
-                <div class="metric-unit">ms</div>
-            </div>
-            
-            <div class="metric-group">
-                <div class="metric-label"><span class="icon icon-dl"></span> Download</div>
-                <div class="metric-val" style="color: var(--accent-cyan);" id="dlSpeed">--</div>
-                <div class="metric-unit">Mbps</div>
-            </div>
-
-            <div class="metric-group">
-                <div class="metric-label"><span class="icon icon-loaded"></span> Loaded</div>
-                <div class="metric-val" style="color: var(--accent-red);" id="loadedPing">--</div>
-                <div class="metric-unit">ms</div>
-            </div>
-
-            <div class="metric-group">
-                <div class="metric-label"><span class="icon icon-ul"></span> Upload</div>
-                <div class="metric-val" style="color: var(--accent-purple);" id="ulSpeed">--</div>
-                <div class="metric-unit">Mbps</div>
-            </div>
+        <div class="hud-panel panel-ping pos-tl">
+            <div class="panel-label">Raw Ping (Games)</div>
+            <div class="panel-value" id="idlePing">-- <span class="panel-unit">ms</span></div>
+        </div>
+        
+        <div class="hud-panel panel-loaded pos-bl">
+            <div class="panel-label">Loaded Ping</div>
+            <div class="panel-value" id="loadedPing">-- <span class="panel-unit">ms</span></div>
         </div>
 
-        <div class="gauge-container">
-            <svg class="gauge-svg" viewBox="0 0 320 320">
-                <circle class="gauge-track" cx="160" cy="160" r="150"></circle>
-                <circle class="gauge-fill" id="gaugeProgress" cx="160" cy="160" r="150"></circle>
+        <div class="center-console" id="consoleRing">
+            <svg class="gauge-svg" viewBox="0 0 300 300">
+                <circle class="gauge-track" cx="150" cy="150" r="140"></circle>
+                <circle class="gauge-fill" id="gaugeProgress" cx="150" cy="150" r="140"></circle>
             </svg>
-            <div class="gauge-center">
-                <div class="gauge-main-val" id="mainValue">0.00</div>
+            
+            <div class="speed-data">
+                <div class="speed-val" id="mainValue">0.00</div>
+                <div class="speed-unit">Mbps</div>
+            </div>
+
+            <div class="live-chart-container">
+                <canvas id="liveChart" width="180" height="50"></canvas>
             </div>
         </div>
 
-        <button class="start-btn" id="startBtn">GO</button>
-        <div class="status" id="statusText">جاهز للاتصال بخوادم القياس</div>
+        <div class="hud-panel panel-dl pos-tr">
+            <div class="panel-label">Download Speed</div>
+            <div class="panel-value" id="dlSpeed">-- <span class="panel-unit">Mbps</span></div>
+        </div>
+
+        <div class="hud-panel panel-ul pos-br">
+            <div class="panel-label">Upload Speed</div>
+            <div class="panel-value" id="ulSpeed">-- <span class="panel-unit">Mbps</span></div>
+        </div>
+
+        <div class="control-section">
+            <button class="action-btn" id="startBtn">INITIATE</button>
+            <div class="status-log" id="statusText">SYSTEM STANDBY</div>
+        </div>
 
     </div>
 
