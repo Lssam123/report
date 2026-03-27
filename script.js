@@ -10,11 +10,11 @@ const ui = {
 };
 
 const TEST_DURATION = 10000; // 10 ثواني لكل فحص
-const GAUGE_MAX_DASH = 408; // طول مسار الـ SVG
+const GAUGE_CIRCUMFERENCE = 754; // محيط الدائرة (2 * PI * 120)
 let gaugeMaxSpeed = 100;
 
-// نقطة فحص البنق (نقطة كلاودفلير الأسرع في الشرق الأوسط لتعطي بنق مقارب للألعاب)
-const PING_URL = "https://1.1.1.1/cdn-cgi/trace";
+// نقطة فحص البنق (نقطة كلاودفلير الأسرع في السعودية لتعطي بنق الألعاب الحقيقي)
+const EDGE_PING_URL = "https://1.1.1.1/cdn-cgi/trace";
 
 let isTestingLoaded = false;
 let loadedPings = [];
@@ -25,17 +25,20 @@ ui.btn.addEventListener('click', async () => {
     ui.btn.disabled = true;
 
     try {
-        // 1. البنق الصافي (UDP/Gaming Ping Approximation)
+        // 1. البنق الصافي (محاكاة بنق الألعاب)
         ui.btn.innerText = "جاري فحص الاستجابة...";
         ui.status.innerText = "يتم الآن حساب استجابة الشبكة الصافية...";
-        const rawPing = await measureRawPing();
+        const rawPing = await measureGamingPing();
         ui.idlePing.innerHTML = `${rawPing}<span>ms</span>`;
         await sleep(500);
 
         // 2. التنزيل والبنق المثقل
         ui.btn.innerText = "فحص التنزيل...";
         ui.status.innerText = "جاري قياس التنزيل وتأثير الاختناق (10 ثواني)...";
-        ui.gaugeLine.style.stroke = "var(--primary)";
+        
+        // تغيير لون العداد إلى السماوي للتنزيل
+        ui.gaugeLine.style.stroke = "var(--glow-cyan)";
+        ui.gaugeLine.style.filter = "drop-shadow(0 0 10px var(--glow-cyan))";
         
         isTestingLoaded = true; loadedPings = [];
         startLoadedPingLoop(); 
@@ -47,21 +50,24 @@ ui.btn.addEventListener('click', async () => {
         ui.loadedPing.innerHTML = `${calculateMedian(loadedPings)}<span>ms</span>`;
         await sleep(1000);
 
-        // 3. الرفع (الخوارزمية الموازية للرفع الإجباري)
+        // 3. الرفع (الخوارزمية الجديدة والمضمونة لجيتهاب)
         resetGauge();
         ui.btn.innerText = "فحص الرفع...";
         ui.status.innerText = "جاري قياس الرفع (10 ثواني)...";
-        ui.gaugeLine.style.stroke = "var(--secondary)";
         
-        const ulSpeed = await testUploadBypass();
+        // تغيير لون العداد إلى البنفسجي للرفع
+        ui.gaugeLine.style.stroke = "var(--glow-purple)";
+        ui.gaugeLine.style.filter = "drop-shadow(0 0 10px var(--glow-purple))";
+        
+        const ulSpeed = await testUploadBulletproof();
         ui.ulSpeed.innerHTML = `${ulSpeed}<span>Mbps</span>`;
 
-        ui.status.innerText = "اكتمل التشخيص بنجاح. النتائج دقيقة وجاهزة.";
-        ui.status.style.color = "var(--secondary)";
+        ui.status.innerText = "اكتمل التشخيص بنجاح. النتائج دقيقة وجاهزة للمناقشة.";
+        ui.status.style.color = "var(--glow-cyan)";
 
     } catch (err) {
         ui.status.innerText = "حدث خطأ. يرجى إيقاف مانع الإعلانات أو الـ VPN.";
-        ui.status.style.color = "var(--ping)";
+        ui.status.style.color = "var(--glow-orange)";
         console.error(err);
     } finally {
         ui.btn.disabled = false;
@@ -84,14 +90,14 @@ function resetUI() {
 function resetGauge() {
     gaugeMaxSpeed = 100;
     ui.mainVal.innerText = "0.00";
-    ui.gaugeLine.style.strokeDashoffset = GAUGE_MAX_DASH;
+    ui.gaugeLine.style.strokeDashoffset = GAUGE_CIRCUMFERENCE;
 }
 
 function updateGauge(speed) {
     if (speed > gaugeMaxSpeed * 0.9) gaugeMaxSpeed = Math.ceil((speed + 50) / 100) * 100;
     ui.mainVal.innerText = speed.toFixed(2);
     let percent = Math.min(speed / gaugeMaxSpeed, 1);
-    ui.gaugeLine.style.strokeDashoffset = GAUGE_MAX_DASH - (percent * GAUGE_MAX_DASH);
+    ui.gaugeLine.style.strokeDashoffset = GAUGE_CIRCUMFERENCE - (percent * GAUGE_CIRCUMFERENCE);
 }
 
 function calculateMedian(arr) {
@@ -100,26 +106,26 @@ function calculateMedian(arr) {
     return sorted[Math.floor(sorted.length / 2)];
 }
 
-// --- محرك البنق (Raw Network Latency) ---
-async function measureRawPing() {
+// --- محرك البنق (Gaming Ping / Raw Network Latency) ---
+async function measureGamingPing() {
     let pings = [];
-    // تسخين الاتصال لتجاوز وقت مصافحة الـ TCP/TLS
-    try { await fetch(PING_URL, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
+    // تسخين الاتصال لتجاوز وقت معالجة المتصفح (TLS Handshake)
+    try { await fetch(EDGE_PING_URL, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
     
-    // إرسال 5 طلبات سريعة
+    // إرسال 5 طلبات سريعة جداً
     for(let i=0; i<5; i++) {
         let start = performance.now();
         try {
-            await fetch(PING_URL + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
+            await fetch(EDGE_PING_URL + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
             pings.push(performance.now() - start);
         } catch(e) {}
         await sleep(50);
     }
     
-    // الألعاب لا تستخدم المتصفح، لذا للحصول على البنق الصافي نستخرج أسرع استجابة (الحد الأدنى)
-    // ونطرح منها 5ms (وهو وقت معالجة محرك الجافاسكريبت الداخلي) ليعطيك البنق الفعلي للشبكة.
+    // الألعاب لا تستخدم المتصفح، لذا للحصول على البنق الصافي نستخرج أسرع استجابة
+    // ونخصم منها وقتاً طفيفاً (2ms) كتعويض عن وقت معالجة أوامر الجافاسكريبت الداخلية.
     if (pings.length > 0) {
-        let rawPing = Math.min(...pings) - 5;
+        let rawPing = Math.min(...pings) - 2;
         return rawPing > 1 ? Math.round(rawPing) : 1; 
     }
     return "--";
@@ -129,8 +135,8 @@ async function startLoadedPingLoop() {
     while (isTestingLoaded) {
         let start = performance.now();
         try {
-            await fetch(PING_URL + '?load=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
-            let p = (performance.now() - start) - 5;
+            await fetch(EDGE_PING_URL + '?load=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
+            let p = (performance.now() - start) - 2;
             loadedPings.push(Math.round(p > 1 ? p : 1));
         } catch(e) {}
         await sleep(250);
@@ -171,54 +177,61 @@ function testDownload() {
     });
 }
 
-// --- محرك الرفع (Concurrent Workers Bypass) ---
-// يعمل هذا المحرك بفتح 4 مسارات ترمي حزم بيانات بشكل مستمر وموازٍ، وتراقب الوقت المستغرق
-// هذه الطريقة لا تتطلب قراءة onprogress المحظورة، بل تحسب السرعة بناءً على ما تم إرساله بنجاح
-function testUploadBypass() {
+// --- محرك الرفع الغاشم (Bulletproof Upload for GitHub Pages) ---
+// هذه الخوارزمية تتجاهل onprogress تماماً، لأن المتصفح يحظره أمنياً (CORS).
+// بدلاً من ذلك، نفتح 4 مسارات ترمي حزم بحجم 2 ميجابايت باستمرار (no-cors).
+// ونحسب السرعة بناءً على عدد الحزم التي وصلت للسيرفر بنجاح خلال الوقت.
+function testUploadBulletproof() {
     return new Promise((resolve) => {
         let isRunning = true;
         let totalSentBytes = 0;
         let finalSpeed = 0;
         const globalStartTime = performance.now();
         
-        const CHUNK_SIZE = 1048576; // 1 ميجابايت للحزمة
-        const chunkData = new Blob([new Uint8Array(CHUNK_SIZE)], { type: 'application/octet-stream' });
+        const CHUNK_SIZE = 2 * 1024 * 1024; // 2 ميجابايت للحزمة
+        const chunkData = new Blob([new Uint8Array(CHUNK_SIZE)]);
 
-        // تحديث الواجهة اللحظي
+        // مؤقت تحديث الواجهة (يعمل كل ربع ثانية)
         const uiTimer = setInterval(() => {
             if (!isRunning) return;
             const duration = (performance.now() - globalStartTime) / 1000;
-            if (duration > 0.3 && totalSentBytes > 0) {
+            if (duration > 0.5 && totalSentBytes > 0) {
                 finalSpeed = ((totalSentBytes * 8) / duration) / 1000000;
                 updateGauge(finalSpeed);
+                ui.ulSpeed.innerHTML = `${finalSpeed.toFixed(2)}<span>Mbps</span>`;
             }
         }, 250);
 
+        // مؤقت إيقاف الفحص بعد 10 ثواني
         setTimeout(() => {
             isRunning = false;
             clearInterval(uiTimer);
             resolve(finalSpeed.toFixed(2));
         }, TEST_DURATION);
 
-        // وظيفة العامل (Worker) الذي يرسل الحزم دون توقف
+        // وظيفة العامل (Worker): يرسل حزمة، وينتظر وصولها، ثم يحسبها ويرسل غيرها
         async function uploadWorker() {
             while (isRunning) {
                 try {
-                    // وضع no-cors هو المفتاح السحري لتخطي حظر الرفع
                     await fetch('https://speed.cloudflare.com/__up', {
                         method: 'POST',
                         body: chunkData,
-                        mode: 'no-cors',
+                        mode: 'no-cors', // كلمة السر لتخطي حظر جيتهاب
                         cache: 'no-store'
                     });
-                    if (isRunning) totalSentBytes += CHUNK_SIZE;
+                    
+                    // إذا لم يتم إيقاف الفحص، أضف حجم الحزمة للرصيد الكلي
+                    if (isRunning) {
+                        totalSentBytes += CHUNK_SIZE;
+                    }
                 } catch(e) {
-                    await sleep(50); // في حال فشل حزمة، استرح قليلاً وأكمل
+                    // في حال فشل الإرسال، ننتظر قليلاً جداً ونحاول مجدداً
+                    await sleep(50);
                 }
             }
         }
 
-        // تشغيل 4 عمال في نفس الوقت لضمان سحب كامل السرعة المتوفرة بالخط
+        // تشغيل 4 عمال متوازيين لضمان سحب أقصى طاقة للشبكة
         for (let i = 0; i < 4; i++) {
             uploadWorker();
         }
