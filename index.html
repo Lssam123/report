@@ -6,14 +6,15 @@
     <title>Ookla Speedtest Clone | مشروع تخرج</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        /* --- تصميم يحاكي Speedtest.net (Ookla Style) --- */
+        /* --- تصميم يحاكي Speedtest.net مع إضافة البنق المثقل --- */
         :root {
-            --bg-color: #111424; /* كحلي داكن جداً */
+            --bg-color: #111424; 
             --panel-bg: #181c31;
             --text-main: #ffffff;
             --text-muted: #8b92a5;
             --accent-cyan: #00e5ff;
             --accent-purple: #bd00ff;
+            --accent-red: #ff4757; /* لون للبنق المثقل */
             --track-color: #242945;
         }
 
@@ -31,61 +32,64 @@
 
         .dashboard {
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        /* --- الشبكة العلوية (البنق والسرعات) --- */
+        /* --- الشبكة العلوية (4 خانات الآن) --- */
         .top-metrics {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
             width: 100%;
             margin-bottom: 50px;
-            padding: 0 20px;
+            padding: 0 10px;
         }
 
         .metric-group {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
+            align-items: center;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .metric-group.center { align-items: center; }
-        .metric-group.end { align-items: flex-end; }
-
         .metric-label {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 8px;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
-        /* أيقونات بسيطة بجانب العناوين */
-        .icon { width: 16px; height: 16px; border-radius: 50%; display: inline-block; }
+        .icon { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
         .icon-ping { background-color: #fff; }
         .icon-dl { background-color: var(--accent-cyan); }
+        .icon-loaded { background-color: var(--accent-red); }
         .icon-ul { background-color: var(--accent-purple); }
 
         .metric-val {
-            font-size: 42px;
+            font-size: 36px;
             font-weight: 800;
             line-height: 1;
         }
 
         .metric-unit {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-muted);
-            margin-top: 4px;
+            margin-top: 5px;
         }
 
-        /* --- العداد الدائري النحيف (Sleek Gauge) --- */
+        /* --- العداد الدائري النحيف --- */
         .gauge-container {
             position: relative;
             width: 320px;
@@ -102,7 +106,7 @@
         .gauge-track {
             fill: none;
             stroke: var(--track-color);
-            stroke-width: 6; /* نحيف وأنيق */
+            stroke-width: 6;
         }
 
         .gauge-fill {
@@ -110,7 +114,7 @@
             stroke: var(--accent-cyan);
             stroke-width: 6;
             stroke-linecap: round;
-            stroke-dasharray: 942; /* 2 * PI * 150 */
+            stroke-dasharray: 942; 
             stroke-dashoffset: 942;
             transition: stroke-dashoffset 0.15s linear, stroke 0.3s ease;
             filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.4));
@@ -165,6 +169,13 @@
             font-size: 14px;
             color: var(--text-muted);
         }
+
+        /* التجاوب مع الجوال */
+        @media (max-width: 768px) {
+            .top-metrics { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .gauge-container { width: 260px; height: 260px; }
+            .gauge-main-val { font-size: 48px; }
+        }
     </style>
 </head>
 <body>
@@ -178,13 +189,19 @@
                 <div class="metric-unit">ms</div>
             </div>
             
-            <div class="metric-group center">
+            <div class="metric-group">
                 <div class="metric-label"><span class="icon icon-dl"></span> Download</div>
                 <div class="metric-val" style="color: var(--accent-cyan);" id="dlSpeed">--</div>
                 <div class="metric-unit">Mbps</div>
             </div>
 
-            <div class="metric-group end">
+            <div class="metric-group">
+                <div class="metric-label"><span class="icon icon-loaded"></span> Loaded</div>
+                <div class="metric-val" style="color: var(--accent-red);" id="loadedPing">--</div>
+                <div class="metric-unit">ms</div>
+            </div>
+
+            <div class="metric-group">
                 <div class="metric-label"><span class="icon icon-ul"></span> Upload</div>
                 <div class="metric-val" style="color: var(--accent-purple);" id="ulSpeed">--</div>
                 <div class="metric-unit">Mbps</div>
