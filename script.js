@@ -6,15 +6,19 @@ const ui = {
     gaugeLine: document.getElementById('gaugeProgress'),
     idlePing: document.getElementById('idlePing'),
     dlSpeed: document.getElementById('dlSpeed'),
+    loadedPing: document.getElementById('loadedPing'),
     ulSpeed: document.getElementById('ulSpeed')
 };
 
 const TEST_DURATION = 10000; // 10 ثواني لكل فحص
-const GAUGE_CIRCUMFERENCE = 942; // محيط العداد للتصميم الجديد (Speedtest Clone)
+const GAUGE_CIRCUMFERENCE = 942; // محيط العداد للتصميم الجديد
 let gaugeMaxSpeed = 100;
 
 // نقطة فحص البنق (كلاودفلير لتعطي بنق الألعاب الحقيقي)
 const PING_URL = "https://1.1.1.1/cdn-cgi/trace";
+
+let isTestingLoaded = false;
+let loadedPings = [];
 
 // --- دورة التشغيل الرئيسية ---
 ui.btn.addEventListener('click', async () => {
@@ -29,15 +33,22 @@ ui.btn.addEventListener('click', async () => {
         ui.idlePing.innerText = rawPing;
         await sleep(500);
 
-        // 2. التنزيل
-        ui.status.innerText = "جاري قياس سرعة التنزيل (10 ثواني)...";
+        // 2. التنزيل والبنق المثقل
+        ui.status.innerText = "جاري قياس سرعة التنزيل والبنق المثقل (10 ثواني)...";
         
         // لون العداد سماوي للتنزيل
         ui.gaugeLine.style.stroke = "var(--accent-cyan)";
         ui.gaugeLine.style.filter = "drop-shadow(0 0 10px rgba(0, 229, 255, 0.4))";
         
+        isTestingLoaded = true;
+        loadedPings = [];
+        startLoadedPingLoop(); 
+        
         const dlSpeed = await testDownload();
+        
+        isTestingLoaded = false;
         ui.dlSpeed.innerText = dlSpeed;
+        ui.loadedPing.innerText = calculateMedian(loadedPings);
         await sleep(1000);
 
         // 3. الرفع (باستخدام 4 مسارات لجيتهاب)
@@ -62,6 +73,7 @@ ui.btn.addEventListener('click', async () => {
         console.error(err);
     } finally {
         ui.btn.disabled = false;
+        isTestingLoaded = false;
     }
 });
 
@@ -73,6 +85,7 @@ function resetUI() {
     ui.status.style.color = "var(--text-muted)";
     ui.idlePing.innerText = "--"; 
     ui.dlSpeed.innerText = "--";
+    ui.loadedPing.innerText = "--";
     ui.ulSpeed.innerText = "--";
 }
 
@@ -87,6 +100,12 @@ function updateGauge(speed) {
     ui.mainVal.innerText = speed.toFixed(2);
     let percent = Math.min(speed / gaugeMaxSpeed, 1);
     ui.gaugeLine.style.strokeDashoffset = GAUGE_CIRCUMFERENCE - (percent * GAUGE_CIRCUMFERENCE);
+}
+
+function calculateMedian(arr) {
+    if (arr.length === 0) return "--";
+    const sorted = [...arr].sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
 }
 
 // --- محرك البنق (Gaming Ping) ---
@@ -108,6 +127,18 @@ async function measureGamingPing() {
         return rawPing > 1 ? Math.round(rawPing) : 1; 
     }
     return "--";
+}
+
+async function startLoadedPingLoop() {
+    while (isTestingLoaded) {
+        let start = performance.now();
+        try {
+            await fetch(PING_URL + '?load=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
+            let p = (performance.now() - start) - 2;
+            loadedPings.push(Math.round(p > 1 ? p : 1));
+        } catch(e) {}
+        await sleep(250);
+    }
 }
 
 // --- محرك التنزيل ---
