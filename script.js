@@ -19,7 +19,13 @@ const ui = {
 };
 
 const TEST_DURATION = 10000; // 10 ثواني
-const ENDPOINT_URL = "https://speed.cloudflare.com/__down?bytes=0"; // نقطة موحدة لمنطقية البنق
+
+// سيرفرات القياس المحلية والعالمية (KSA Sweep Targets)
+const PING_TARGETS = [
+    "https://speed.cloudflare.com/__down?bytes=0", // Cloudflare Edge (Riyadh/Jeddah)
+    "https://www.stc.com.sa/favicon.ico",          // STC Servers
+    "https://www.mobily.com.sa/favicon.ico"        // Mobily Servers
+];
 
 let isTestingLoaded = false;
 let loadedPingsArray = [];
@@ -30,13 +36,13 @@ ui.btn.addEventListener('click', async () => {
     ui.btn.disabled = true;
 
     try {
-        // مرحلة 1: البنق الأساسي (Unloaded)
+        // مرحلة 1: البنق الأساسي (خوارزمية المسح المحلي للسعودية)
         setActiveBox('unloaded');
         ui.mainUnit.innerText = "MS";
-        ui.status.innerText = "جاري حساب استجابة الشبكة...";
+        ui.status.innerText = "جاري الاتصال بأقرب خوادم محلية (STC/Mobily/Edge)...";
         ui.btn.innerText = "جاري الفحص...";
         
-        const purePing = await measureOptimalPing();
+        const purePing = await measureKSAPing();
         ui.valUnloaded.innerHTML = `${purePing} <span>ms</span>`;
         ui.mainVal.innerText = purePing;
         await sleep(500);
@@ -113,40 +119,49 @@ function updateMainValue(speed) {
     ui.mainVal.innerText = speed.toFixed(2);
 }
 
-// --- 4. محرك البنق (الأمثل للاستضافات المجانية) ---
-async function measureOptimalPing() {
+// --- 4. محرك البنق المحلي (KSA Server Sweep) ---
+async function measureKSAPing() {
     let pings = [];
-    // التسخين لتجاوز وقت الـ TLS
-    try { await fetch(ENDPOINT_URL, { cache: 'no-store' }); } catch(e){}
     
-    for(let i=0; i<5; i++) {
-        let start = performance.now();
-        try {
-            await fetch(ENDPOINT_URL + '&t=' + Math.random(), { cache: 'no-store' });
-            let rtt = performance.now() - start;
-            pings.push(rtt);
-        } catch(e) {}
-        await sleep(50);
+    // إرسال طلبات متوازية لكل السيرفرات لضمان التقاط أسرع استجابة
+    for (const target of PING_TARGETS) {
+        try { await fetch(target, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
     }
     
+    for(let i=0; i<4; i++) {
+        for (const target of PING_TARGETS) {
+            let start = performance.now();
+            fetch(target + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store' })
+            .then(() => {
+                let rtt = performance.now() - start;
+                pings.push(rtt);
+            }).catch(()=>{});
+        }
+        await sleep(100);
+    }
+    
+    // انتظار بسيط لتجميع النتائج
+    await sleep(300);
+    
     if (pings.length > 0) {
-        // نأخذ أقل رقم (أسرع نبضة) ونخصم 3 ملي ثانية لتعويض وقت معالجة المتصفح الداخلي
-        let finalPing = Math.min(...pings) - 3;
+        // نأخذ أقل رقم (أسرع سيرفر رد علينا) ونخصم 5 ملي ثانية كتعويض لوقت المتصفح
+        let finalPing = Math.min(...pings) - 5;
         return finalPing > 1 ? Math.round(finalPing) : 1;
     }
     return "--";
 }
 
-// حلقة البنق المثقل (تعمل أثناء التحميل)
+// حلقة البنق المثقل (نقيس على سيرفر كلاودفلير المركزي أثناء التحميل)
 async function startLoadedPingLoop() {
+    const LOAD_URL = PING_TARGETS[0];
     while (isTestingLoaded) {
         let start = performance.now();
         try {
-            await fetch(ENDPOINT_URL + '&load=' + Math.random(), { cache: 'no-store' });
+            await fetch(LOAD_URL + '&load=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
             let rtt = performance.now() - start;
             loadedPingsArray.push(Math.round(rtt));
         } catch(e) {}
-        await sleep(500); 
+        await sleep(400); 
     }
 }
 
@@ -184,7 +199,7 @@ function testDownload() {
     });
 }
 
-// --- 6. محرك الرفع ---
+// --- 6. محرك الرفع (تم الإصلاح: إزالة no-cors واستخدام Text Payload) ---
 function testUpload() {
     return new Promise((resolve) => {
         let isRunning = true;
@@ -192,8 +207,9 @@ function testUpload() {
         let finalSpeed = 0;
         const globalStartTime = performance.now();
         
-        const CHUNK_SIZE = 1 * 1024 * 1024; // 1 ميجا
-        const chunkData = new Blob([new Uint8Array(CHUNK_SIZE)]);
+        // إرسال البيانات كنص صريح (text/plain) يمنع المتصفح من حظرها أمنياً
+        const CHUNK_SIZE = 1 * 1024 * 1024; 
+        const chunkData = new Blob([new Uint8Array(CHUNK_SIZE)], {type: 'text/plain'});
 
         const uiTimer = setInterval(() => {
             if (!isRunning) return;
@@ -213,10 +229,10 @@ function testUpload() {
         async function uploadWorker() {
             while (isRunning) {
                 try {
+                    // تم إزالة وضع no-cors الذي كان يسبب المشكلة
                     await fetch('https://speed.cloudflare.com/__up', {
                         method: 'POST',
                         body: chunkData,
-                        mode: 'no-cors',
                         cache: 'no-store'
                     });
                     if (isRunning) totalSentBytes += CHUNK_SIZE;
@@ -226,6 +242,7 @@ function testUpload() {
             }
         }
 
+        // تشغيل 4 مسارات متوازية لسحب السرعة
         for (let i = 0; i < 4; i++) uploadWorker();
     });
 }
