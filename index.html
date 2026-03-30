@@ -3,33 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة تشخيص الشبكات المتقدمة | Cyber-HUD</title>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <title>منصة فحص جودة الشبكة</title>
     <style>
-        /* --- تصميم Cyber-HUD المتقدم --- */
+        /* --- تصميم شبكي نظيف جداً ومرتب (Clean Dashboard) --- */
         :root {
-            --bg-deep: #030712;
-            --panel-bg: rgba(17, 24, 39, 0.7);
-            --border-glow: rgba(0, 229, 255, 0.2);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg-page: #0d1117;
+            --bg-card: #161b22;
+            --border: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
             
-            /* ألوان الفحص (تتغير ديناميكياً) */
-            --color-ping: #ff2a5f;
-            --color-dl: #00e5ff;
-            --color-ul: #b517ff;
-            
-            --active-color: var(--color-dl); /* اللون الافتراضي */
+            --color-dl: #58a6ff;   /* أزرق للتحميل */
+            --color-ul: #3fb950;   /* أخضر للرفع */
+            --color-ping: #f0883e; /* برتقالي للبنق */
         }
 
         body {
-            font-family: 'Rajdhani', sans-serif;
-            background-color: var(--bg-deep);
-            background-image: 
-                radial-gradient(circle at 50% 50%, rgba(0, 229, 255, 0.05) 0%, transparent 60%),
-                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-            background-size: 100% 100%, 30px 30px, 30px 30px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-page);
             color: var(--text-main);
             display: flex;
             justify-content: center;
@@ -37,255 +28,198 @@
             min-height: 100vh;
             margin: 0;
             padding: 20px;
-            overflow-x: hidden;
         }
 
-        .hud-container {
+        .container {
             width: 100%;
-            max-width: 950px;
-            display: grid;
-            grid-template-columns: 1fr 350px 1fr;
-            grid-template-rows: auto auto;
-            gap: 30px;
-            align-items: center;
+            max-width: 800px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
         }
 
-        /* --- العداد والرسم البياني المركزي --- */
-        .center-console {
-            grid-column: 2;
-            grid-row: 1 / span 2;
-            background: var(--panel-bg);
-            backdrop-filter: blur(15px);
-            border: 1px solid var(--border-glow);
-            border-radius: 50%;
-            padding: 20px;
-            position: relative;
-            box-shadow: 0 0 50px rgba(0,0,0,0.8), inset 0 0 20px var(--border-glow);
+        /* --- شبكة النتائج (4 مربعات متساوية ومرتبة) --- */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .metric-box {
+            background: var(--bg-page);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px 10px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .metric-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
             display: flex;
             justify-content: center;
-            align-items: center;
-            transition: border-color 0.4s ease, box-shadow 0.4s ease;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .metric-unit {
+            font-size: 12px;
+            font-weight: normal;
+            color: var(--text-muted);
+        }
+
+        .val-idle { color: var(--color-ping); }
+        .val-dl { color: var(--color-dl); }
+        .val-loaded { color: var(--color-ping); }
+        .val-ul { color: var(--color-ul); }
+
+        /* --- العداد الدائري المركزي --- */
+        .gauge-section {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        .gauge-wrapper {
+            position: relative;
+            width: 280px;
+            height: 140px; /* نصف دائرة */
         }
 
         .gauge-svg {
-            width: 310px;
-            height: 310px;
-            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+            overflow: visible;
         }
 
         .gauge-track {
             fill: none;
-            stroke: rgba(255, 255, 255, 0.05);
-            stroke-width: 8;
+            stroke: var(--border);
+            stroke-width: 12;
+            stroke-linecap: round;
         }
 
         .gauge-fill {
             fill: none;
-            stroke: var(--active-color);
-            stroke-width: 10;
+            stroke: var(--color-dl);
+            stroke-width: 12;
             stroke-linecap: round;
-            stroke-dasharray: 880; /* محيط الدائرة (2*PI*140) */
-            stroke-dashoffset: 880;
-            transition: stroke-dashoffset 0.1s linear, stroke 0.4s ease;
-            filter: drop-shadow(0 0 8px var(--active-color));
+            stroke-dasharray: 408; /* محيط نصف الدائرة */
+            stroke-dashoffset: 408;
+            transition: stroke-dashoffset 0.1s linear, stroke 0.3s ease;
         }
 
-        /* الرسم البياني الحي داخل العداد */
-        .live-chart-container {
+        .gauge-center {
             position: absolute;
-            bottom: 60px;
+            bottom: -15px;
             left: 50%;
             transform: translateX(-50%);
-            width: 180px;
-            height: 50px;
-            opacity: 0.8;
-        }
-
-        .speed-data {
-            position: absolute;
-            top: 45%;
-            left: 50%;
-            transform: translate(-50%, -50%);
             text-align: center;
             width: 100%;
         }
 
-        .speed-val {
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 68px;
+        .gauge-main-val {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffffff;
             line-height: 1;
-            color: #fff;
-            text-shadow: 0 0 15px var(--active-color);
-            transition: text-shadow 0.4s ease;
         }
 
-        .speed-unit {
-            font-size: 16px;
+        .gauge-main-unit {
+            font-size: 14px;
             color: var(--text-muted);
-            letter-spacing: 3px;
-            text-transform: uppercase;
             margin-top: 5px;
         }
 
-        /* --- البطاقات الجانبية الزجاجية --- */
-        .hud-panel {
-            background: var(--panel-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 25px;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.3s;
-        }
-
-        .hud-panel:hover { transform: scale(1.02); }
-
-        /* أشرطة التمييز للبطاقات */
-        .hud-panel::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0;
-            width: 4px; height: 100%;
-        }
-        .panel-ping::before { background: var(--color-ping); box-shadow: 0 0 15px var(--color-ping); }
-        .panel-loaded::before { background: #ff7300; box-shadow: 0 0 15px #ff7300; }
-        .panel-dl::before { background: var(--color-dl); box-shadow: 0 0 15px var(--color-dl); }
-        .panel-ul::before { background: var(--color-ul); box-shadow: 0 0 15px var(--color-ul); }
-
-        .panel-label {
-            font-size: 15px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-        }
-
-        .panel-value {
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 38px;
-            color: #fff;
-            display: flex;
-            align-items: baseline;
-            gap: 5px;
-        }
-
-        .panel-unit {
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 16px;
-            color: var(--text-muted);
-        }
-
-        /* مواقع البطاقات */
-        .pos-tl { grid-column: 1; grid-row: 1; text-align: right; }
-        .pos-bl { grid-column: 1; grid-row: 2; text-align: right; }
-        .pos-tr { grid-column: 3; grid-row: 1; text-align: left; }
-        .pos-br { grid-column: 3; grid-row: 2; text-align: left; }
-
-        /* --- أزرار التحكم --- */
+        /* --- الزر وحالة الفحص --- */
         .control-section {
-            grid-column: 1 / -1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 20px;
+            text-align: center;
         }
 
-        .action-btn {
-            background: transparent;
-            color: var(--text-main);
-            border: 2px solid var(--active-color);
-            padding: 18px 60px;
+        .start-btn {
+            background-color: var(--color-dl);
+            color: #0d1117;
+            border: none;
+            padding: 15px 40px;
             border-radius: 8px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 22px;
+            font-size: 18px;
+            font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 0 20px rgba(0, 229, 255, 0.1);
+            width: 100%;
+            max-width: 300px;
+            transition: opacity 0.2s;
         }
 
-        .action-btn:hover {
-            background: var(--active-color);
-            color: #000;
-            box-shadow: 0 0 30px var(--active-color);
-        }
+        .start-btn:hover { opacity: 0.8; }
+        .start-btn:disabled { background-color: var(--border); color: var(--text-muted); cursor: not-allowed; }
 
-        .action-btn:disabled {
-            border-color: #334155;
-            color: #64748b;
-            background: transparent;
-            box-shadow: none;
-            cursor: not-allowed;
-        }
-
-        .status-log {
+        .status-text {
             margin-top: 15px;
-            font-family: 'Share Tech Mono', monospace;
             font-size: 14px;
-            color: var(--active-color);
-            letter-spacing: 1px;
-            text-transform: uppercase;
+            color: var(--text-muted);
         }
 
-        /* دعم الجوال */
-        @media (max-width: 900px) {
-            .hud-container {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-            .center-console { grid-column: 1; grid-row: 1; }
-            .pos-tl, .pos-bl, .pos-tr, .pos-br { grid-column: 1; text-align: center; }
-            .hud-panel::before { top: auto; bottom: 0; width: 100%; height: 4px; }
+        /* توافق الجوال */
+        @media (max-width: 768px) {
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
 <body>
 
-    <div class="hud-container">
+    <div class="container">
         
-        <div class="hud-panel panel-ping pos-tl">
-            <div class="panel-label">Raw Ping (Games)</div>
-            <div class="panel-value" id="idlePing">-- <span class="panel-unit">ms</span></div>
-        </div>
-        
-        <div class="hud-panel panel-loaded pos-bl">
-            <div class="panel-label">Loaded Ping</div>
-            <div class="panel-value" id="loadedPing">-- <span class="panel-unit">ms</span></div>
-        </div>
-
-        <div class="center-console" id="consoleRing">
-            <svg class="gauge-svg" viewBox="0 0 300 300">
-                <circle class="gauge-track" cx="150" cy="150" r="140"></circle>
-                <circle class="gauge-fill" id="gaugeProgress" cx="150" cy="150" r="140"></circle>
-            </svg>
+        <div class="metrics-grid">
+            <div class="metric-box">
+                <div class="metric-title">البنق غير المثقل</div>
+                <div class="metric-value val-idle" id="unloadedPing">-- <span class="metric-unit">ms</span></div>
+            </div>
             
-            <div class="speed-data">
-                <div class="speed-val" id="mainValue">0.00</div>
-                <div class="speed-unit">Mbps</div>
+            <div class="metric-box">
+                <div class="metric-title">التحميل</div>
+                <div class="metric-value val-dl" id="dlSpeed">-- <span class="metric-unit">Mbps</span></div>
             </div>
 
-            <div class="live-chart-container">
-                <canvas id="liveChart" width="180" height="50"></canvas>
+            <div class="metric-box">
+                <div class="metric-title">البنق المثقل</div>
+                <div class="metric-value val-loaded" id="loadedPing">-- <span class="metric-unit">ms</span></div>
+            </div>
+
+            <div class="metric-box">
+                <div class="metric-title">الرفع</div>
+                <div class="metric-value val-ul" id="ulSpeed">-- <span class="metric-unit">Mbps</span></div>
             </div>
         </div>
 
-        <div class="hud-panel panel-dl pos-tr">
-            <div class="panel-label">Download Speed</div>
-            <div class="panel-value" id="dlSpeed">-- <span class="panel-unit">Mbps</span></div>
-        </div>
-
-        <div class="hud-panel panel-ul pos-br">
-            <div class="panel-label">Upload Speed</div>
-            <div class="panel-value" id="ulSpeed">-- <span class="panel-unit">Mbps</span></div>
+        <div class="gauge-section">
+            <div class="gauge-wrapper">
+                <svg class="gauge-svg" viewBox="0 0 280 140">
+                    <path class="gauge-track" d="M 10 130 A 120 120 0 0 1 270 130" />
+                    <path class="gauge-fill" id="gaugeProgress" d="M 10 130 A 120 120 0 0 1 270 130" />
+                </svg>
+                <div class="gauge-center">
+                    <div class="gauge-main-val" id="mainValue">0.00</div>
+                    <div class="gauge-main-unit">Mbps</div>
+                </div>
+            </div>
         </div>
 
         <div class="control-section">
-            <button class="action-btn" id="startBtn">INITIATE</button>
-            <div class="status-log" id="statusText">SYSTEM STANDBY</div>
+            <button class="start-btn" id="startBtn">بدء الفحص</button>
+            <div class="status-text" id="statusText">جاهز للبدء</div>
         </div>
 
     </div>
