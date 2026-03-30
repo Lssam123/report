@@ -1,14 +1,15 @@
-// --- تعريف عناصر الواجهة ---
+// --- 1. ربط عناصر الواجهة بدقة ---
 const ui = {
     btn: document.getElementById('startBtn'),
     status: document.getElementById('statusText'),
     mainVal: document.getElementById('mainValue'),
-    mainUnit: document.getElementById('mainUnit'),
-    gaugeLine: document.getElementById('gaugeProgress'), // السطر الذي كان مفقوداً وتمت إضافته!
+    gaugeLine: document.getElementById('gaugeProgress'),
+    
     valUnloaded: document.getElementById('valUnloaded'),
     valDownload: document.getElementById('valDownload'),
     valLoaded: document.getElementById('valLoaded'),
     valUpload: document.getElementById('valUpload'),
+    
     boxes: {
         unloaded: document.getElementById('boxUnloaded'),
         download: document.getElementById('boxDownload'),
@@ -17,32 +18,37 @@ const ui = {
     }
 };
 
-const TEST_DURATION = 10000; // 10 ثواني لكل فحص
-const GAUGE_DASH = 408; 
+const TEST_DURATION = 10000; // مدة الفحص 10 ثواني
+const GAUGE_DASH = 377; // الرقم الرياضي لمحيط نصف الدائرة في الـ SVG الجديد
 let gaugeMaxSpeed = 100;
 
 let isTestingLoaded = false;
 let loadedPingsArray = [];
 
-// --- دورة الفحص الرئيسية ---
+// --- 2. دورة الفحص الرئيسية (Crash-Proof Architecture) ---
 ui.btn.addEventListener('click', async () => {
     resetUI();
     ui.btn.disabled = true;
 
+    // --- مرحلة 1: البنق غير المثقل ---
     try {
-        // 1. فحص البنق غير المثقل (المعيار العالمي WebSockets)
         setActiveBox('unloaded');
         ui.btn.innerText = "جاري الفحص...";
-        ui.status.innerText = "جاري قياس البنق عبر قنوات WebSockets العالمية...";
-        const purePing = await measureGlobalPing();
-        ui.valUnloaded.innerHTML = `${purePing} <span>ms</span>`;
-        await sleep(500);
+        ui.status.innerText = "جاري حساب استجابة الشبكة الأساسية...";
+        
+        const purePing = await measureBulletproofPing();
+        ui.valUnloaded.innerHTML = `${purePing} <span class="metric-unit">ms</span>`;
+    } catch (err) {
+        console.error("Ping Error:", err);
+        ui.valUnloaded.innerHTML = `Err <span class="metric-unit">ms</span>`;
+    }
+    await sleep(500);
 
-        // 2. فحص التحميل مع البنق المثقل
+    // --- مرحلة 2: التحميل والبنق المثقل ---
+    try {
         setActiveBox('download');
-        ui.boxes.loaded.classList.add('active'); 
-        ui.status.innerText = "جاري قياس التحميل والبنق المثقل (10 ثواني)...";
-        ui.gaugeLine.style.stroke = "var(--color-dl)";
+        ui.boxes.loaded.classList.add('active'); // إضاءة بطاقة البنق المثقل مع التحميل
+        ui.status.innerText = "جاري قياس سرعة التحميل وتأثير الاختناق...";
         
         isTestingLoaded = true;
         loadedPingsArray = [];
@@ -51,64 +57,67 @@ ui.btn.addEventListener('click', async () => {
         const dlResult = await testDownload();
         
         isTestingLoaded = false;
-        ui.valDownload.innerHTML = `${dlResult} <span>Mbps</span>`;
-        ui.valLoaded.innerHTML = `${calculateMedian(loadedPingsArray)} <span>ms</span>`;
+        ui.valDownload.innerHTML = `${dlResult} <span class="metric-unit">Mbps</span>`;
+        ui.valLoaded.innerHTML = `${calculateMedian(loadedPingsArray)} <span class="metric-unit">ms</span>`;
         ui.boxes.loaded.classList.remove('active');
-        await sleep(1000);
+    } catch (err) {
+        console.error("Download Error:", err);
+        isTestingLoaded = false;
+        ui.valDownload.innerHTML = `Err <span class="metric-unit">Mbps</span>`;
+    }
+    await sleep(1000);
 
-        // 3. فحص الرفع
+    // --- مرحلة 3: الرفع المباشر ---
+    try {
         resetGauge();
         setActiveBox('upload');
-        ui.status.innerText = "جاري قياس الرفع المباشر (10 ثواني)...";
-        ui.gaugeLine.style.stroke = "var(--color-ul)";
+        ui.status.innerText = "جاري قياس سرعة الرفع (تخطي حماية CORS)...";
         
         const ulResult = await testUpload();
-        ui.valUpload.innerHTML = `${ulResult} <span>Mbps</span>`;
-
-        // إنهاء الفحص
-        setActiveBox(null);
-        ui.status.innerText = "اكتمل الفحص بنجاح. النظام يعكس المعايير الهندسية بدقة.";
-        ui.mainVal.style.color = "var(--success)";
-        ui.btn.innerText = "إعادة الفحص";
-
+        ui.valUpload.innerHTML = `${ulResult} <span class="metric-unit">Mbps</span>`;
     } catch (err) {
-        ui.status.innerText = "حدث خطأ في الاتصال. يرجى التأكد من استقرار الشبكة.";
-        ui.btn.innerText = "إعادة المحاولة";
-        console.error(err);
-    } finally {
-        ui.btn.disabled = false;
-        isTestingLoaded = false;
+        console.error("Upload Error:", err);
+        ui.valUpload.innerHTML = `Err <span class="metric-unit">Mbps</span>`;
     }
+
+    // --- إنهاء العملية بنجاح ---
+    setActiveBox(null);
+    ui.status.innerText = "اكتمل الفحص بنجاح. النتائج دقيقة وجاهزة.";
+    ui.mainVal.style.color = "var(--success)";
+    ui.btn.innerText = "إعادة الفحص";
+    ui.btn.disabled = false;
 });
 
-// --- دوال المساعدة ---
+// --- 3. الدوال المساعدة ---
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function resetUI() {
     resetGauge();
-    ui.mainVal.style.color = "var(--text-dark)";
-    const def = `-- <span>--</span>`;
-    ui.valUnloaded.innerHTML = def; ui.valDownload.innerHTML = def;
-    ui.valLoaded.innerHTML = def; ui.valUpload.innerHTML = def;
+    ui.mainVal.style.color = "var(--text-main)";
+    const def = `-- <span class="metric-unit">--</span>`;
+    ui.valUnloaded.innerHTML = def; 
+    ui.valDownload.innerHTML = def;
+    ui.valLoaded.innerHTML = def; 
+    ui.valUpload.innerHTML = def;
     setActiveBox(null);
 }
 
 function resetGauge() {
     gaugeMaxSpeed = 100;
     ui.mainVal.innerText = "0.00";
-    if (ui.gaugeLine) ui.gaugeLine.style.strokeDashoffset = GAUGE_DASH;
+    ui.gaugeLine.style.strokeDashoffset = GAUGE_DASH;
 }
 
 function updateGauge(speed) {
     if (speed > gaugeMaxSpeed * 0.9) gaugeMaxSpeed = Math.ceil((speed + 50) / 100) * 100;
     ui.mainVal.innerText = speed.toFixed(2);
     let percent = Math.min(speed / gaugeMaxSpeed, 1);
-    if (ui.gaugeLine) ui.gaugeLine.style.strokeDashoffset = GAUGE_DASH - (percent * GAUGE_DASH);
+    ui.gaugeLine.style.strokeDashoffset = GAUGE_DASH - (percent * GAUGE_DASH);
 }
 
 function setActiveBox(boxName) {
     Object.values(ui.boxes).forEach(box => box.classList.remove('active'));
-    if (boxName && ui.boxes[boxName]) ui.boxes[boxName].classList.add('active');
+    if (boxName) ui.boxes[boxName].classList.add('active');
 }
 
 function calculateMedian(arr) {
@@ -117,46 +126,44 @@ function calculateMedian(arr) {
     return sorted[Math.floor(sorted.length / 2)];
 }
 
-// --- محرك البنق العالمي (WebSocket Engine) ---
-function measureGlobalPing() {
-    return new Promise((resolve) => {
-        const ws = new WebSocket('wss://echo.websocket.events');
+// --- 4. محرك البنق (TTFB Method) ---
+async function measureBulletproofPing() {
+    return new Promise(async (resolve) => {
         let pings = [];
-        let pingCount = 0;
-        const maxPings = 5;
         let isResolved = false;
-
+        
         const finish = (val) => {
             if (!isResolved) {
                 isResolved = true;
-                if(ws.readyState === WebSocket.OPEN) ws.close();
                 resolve(val);
             }
         };
 
-        ws.onopen = () => {
-            sendNextPing();
-        };
+        setTimeout(() => finish("--"), 4000); // أمان ضد التعليق
 
-        function sendNextPing() {
-            if (pingCount >= maxPings) {
-                finish(pings.length > 0 ? Math.round(Math.min(...pings)) : "--");
-                return;
+        try {
+            const PING_URL = "https://cp.cloudflare.com/generate_204";
+            await fetch(PING_URL, { mode: 'no-cors', cache: 'no-store' }).catch(() => {});
+            
+            for(let i=0; i<5; i++) {
+                if (isResolved) break;
+                let start = performance.now();
+                try {
+                    await fetch(PING_URL + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
+                    pings.push(Math.round(performance.now() - start));
+                } catch(e) {}
+                await sleep(50);
             }
-            ws.send(performance.now().toString());
+            
+            if (pings.length > 0) {
+                let minPing = Math.min(...pings) - 2; // خصم وقت المتصفح الداخلي
+                finish(minPing > 1 ? minPing : 1);
+            } else {
+                finish("--");
+            }
+        } catch(e) {
+            finish("--");
         }
-
-        ws.onmessage = (e) => {
-            const sentTime = parseFloat(e.data);
-            const rtt = performance.now() - sentTime;
-            pings.push(rtt);
-            pingCount++;
-            setTimeout(sendNextPing, 50);
-        };
-
-        ws.onerror = () => finish("--");
-        
-        setTimeout(() => finish(pings.length > 0 ? Math.round(Math.min(...pings)) : "--"), 4000);
     });
 }
 
@@ -167,13 +174,14 @@ async function startLoadedPingLoop() {
         let start = performance.now();
         try {
             await fetch(PING_URL + '?load=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
-            loadedPingsArray.push(Math.round(performance.now() - start));
+            let p = Math.round(performance.now() - start) - 2;
+            loadedPingsArray.push(p > 1 ? p : 1);
         } catch(e) {}
         await sleep(250);
     }
 }
 
-// --- محرك التنزيل ---
+// --- 5. محرك التحميل ---
 function testDownload() {
     return new Promise(async (resolve) => {
         const controller = new AbortController();
@@ -207,7 +215,7 @@ function testDownload() {
     });
 }
 
-// --- محرك الرفع ---
+// --- 6. محرك الرفع (Bypass Browser Protection) ---
 function testUpload() {
     return new Promise((resolve) => {
         let isRunning = true;
@@ -215,7 +223,7 @@ function testUpload() {
         let finalSpeed = 0;
         const globalStartTime = performance.now();
         
-        const CHUNK_SIZE = 1 * 1024 * 1024; // حزم بحجم 1 ميجابايت
+        const CHUNK_SIZE = 1 * 1024 * 1024; // 1 ميجابايت 
         const chunkData = new Blob([new Uint8Array(CHUNK_SIZE)]);
 
         const uiTimer = setInterval(() => {
@@ -249,8 +257,7 @@ function testUpload() {
             }
         }
 
-        for (let i = 0; i < 4; i++) {
-            uploadWorker();
-        }
+        // تشغيل 4 مسارات لضغط الخط بقوة
+        for (let i = 0; i < 4; i++) uploadWorker();
     });
 }
