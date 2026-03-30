@@ -20,11 +20,15 @@ const ui = {
 
 const TEST_DURATION = 10000; // 10 ثواني
 
-// سيرفرات القياس المحلية والعالمية (KSA Sweep Targets)
-const PING_TARGETS = [
-    "https://speed.cloudflare.com/__down?bytes=0", // Cloudflare Edge (Riyadh/Jeddah)
-    "https://www.stc.com.sa/favicon.ico",          // STC Servers
-    "https://www.mobily.com.sa/favicon.ico"        // Mobily Servers
+// مصفوفة سيرفرات السعودية للحصول على أقل بنق ممكن (KSA Sweep Array)
+const KSA_SERVERS = [
+    "https://speed.cloudflare.com/__down?bytes=0", // مسار كلاودفلير السريع
+    "https://www.stc.com.sa",                      // خوادم STC
+    "https://www.mobily.com.sa",                   // خوادم موبايلي
+    "https://sa.zain.com",                         // خوادم زين السعودية
+    "https://salam.sa",                            // خوادم شركة سلام
+    "https://www.ksu.edu.sa",                      // جامعة الملك سعود (الرياض)
+    "https://www.kau.edu.sa"                       // جامعة الملك عبدالعزيز (جدة)
 ];
 
 let isTestingLoaded = false;
@@ -36,15 +40,16 @@ ui.btn.addEventListener('click', async () => {
     ui.btn.disabled = true;
 
     try {
-        // مرحلة 1: البنق الأساسي (خوارزمية المسح المحلي للسعودية)
+        // مرحلة 1: البنق الأساسي (تُعرض النتيجة في البطاقة فقط)
         setActiveBox('unloaded');
-        ui.mainUnit.innerText = "MS";
-        ui.status.innerText = "جاري الاتصال بأقرب خوادم محلية (STC/Mobily/Edge)...";
+        ui.mainVal.innerText = "---"; // إخفاء الرقم من الشاشة العلوية
+        ui.mainUnit.innerText = "PING";
+        ui.status.innerText = "جاري مسح سيرفرات السعودية (STC, Mobily, Zain)...";
         ui.btn.innerText = "جاري الفحص...";
         
         const purePing = await measureKSAPing();
         ui.valUnloaded.innerHTML = `${purePing} <span>ms</span>`;
-        ui.mainVal.innerText = purePing;
+        // لا نحدث الشاشة العلوية بناءً على طلبك
         await sleep(500);
 
         // مرحلة 2: التحميل والبنق المثقل
@@ -65,7 +70,7 @@ ui.btn.addEventListener('click', async () => {
         ui.boxes.loaded.classList.remove('active');
         await sleep(1000);
 
-        // مرحلة 3: الرفع
+        // مرحلة 3: الرفع (تم استرجاع الكود الناجح 100%)
         setActiveBox('upload');
         ui.mainVal.innerText = "0.00";
         ui.status.innerText = "جاري قياس قدرة الرفع...";
@@ -123,37 +128,34 @@ function updateMainValue(speed) {
 async function measureKSAPing() {
     let pings = [];
     
-    // إرسال طلبات متوازية لكل السيرفرات لضمان التقاط أسرع استجابة
-    for (const target of PING_TARGETS) {
-        try { await fetch(target, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
-    }
+    // 1. تسخين جميع السيرفرات في نفس الوقت
+    await Promise.allSettled(KSA_SERVERS.map(url => fetch(url, { mode: 'no-cors', cache: 'no-store' })));
     
-    for(let i=0; i<4; i++) {
-        for (const target of PING_TARGETS) {
+    // 2. إطلاق 3 موجات فحص متوازية لاصطياد أسرع استجابة
+    for(let i=0; i<3; i++) {
+        let wave = KSA_SERVERS.map(async (url) => {
             let start = performance.now();
-            fetch(target + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store' })
-            .then(() => {
-                let rtt = performance.now() - start;
-                pings.push(rtt);
-            }).catch(()=>{});
-        }
-        await sleep(100);
+            try {
+                await fetch(url, { mode: 'no-cors', cache: 'no-store' });
+                pings.push(performance.now() - start);
+            } catch(e) {}
+        });
+        await Promise.allSettled(wave);
+        await sleep(50);
     }
-    
-    // انتظار بسيط لتجميع النتائج
-    await sleep(300);
     
     if (pings.length > 0) {
-        // نأخذ أقل رقم (أسرع سيرفر رد علينا) ونخصم 5 ملي ثانية كتعويض لوقت المتصفح
-        let finalPing = Math.min(...pings) - 5;
-        return finalPing > 1 ? Math.round(finalPing) : 1;
+        // نأخذ أسرع استجابة من بين كل السيرفرات السعودية، ونخصم 2ms لتعويض معالجة المتصفح
+        let bestPing = Math.min(...pings) - 2;
+        return bestPing > 1 ? Math.round(bestPing) : 1;
     }
     return "--";
 }
 
-// حلقة البنق المثقل (نقيس على سيرفر كلاودفلير المركزي أثناء التحميل)
+// حلقة البنق المثقل (تعمل أثناء التحميل)
 async function startLoadedPingLoop() {
-    const LOAD_URL = PING_TARGETS[0];
+    // نستخدم مسار كلاودفلير الموثوق للبنق المثقل لضمان عدم حظرنا أثناء الضغط
+    const LOAD_URL = "https://speed.cloudflare.com/__down?bytes=0";
     while (isTestingLoaded) {
         let start = performance.now();
         try {
@@ -161,7 +163,7 @@ async function startLoadedPingLoop() {
             let rtt = performance.now() - start;
             loadedPingsArray.push(Math.round(rtt));
         } catch(e) {}
-        await sleep(400); 
+        await sleep(500); 
     }
 }
 
@@ -199,50 +201,36 @@ function testDownload() {
     });
 }
 
-// --- 6. محرك الرفع (تم الإصلاح: إزالة no-cors واستخدام Text Payload) ---
+// --- 6. محرك الرفع (النسخة المستقرة التي عملت معك بنجاح) ---
 function testUpload() {
-    return new Promise((resolve) => {
-        let isRunning = true;
-        let totalSentBytes = 0;
+    return new Promise(async (resolve) => {
         let finalSpeed = 0;
-        const globalStartTime = performance.now();
+        let totalSent = 0;
+        const startTime = performance.now();
+        const endTime = startTime + TEST_DURATION;
         
-        // إرسال البيانات كنص صريح (text/plain) يمنع المتصفح من حظرها أمنياً
-        const CHUNK_SIZE = 1 * 1024 * 1024; 
-        const chunkData = new Blob([new Uint8Array(CHUNK_SIZE)], {type: 'text/plain'});
+        // استخدام Uint8Array كما كان في النسخة الناجحة تماماً وبدون no-cors
+        const payload = new Uint8Array(2 * 1024 * 1024);
 
-        const uiTimer = setInterval(() => {
-            if (!isRunning) return;
-            const duration = (performance.now() - globalStartTime) / 1000;
-            if (duration > 0.5 && totalSentBytes > 0) {
-                finalSpeed = ((totalSentBytes * 8) / duration) / 1000000;
+        while (performance.now() < endTime) {
+            try {
+                await fetch('https://speed.cloudflare.com/__up', {
+                    method: 'POST',
+                    body: payload,
+                    cache: 'no-store'
+                });
+                
+                totalSent += payload.length;
+                const duration = (performance.now() - startTime) / 1000;
+                finalSpeed = ((totalSent * 8) / duration) / 1000000;
                 updateMainValue(finalSpeed);
-            }
-        }, 250);
-
-        setTimeout(() => {
-            isRunning = false;
-            clearInterval(uiTimer);
-            resolve(finalSpeed.toFixed(2));
-        }, TEST_DURATION);
-
-        async function uploadWorker() {
-            while (isRunning) {
-                try {
-                    // تم إزالة وضع no-cors الذي كان يسبب المشكلة
-                    await fetch('https://speed.cloudflare.com/__up', {
-                        method: 'POST',
-                        body: chunkData,
-                        cache: 'no-store'
-                    });
-                    if (isRunning) totalSentBytes += CHUNK_SIZE;
-                } catch(e) {
-                    await sleep(50);
-                }
+                
+            } catch (e) {
+                if (totalSent === 0) return "Error";
+                break; 
             }
         }
-
-        // تشغيل 4 مسارات متوازية لسحب السرعة
-        for (let i = 0; i < 4; i++) uploadWorker();
+        
+        resolve(finalSpeed > 0 ? finalSpeed.toFixed(2) : "0.00");
     });
 }
