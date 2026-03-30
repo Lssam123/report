@@ -18,9 +18,9 @@ const ui = {
     }
 };
 
-const TEST_DURATION = 10000; // 10 ثواني للتحميل والرفع
+const TEST_DURATION = 10000; // 10 ثواني
 
-// خوادم مخصصة للحصول على أقل بنق (تشمل نقطة كلاودفلير وجامعة الملك عبدالعزيز كأقرب نقطة)
+// خوادم مخصصة للحصول على أقل بنق (نقطة كلاودفلير وجامعات السعودية)
 const PING_TARGETS = [
     "https://speed.cloudflare.com/__down?bytes=0",
     "https://www.kau.edu.sa/favicon.ico", 
@@ -39,21 +39,20 @@ ui.btn.addEventListener('click', async () => {
         // --- مرحلة 1: البنق الأساسي ---
         setActiveBox('unloaded');
         ui.mainVal.innerText = "---";   // إخفاء الرقم من الشاشة الرئيسية
-        ui.mainUnit.innerText = "PING"; // تغيير الوحدة في الشاشة العلوية
+        ui.mainUnit.innerText = "PING"; // تغيير الوحدة
         ui.status.innerText = "جاري مسح الخوادم المحلية للبحث عن أقل استجابة...";
         ui.btn.innerText = "جاري الفحص...";
         
         const purePing = await measureLocalPing();
         ui.valUnloaded.innerHTML = `${purePing} <span>ms</span>`;
-        // لا نحدث الشاشة العلوية بالبنق
         await sleep(500);
 
         // --- مرحلة 2: التحميل والبنق المثقل ---
         setActiveBox('download');
-        ui.boxes.loaded.classList.add('active'); // إضاءة مربع البنق المثقل أيضاً
+        ui.boxes.loaded.classList.add('active'); // إضاءة مربع البنق المثقل
         ui.mainVal.innerText = "0.00"; 
         ui.mainUnit.innerText = "MBPS"; // إرجاع الوحدة للسرعة
-        ui.status.innerText = "جاري قياس التنزيل وتأثير الاختناق (Bufferbloat)...";
+        ui.status.innerText = "جاري قياس التنزيل وتأثير الاختناق...";
         
         isTestingLoaded = true;
         loadedPingsArray = [];
@@ -67,10 +66,10 @@ ui.btn.addEventListener('click', async () => {
         ui.boxes.loaded.classList.remove('active');
         await sleep(1000);
 
-        // --- مرحلة 3: الرفع المباشر ---
+        // --- مرحلة 3: الرفع المباشر (الطريقة الأصلية الناجحة) ---
         setActiveBox('upload');
         ui.mainVal.innerText = "0.00";
-        ui.status.innerText = "جاري قياس قدرة الرفع عبر مسارات متوازية...";
+        ui.status.innerText = "جاري قياس قدرة الرفع...";
         
         const ulResult = await testUpload();
         ui.valUpload.innerHTML = `${ulResult} <span>Mbps</span>`;
@@ -127,12 +126,10 @@ function updateMainValue(speed) {
 async function measureLocalPing() {
     let pings = [];
     
-    // تسخين جميع الروابط
     for (const target of PING_TARGETS) {
         try { await fetch(target, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
     }
     
-    // إرسال موجات فحص لاصطياد أسرع مسار فيزيائي
     for(let i=0; i<4; i++) {
         for (const target of PING_TARGETS) {
             let start = performance.now();
@@ -144,17 +141,15 @@ async function measureLocalPing() {
         await sleep(100);
     }
     
-    await sleep(300); // انتظار تجميع القراءات
+    await sleep(300); 
     
     if (pings.length > 0) {
-        // نأخذ أقل بنق تم اصطياده، ونخصم 2ms كتعويض لمعالجة الجافاسكريبت
         let bestPing = Math.min(...pings) - 2;
         return bestPing > 1 ? Math.round(bestPing) : 1;
     }
     return "--";
 }
 
-// حلقة البنق المثقل (نقيس على سيرفر كلاودفلير أثناء التحميل)
 async function startLoadedPingLoop() {
     const LOAD_URL = PING_TARGETS[0];
     while (isTestingLoaded) {
@@ -201,48 +196,36 @@ function testDownload() {
     });
 }
 
-// --- 6. محرك الرفع (مضاد لـ CORS) ---
-function testUpload() {
-    return new Promise((resolve) => {
-        let isRunning = true;
-        let totalSentBytes = 0;
-        let finalSpeed = 0;
-        const globalStartTime = performance.now();
-        
-        // السر هنا: استخدام Blob كـ text/plain يجعله طلباً بسيطاً يمر من الحماية
-        const chunkData = new Blob([new Uint8Array(1024 * 1024)], { type: 'text/plain' });
+// --- 6. محرك الرفع (الطريقة الأصلية الناجحة 100%) ---
+async function testUpload() {
+    let finalSpeed = 0;
+    let totalSent = 0;
+    const startTime = performance.now();
+    const endTime = startTime + TEST_DURATION;
+    
+    // هذه هي الحزمة الدقيقة التي اشتغلت معك سابقاً (Uint8Array مباشر بدون Blob وبدون عمال متوازيين)
+    const payload = new Uint8Array(2 * 1024 * 1024);
 
-        const uiTimer = setInterval(() => {
-            if (!isRunning) return;
-            const duration = (performance.now() - globalStartTime) / 1000;
-            if (duration > 0.5 && totalSentBytes > 0) {
-                finalSpeed = ((totalSentBytes * 8) / duration) / 1000000;
-                updateMainValue(finalSpeed);
-            }
-        }, 250);
-
-        setTimeout(() => {
-            isRunning = false;
-            clearInterval(uiTimer);
-            resolve(finalSpeed.toFixed(2));
-        }, TEST_DURATION);
-
-        async function uploadWorker() {
-            while (isRunning) {
-                try {
-                    await fetch('https://speed.cloudflare.com/__up', {
-                        method: 'POST',
-                        body: chunkData,
-                        cache: 'no-store'
-                    });
-                    if (isRunning) totalSentBytes += chunkData.size;
-                } catch(e) {
-                    await sleep(50); // استراحة قصيرة عند الفشل لتجنب إغراق الخط
-                }
-            }
+    while (performance.now() < endTime) {
+        try {
+            // إرسال مباشر بدون وضع no-cors وبدون تعقيدات
+            await fetch('https://speed.cloudflare.com/__up', {
+                method: 'POST',
+                body: payload,
+                cache: 'no-store'
+            });
+            
+            totalSent += payload.length;
+            const duration = (performance.now() - startTime) / 1000;
+            finalSpeed = ((totalSent * 8) / duration) / 1000000;
+            updateMainValue(finalSpeed);
+            
+        } catch (e) {
+            console.error("Upload Error:", e);
+            if (totalSent === 0) return "Error";
+            break; 
         }
-
-        // تشغيل 4 مسارات (عمال) متوازية لضمان أقصى سرعة رفع
-        for (let i = 0; i < 4; i++) uploadWorker();
-    });
+    }
+    
+    return finalSpeed > 0 ? finalSpeed.toFixed(2) : "0.00";
 }
