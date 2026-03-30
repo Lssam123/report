@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أداة تشخيص جودة الشبكة</title>
+    <title>أداة تشخيص جودة الشبكة | مشروع تخرج</title>
     <style>
-        /* --- التصميم المؤسسي النظيف (Minimalist) --- */
+        /* --- التصميم الأكاديمي/المؤسسي النظيف --- */
         :root {
-            --bg-body: #f1f3f4;
+            --bg-body: #f8f9fa;
             --bg-surface: #ffffff;
             --text-dark: #202124;
             --text-gray: #5f6368;
             --border-color: #dadce0;
             --primary: #1a73e8; /* أزرق مؤسسي */
-            --success: #1e8e3e; /* أخضر للنجاح */
+            --success: #1e8e3e; 
         }
 
         body {
@@ -35,7 +35,7 @@
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 40px;
-            box-shadow: 0 2px 6px rgba(60,64,67,0.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
         .header-titles {
@@ -44,8 +44,8 @@
         }
 
         .header-titles h1 {
-            font-size: 22px;
-            font-weight: 500;
+            font-size: 24px;
+            font-weight: 600;
             margin: 0 0 5px 0;
             color: var(--text-dark);
         }
@@ -56,10 +56,10 @@
             margin: 0;
         }
 
-        /* --- شاشة الفحص العلوية (بدون دائرة) --- */
+        /* --- الشاشة العلوية --- */
         .live-monitor {
             text-align: center;
-            padding: 30px 0;
+            padding: 40px 0;
             margin-bottom: 30px;
             border-bottom: 1px solid var(--border-color);
             border-top: 1px solid var(--border-color);
@@ -78,13 +78,14 @@
 
         .live-unit {
             font-size: 18px;
-            font-weight: 500;
+            font-weight: 600;
             color: var(--text-gray);
             text-transform: uppercase;
             margin-top: 5px;
+            letter-spacing: 1px;
         }
 
-        /* --- البطاقات السفلية (4 مربعات) --- */
+        /* --- البطاقات السفلية --- */
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -96,7 +97,7 @@
             background: var(--bg-surface);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 20px 15px;
+            padding: 20px 10px;
             text-align: center;
             transition: all 0.2s ease;
         }
@@ -104,18 +105,18 @@
         .data-card.active {
             border-color: var(--primary);
             background: #e8f0fe;
-            box-shadow: 0 2px 8px rgba(26, 115, 232, 0.1);
+            box-shadow: 0 2px 8px rgba(26, 115, 232, 0.15);
         }
 
         .card-label {
             font-size: 13px;
             font-weight: 600;
             color: var(--text-gray);
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
 
         .card-val {
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 700;
             color: var(--text-dark);
             display: flex;
@@ -139,14 +140,14 @@
             background-color: var(--primary);
             color: #ffffff;
             border: none;
-            padding: 14px 40px;
-            border-radius: 6px;
-            font-size: 16px;
+            padding: 16px 48px;
+            border-radius: 8px;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
             transition: background 0.2s;
             width: 100%;
-            max-width: 250px;
+            max-width: 300px;
             font-family: inherit;
         }
 
@@ -155,12 +156,13 @@
 
         .sys-status {
             margin-top: 15px;
-            font-size: 13px;
+            font-size: 14px;
             color: var(--text-gray);
+            font-weight: 500;
         }
 
-        /* الجوال */
-        @media (max-width: 700px) {
+        /* التجاوب مع الجوال */
+        @media (max-width: 768px) {
             .cards-grid { grid-template-columns: repeat(2, 1fr); }
             .live-val { font-size: 60px; }
         }
@@ -171,13 +173,13 @@
     <div class="dashboard-container">
         
         <div class="header-titles">
-            <h1>تشخيص أداء الشبكة</h1>
-            <p>مشروع التخرج - منصة الفحص المباشر</p>
+            <h1>منصة تشخيص أداء الشبكة</h1>
+            <p>القياس يتم عبر خوادم الطرفيات (Edge Nodes)</p>
         </div>
 
         <div class="live-monitor">
             <div class="live-val" id="mainValue">0.00</div>
-            <div class="live-unit" id="mainUnit">--</div>
+            <div class="live-unit" id="mainUnit">Mbps</div>
         </div>
 
         <div class="cards-grid">
@@ -204,7 +206,7 @@
 
         <div class="controls-wrapper">
             <button class="btn-start" id="startBtn">بدء الفحص</button>
-            <div class="sys-status" id="statusText">النظام جاهز للتشغيل</div>
+            <div class="sys-status" id="statusText">جاهز لإجراء القياس المرجعي</div>
         </div>
 
     </div>
