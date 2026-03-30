@@ -3,22 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة تشخيص جودة الشبكة | مشروع التخرج</title>
+    <title>Speedtest Clone | منصة فحص الشبكات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        /* --- تصميم المؤسسات النظيف (Corporate Clean Design) --- */
+        /* --- تصميم يحاكي Speedtest.net العالمي --- */
         :root {
-            --bg-page: #f8f9fa;
-            --bg-card: #ffffff;
-            --border: #dadce0;
-            --text-main: #202124;
-            --text-muted: #5f6368;
-            --primary: #1a73e8; /* أزرق مؤسسي */
-            --success: #1e8e3e; /* أخضر للنجاح */
+            --bg-color: #111424; 
+            --panel-bg: #181c31;
+            --text-main: #ffffff;
+            --text-muted: #8b92a5;
+            --accent-cyan: #00e5ff;
+            --accent-purple: #bd00ff;
+            --accent-red: #ff4757; 
+            --track-color: #242945;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-page);
+            font-family: 'Montserrat', 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
             color: var(--text-main);
             display: flex;
             justify-content: center;
@@ -28,203 +30,203 @@
             padding: 20px;
         }
 
-        .container {
+        .dashboard {
             width: 100%;
-            max-width: 800px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 40px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        /* --- شبكة النتائج العلوية --- */
-        .metrics-grid {
+        /* --- الشبكة العلوية (4 بطاقات للبيانات) --- */
+        .top-metrics {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 15px;
+            width: 100%;
             margin-bottom: 50px;
+            padding: 0 10px;
         }
 
-        .metric-box {
-            background: var(--bg-page);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 20px 15px;
+        .metric-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             text-align: center;
-            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.2s, border-color 0.2s;
         }
 
-        /* تأثير عند تنشيط البطاقة أثناء الفحص */
-        .metric-box.active {
-            border-color: var(--primary);
-            background: #e8f0fe;
-            box-shadow: 0 2px 8px rgba(26, 115, 232, 0.15);
+        .metric-group.active {
+            border-color: var(--text-muted);
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.05);
         }
 
-        .metric-title {
+        .metric-label {
             font-size: 13px;
             font-weight: 600;
             color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
             margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .metric-value {
-            font-size: 26px;
-            font-weight: bold;
-            display: flex;
-            justify-content: center;
-            align-items: baseline;
-            gap: 4px;
-            color: var(--text-main);
+        .icon { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+        .icon-ping { background-color: #fff; }
+        .icon-dl { background-color: var(--accent-cyan); }
+        .icon-loaded { background-color: var(--accent-red); }
+        .icon-ul { background-color: var(--accent-purple); }
+
+        .metric-val {
+            font-size: 36px;
+            font-weight: 800;
+            line-height: 1;
         }
 
         .metric-unit {
             font-size: 13px;
-            font-weight: normal;
             color: var(--text-muted);
+            margin-top: 5px;
         }
 
-        /* --- العداد المركزي (نصف دائري) --- */
-        .gauge-section {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 40px;
-        }
-
-        .gauge-wrapper {
+        /* --- العداد الدائري النحيف والمضيء --- */
+        .gauge-container {
             position: relative;
-            width: 280px;
-            height: 140px; /* نصف الطول لقص الدائرة */
-            overflow: hidden;
+            width: 320px;
+            height: 320px;
+            margin-bottom: 50px;
         }
 
         .gauge-svg {
             width: 100%;
-            height: 200%; /* مضاعفة الطول ليظهر النصف العلوي فقط */
-            transform: rotate(180deg);
+            height: 100%;
+            transform: rotate(-90deg);
         }
 
         .gauge-track {
             fill: none;
-            stroke: #f1f3f4;
-            stroke-width: 16;
+            stroke: var(--track-color);
+            stroke-width: 6;
         }
 
         .gauge-fill {
             fill: none;
-            stroke: var(--primary);
-            stroke-width: 16;
+            stroke: var(--accent-cyan);
+            stroke-width: 6;
             stroke-linecap: round;
-            stroke-dasharray: 377; /* محيط نصف الدائرة (PI * 120) */
-            stroke-dashoffset: 377;
-            transition: stroke-dashoffset 0.1s linear, stroke 0.3s ease;
+            stroke-dasharray: 942; /* محيط الدائرة */
+            stroke-dashoffset: 942;
+            transition: stroke-dashoffset 0.15s linear, stroke 0.3s ease;
+            filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.4));
         }
 
         .gauge-center {
             position: absolute;
-            bottom: 0;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translate(-50%, -50%);
             text-align: center;
-            width: 100%;
         }
 
         .gauge-main-val {
             font-size: 64px;
-            font-weight: bold;
-            color: var(--text-main);
-            line-height: 1;
+            font-weight: 800;
             letter-spacing: -2px;
         }
 
-        .gauge-main-unit {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-top: 5px;
-            text-transform: uppercase;
-        }
-
-        /* --- أزرار التحكم --- */
-        .control-section {
-            text-align: center;
-        }
-
+        /* --- الزر المركزي --- */
         .start-btn {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 16px 48px;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: bold;
+            background-color: transparent;
+            color: var(--text-main);
+            border: 2px solid var(--accent-cyan);
+            padding: 15px 50px;
+            border-radius: 50px;
+            font-size: 20px;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s;
-            width: 100%;
-            max-width: 300px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
-        .start-btn:hover { background-color: #1557b0; }
-        .start-btn:disabled { background-color: var(--border); color: var(--text-muted); cursor: not-allowed; }
+        .start-btn:hover {
+            background-color: var(--accent-cyan);
+            color: var(--bg-color);
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+        }
 
-        .status-text {
-            margin-top: 15px;
+        .start-btn:disabled {
+            border-color: var(--track-color);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            background-color: transparent;
+            box-shadow: none;
+        }
+
+        .status {
+            margin-top: 20px;
             font-size: 14px;
-            font-weight: 500;
             color: var(--text-muted);
         }
 
-        /* التجاوب مع شاشات الجوال */
+        /* توافق الجوال */
         @media (max-width: 768px) {
-            .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .top-metrics { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .gauge-container { width: 260px; height: 260px; }
             .gauge-main-val { font-size: 48px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <div class="dashboard">
         
-        <div class="metrics-grid">
-            <div class="metric-box" id="boxUnloaded">
-                <div class="metric-title">البنق غير المثقل</div>
-                <div class="metric-value" id="valUnloaded">-- <span class="metric-unit">ms</span></div>
+        <div class="top-metrics">
+            <div class="metric-group" id="boxUnloaded">
+                <div class="metric-label"><span class="icon icon-ping"></span> Ping</div>
+                <div class="metric-val" id="idlePing">--</div>
+                <div class="metric-unit">ms</div>
             </div>
             
-            <div class="metric-box" id="boxDownload">
-                <div class="metric-title">التحميل</div>
-                <div class="metric-value" id="valDownload">-- <span class="metric-unit">Mbps</span></div>
+            <div class="metric-group" id="boxDownload">
+                <div class="metric-label"><span class="icon icon-dl"></span> Download</div>
+                <div class="metric-val" style="color: var(--accent-cyan);" id="dlSpeed">--</div>
+                <div class="metric-unit">Mbps</div>
             </div>
 
-            <div class="metric-box" id="boxLoaded">
-                <div class="metric-title">البنق المثقل</div>
-                <div class="metric-value" id="valLoaded">-- <span class="metric-unit">ms</span></div>
+            <div class="metric-group" id="boxLoaded">
+                <div class="metric-label"><span class="icon icon-loaded"></span> Loaded</div>
+                <div class="metric-val" style="color: var(--accent-red);" id="loadedPing">--</div>
+                <div class="metric-unit">ms</div>
             </div>
 
-            <div class="metric-box" id="boxUpload">
-                <div class="metric-title">الرفع</div>
-                <div class="metric-value" id="valUpload">-- <span class="metric-unit">Mbps</span></div>
-            </div>
-        </div>
-
-        <div class="gauge-section">
-            <div class="gauge-wrapper">
-                <svg class="gauge-svg" viewBox="0 0 280 280">
-                    <circle class="gauge-track" cx="140" cy="140" r="120"></circle>
-                    <circle class="gauge-fill" id="gaugeProgress" cx="140" cy="140" r="120"></circle>
-                </svg>
-                <div class="gauge-center">
-                    <div class="gauge-main-val" id="mainValue">0.00</div>
-                    <div class="gauge-main-unit">Mbps</div>
-                </div>
+            <div class="metric-group" id="boxUpload">
+                <div class="metric-label"><span class="icon icon-ul"></span> Upload</div>
+                <div class="metric-val" style="color: var(--accent-purple);" id="ulSpeed">--</div>
+                <div class="metric-unit">Mbps</div>
             </div>
         </div>
 
-        <div class="control-section">
-            <button class="start-btn" id="startBtn">بدء الفحص</button>
-            <div class="status-text" id="statusText">الأنظمة جاهزة لإجراء القياس المرجعي</div>
+        <div class="gauge-container">
+            <svg class="gauge-svg" viewBox="0 0 320 320">
+                <circle class="gauge-track" cx="160" cy="160" r="150"></circle>
+                <circle class="gauge-fill" id="gaugeProgress" cx="160" cy="160" r="150"></circle>
+            </svg>
+            <div class="gauge-center">
+                <div class="gauge-main-val" id="mainValue">0.00</div>
+            </div>
         </div>
+
+        <button class="start-btn" id="startBtn">GO</button>
+        <div class="status" id="statusText">الأنظمة جاهزة لإجراء القياس</div>
 
     </div>
 
