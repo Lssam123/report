@@ -16,7 +16,9 @@ const ui = {
 };
 
 const TEST_DURATION = 10000; 
-const EDGE_URL = "https://1.1.1.1/cdn-cgi/trace";
+
+// استخدام خوادم كلاودفلير المفتوحة (تدعم CORS) للحصول على البنق الدقيق
+const PING_ENDPOINT = "https://speed.cloudflare.com/__down?bytes=0";
 
 let isTestingLoaded = false;
 let loadedPings = [];
@@ -26,16 +28,16 @@ ui.btn.addEventListener('click', async () => {
     ui.btn.disabled = true;
 
     try {
-        // 1. فحص البنق غير المثقل
+        // 1. فحص البنق غير المثقل (Raw TTFB Ping)
         setActiveBox('unloaded');
-        ui.status.innerText = "جاري قياس البنق غير المثقل...";
-        const unloadedPing = await measurePing();
+        ui.status.innerText = "جاري قياس البنق الصافي للشبكة...";
+        const unloadedPing = await measurePrecisePing();
         ui.valUnloaded.innerHTML = `${unloadedPing} <span>ms</span>`;
         await sleep(500);
 
-        // 2. فحص التنزيل والبنق المثقل معاً
+        // 2. فحص التنزيل والبنق المثقل
         setActiveBox('download');
-        ui.boxes.loaded.classList.add('active'); // إضاءة مربع البنق المثقل أيضاً
+        ui.boxes.loaded.classList.add('active'); 
         ui.status.innerText = "جاري قياس التنزيل وتأثير الاختناق...";
         
         isTestingLoaded = true;
@@ -53,18 +55,18 @@ ui.btn.addEventListener('click', async () => {
         // 3. فحص الرفع
         setActiveBox('upload');
         ui.mainVal.innerText = "0.00";
-        ui.status.innerText = "جاري قياس الرفع (مرحلة تجاوز حماية المتصفح)...";
+        ui.status.innerText = "جاري قياس الرفع المباشر...";
         
         const ulSpeed = await testUpload();
         ui.valUpload.innerHTML = `${ulSpeed} <span>Mbps</span>`;
 
-        // إنهاء
+        // إنهاء الفحص
         setActiveBox(null);
-        ui.status.innerText = "اكتمل الفحص بنجاح.";
+        ui.status.innerText = "اكتمل الفحص بنجاح. النتائج دقيقة وجاهزة للمقارنة.";
         ui.mainVal.style.color = "var(--success)";
 
     } catch (err) {
-        ui.status.innerText = "حدث خطأ في الاتصال. راجع إعدادات الشبكة.";
+        ui.status.innerText = "حدث خطأ في الاتصال. تأكد من استقرار الشبكة.";
         console.error(err);
     } finally {
         ui.btn.disabled = false;
@@ -96,28 +98,52 @@ function calculateMedian(arr) {
     return sorted[Math.floor(sorted.length / 2)];
 }
 
-// --- محرك البنق ---
-async function measurePing() {
+// --- محرك البنق العالمي (TTFB / Resource Timing API) ---
+async function measurePrecisePing() {
     let pings = [];
-    try { await fetch(EDGE_URL, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
     
-    for(let i=0; i<5; i++) {
-        let start = performance.now();
+    // تسخين الاتصال (لفتح قناة TCP و TLS مسبقاً)
+    try { await fetch(PING_ENDPOINT, { cache: 'no-store' }); } catch(e){}
+    
+    // إرسال 6 طلبات
+    for(let i=0; i<6; i++) {
+        const testUrl = PING_ENDPOINT + '&t=' + performance.now() + Math.random();
         try {
-            await fetch(EDGE_URL + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
-            pings.push(Math.round(performance.now() - start));
+            await fetch(testUrl, { cache: 'no-store' });
+            
+            // استخراج وقت الرحلة من متتبع أداء المتصفح مباشرة
+            const entries = performance.getEntriesByName(testUrl);
+            if (entries.length > 0) {
+                const timing = entries[0];
+                // البنق الحقيقي هو الفرق بين إرسال الطلب واستلام أول بايت (يتجاهل بطء المعالج)
+                const rtt = timing.responseStart - timing.requestStart;
+                if (rtt > 0) pings.push(rtt);
+            }
         } catch(e) {}
         await sleep(50);
     }
-    return pings.length > 0 ? Math.min(...pings) : "--";
+    
+    if (pings.length > 1) {
+        pings.shift(); // استبعاد القراءة الأولى دائماً لأنها الأبطأ
+        const rawPing = Math.min(...pings); // المواقع العالمية تأخذ أسرع استجابة
+        return Math.round(rawPing);
+    }
+    
+    return "--";
 }
 
+// حلقة البنق المثقل (تعمل أثناء التحميل)
 async function startLoadedPingLoop() {
     while (isTestingLoaded) {
-        let start = performance.now();
+        const testUrl = PING_ENDPOINT + '&load=' + performance.now();
         try {
-            await fetch(EDGE_URL + '?load=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
-            loadedPings.push(Math.round(performance.now() - start));
+            await fetch(testUrl, { cache: 'no-store' });
+            const entries = performance.getEntriesByName(testUrl);
+            if (entries.length > 0) {
+                const timing = entries[0];
+                const rtt = timing.responseStart - timing.requestStart;
+                if (rtt > 0) loadedPings.push(Math.round(rtt));
+            }
         } catch(e) {}
         await sleep(250);
     }
@@ -158,7 +184,6 @@ function testDownload() {
 }
 
 // --- محرك الرفع ---
-// لتجنب خطأ الـ CORS، نرسل البيانات ككتلة عشوائية عبر Fetch مباشرة.
 async function testUpload() {
     let finalSpeed = 0;
     let totalSent = 0;
@@ -170,7 +195,6 @@ async function testUpload() {
 
     while (performance.now() < endTime) {
         try {
-            // نستخدم POST بدون إعداد أي Headers مخصصة لكي يصنف كـ Simple Request
             await fetch('https://speed.cloudflare.com/__up', {
                 method: 'POST',
                 body: payload,
@@ -183,8 +207,7 @@ async function testUpload() {
             ui.mainVal.innerText = finalSpeed.toFixed(2);
             
         } catch (e) {
-            // إذا حظر المتصفح العملية، نتوقف ونعرض ما تم حسابه (أو خطأ)
-            console.error("Upload blocked by browser CORS policy:", e);
+            console.error("Upload Error:", e);
             if (totalSent === 0) return "Error";
             break; 
         }
