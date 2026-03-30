@@ -1,105 +1,67 @@
-// --- 1. إعدادات الواجهة ---
+// --- تعريف عناصر الواجهة ---
 const ui = {
     btn: document.getElementById('startBtn'),
     status: document.getElementById('statusText'),
     mainVal: document.getElementById('mainValue'),
     gaugeLine: document.getElementById('gaugeProgress'),
-    consoleRing: document.getElementById('consoleRing'),
-    idlePing: document.getElementById('idlePing'),
+    unloadedPing: document.getElementById('unloadedPing'),
     dlSpeed: document.getElementById('dlSpeed'),
     loadedPing: document.getElementById('loadedPing'),
     ulSpeed: document.getElementById('ulSpeed')
 };
 
-// إعدادات الرسم البياني المباشر (Canvas)
-const canvas = document.getElementById('liveChart');
-const ctx = canvas.getContext('2d');
-let chartData = [];
-
-function drawChart(color) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (chartData.length < 2) return;
-
-    ctx.beginPath();
-    const step = canvas.width / 40; // 40 نقطة كحد أقصى
-    const maxVal = Math.max(...chartData, 10);
-
-    for (let i = 0; i < chartData.length; i++) {
-        let x = i * step;
-        let y = canvas.height - ((chartData[i] / maxVal) * canvas.height);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    }
-    
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = color;
-    ctx.stroke();
-}
-
-function updateChart(val, color) {
-    chartData.push(val);
-    if (chartData.length > 40) chartData.shift();
-    drawChart(color);
-}
-
-// ثوابت الفحص
 const TEST_DURATION = 10000; // 10 ثواني
-const GAUGE_CIRCUMFERENCE = 880; // محيط الدائرة (2 * PI * 140)
+const GAUGE_DASH = 408; 
 let gaugeMaxSpeed = 100;
 
-// نقطة البنق (Edge Node) الأسرع والأدق لمحاكاة الألعاب
-const EDGE_PING_URL = "https://cp.cloudflare.com/generate_204";
+// استخدام نقطة كلاودفلير للحصول على بنق دقيق
+const PING_URL = "https://1.1.1.1/cdn-cgi/trace";
 
 let isTestingLoaded = false;
-let loadedPings = [];
+let loadedPingsArray = [];
 
-// --- 2. دورة التشغيل الرئيسية ---
+// --- دورة الفحص ---
 ui.btn.addEventListener('click', async () => {
     resetUI();
     ui.btn.disabled = true;
 
     try {
-        // 1. البنق الصافي
-        setPhaseColor('var(--color-ping)');
-        ui.btn.innerText = "PINGING...";
-        ui.status.innerText = "ANALYZING RAW LATENCY...";
-        const rawPing = await measureGamingPing();
-        ui.idlePing.innerHTML = `${rawPing} <span class="panel-unit">ms</span>`;
+        // 1. فحص البنق غير المثقل
+        ui.btn.innerText = "جاري الفحص...";
+        ui.status.innerText = "جاري قياس البنق غير المثقل...";
+        const purePing = await measurePing();
+        ui.unloadedPing.innerHTML = `${purePing} <span class="metric-unit">ms</span>`;
         await sleep(500);
 
-        // 2. التنزيل والبنق المثقل
-        setPhaseColor('var(--color-dl)');
-        ui.btn.innerText = "DOWNLOADING...";
-        ui.status.innerText = "MEASURING DOWNLOAD & LOADED PING...";
+        // 2. فحص التحميل مع البنق المثقل
+        ui.status.innerText = "جاري قياس التحميل والبنق المثقل...";
+        ui.gaugeLine.style.stroke = "var(--color-dl)";
         
-        isTestingLoaded = true; loadedPings = [];
+        isTestingLoaded = true;
+        loadedPingsArray = [];
         startLoadedPingLoop(); 
         
-        const dlSpeed = await testDownload();
+        const dlResult = await testDownload();
         
         isTestingLoaded = false;
-        ui.dlSpeed.innerHTML = `${dlSpeed} <span class="panel-unit">Mbps</span>`;
-        ui.loadedPing.innerHTML = `${calculateMedian(loadedPings)} <span class="panel-unit">ms</span>`;
+        ui.dlSpeed.innerHTML = `${dlResult} <span class="metric-unit">Mbps</span>`;
+        ui.loadedPing.innerHTML = `${calculateMedian(loadedPingsArray)} <span class="metric-unit">ms</span>`;
         await sleep(1000);
 
-        // 3. الرفع (الخوارزمية الفعالة 100%)
+        // 3. فحص الرفع
         resetGauge();
-        setPhaseColor('var(--color-ul)');
-        ui.btn.innerText = "UPLOADING...";
-        ui.status.innerText = "MEASURING UPLOAD THROUGHPUT...";
+        ui.status.innerText = "جاري قياس الرفع...";
+        ui.gaugeLine.style.stroke = "var(--color-ul)";
         
-        const ulSpeed = await testUploadMighty();
-        ui.ulSpeed.innerHTML = `${ulSpeed} <span class="panel-unit">Mbps</span>`;
+        const ulResult = await testUpload();
+        ui.ulSpeed.innerHTML = `${ulResult} <span class="metric-unit">Mbps</span>`;
 
-        // إنهاء الفحص
-        setPhaseColor('var(--color-dl)');
-        ui.status.innerText = "DIAGNOSTICS COMPLETE.";
-        ui.btn.innerText = "RE-INITIATE";
+        ui.status.innerText = "اكتمل الفحص بنجاح.";
+        ui.btn.innerText = "إعادة الفحص";
 
     } catch (err) {
-        ui.status.innerText = "NETWORK ERROR DETECTED.";
-        setPhaseColor('var(--color-ping)');
-        ui.btn.innerText = "RETRY";
+        ui.status.innerText = "حدث خطأ في الشبكة.";
+        ui.btn.innerText = "إعادة المحاولة";
         console.error(err);
     } finally {
         ui.btn.disabled = false;
@@ -107,34 +69,29 @@ ui.btn.addEventListener('click', async () => {
     }
 });
 
-// --- 3. الدوال المساعدة ---
+// --- دوال المساعدة ---
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-function setPhaseColor(color) {
-    document.documentElement.style.setProperty('--active-color', color);
-    ui.consoleRing.style.boxShadow = `0 0 50px rgba(0,0,0,0.8), inset 0 0 20px ${color}`;
-}
 
 function resetUI() {
     resetGauge();
-    chartData = [];
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const def = `-- <span class="panel-unit">--</span>`;
-    ui.idlePing.innerHTML = def; ui.dlSpeed.innerHTML = def;
-    ui.loadedPing.innerHTML = def; ui.ulSpeed.innerHTML = def;
+    const def = `-- <span class="metric-unit">--</span>`;
+    ui.unloadedPing.innerHTML = def; 
+    ui.dlSpeed.innerHTML = def;
+    ui.loadedPing.innerHTML = def; 
+    ui.ulSpeed.innerHTML = def;
 }
 
 function resetGauge() {
     gaugeMaxSpeed = 100;
     ui.mainVal.innerText = "0.00";
-    ui.gaugeLine.style.strokeDashoffset = GAUGE_CIRCUMFERENCE;
+    ui.gaugeLine.style.strokeDashoffset = GAUGE_DASH;
 }
 
 function updateGauge(speed) {
     if (speed > gaugeMaxSpeed * 0.9) gaugeMaxSpeed = Math.ceil((speed + 50) / 100) * 100;
     ui.mainVal.innerText = speed.toFixed(2);
     let percent = Math.min(speed / gaugeMaxSpeed, 1);
-    ui.gaugeLine.style.strokeDashoffset = GAUGE_CIRCUMFERENCE - (percent * GAUGE_CIRCUMFERENCE);
+    ui.gaugeLine.style.strokeDashoffset = GAUGE_DASH - (percent * GAUGE_DASH);
 }
 
 function calculateMedian(arr) {
@@ -143,41 +100,34 @@ function calculateMedian(arr) {
     return sorted[Math.floor(sorted.length / 2)];
 }
 
-// --- 4. محرك البنق (Gaming Raw Ping) ---
-async function measureGamingPing() {
+// --- محرك البنق ---
+async function measurePing() {
     let pings = [];
-    // تسخين الاتصال
-    try { await fetch(EDGE_PING_URL, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
+    try { await fetch(PING_URL, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
     
     for(let i=0; i<5; i++) {
         let start = performance.now();
         try {
-            await fetch(EDGE_PING_URL + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
-            pings.push(performance.now() - start);
+            await fetch(PING_URL + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
+            pings.push(Math.round(performance.now() - start));
         } catch(e) {}
         await sleep(50);
     }
-    
-    if (pings.length > 0) {
-        let rawPing = Math.min(...pings) - 2; // خصم وقت المتصفح الداخلي
-        return rawPing > 1 ? Math.round(rawPing) : 1; 
-    }
-    return "--";
+    return pings.length > 0 ? Math.min(...pings) : "--";
 }
 
 async function startLoadedPingLoop() {
     while (isTestingLoaded) {
         let start = performance.now();
         try {
-            await fetch(EDGE_PING_URL + '?load=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
-            let p = (performance.now() - start) - 2;
-            loadedPings.push(Math.round(p > 1 ? p : 1));
+            await fetch(PING_URL + '?load=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
+            loadedPingsArray.push(Math.round(performance.now() - start));
         } catch(e) {}
         await sleep(250);
     }
 }
 
-// --- 5. محرك التنزيل ---
+// --- محرك التنزيل ---
 function testDownload() {
     return new Promise(async (resolve) => {
         const controller = new AbortController();
@@ -203,7 +153,6 @@ function testDownload() {
                 if (duration > 0.2) {
                     finalSpeed = ((totalBytes * 8) / duration) / 1000000;
                     updateGauge(finalSpeed);
-                    updateChart(finalSpeed, 'var(--color-dl)'); // تحديث الرسم البياني
                 }
             }
         } catch (e) {} 
@@ -212,57 +161,37 @@ function testDownload() {
     });
 }
 
-// --- 6. محرك الرفع الغاشم (The Ultimate Upload Fix) ---
-// الخدعة: إرسال بيانات بصيغة 'text/plain'. المتصفح سيعتبره "طلب بسيط" ولن يحظره (No CORS Blocks).
-function testUploadMighty() {
+// --- محرك الرفع ---
+// تم إزالة أي ترويسات لتجنب طلبات OPTIONS المسبقة من المتصفح
+function testUpload() {
     return new Promise((resolve) => {
-        let isRunning = true;
-        let totalSentBytes = 0;
         let finalSpeed = 0;
-        const globalStartTime = performance.now();
+        const startTime = performance.now();
+        let isAborted = false;
         
-        // حزمة 1 ميجا بصيغة نصية (Simple Request Payload)
-        const CHUNK_SIZE = 1048576; 
-        const chunkData = new Blob([new Uint8Array(CHUNK_SIZE)], { type: 'text/plain' });
-
-        const uiTimer = setInterval(() => {
-            if (!isRunning) return;
-            const duration = (performance.now() - globalStartTime) / 1000;
-            if (duration > 0.5 && totalSentBytes > 0) {
-                finalSpeed = ((totalSentBytes * 8) / duration) / 1000000;
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', 'https://speed.cloudflare.com/__up', true);
+        
+        xhr.upload.onprogress = (e) => {
+            if (isAborted) return;
+            const duration = (performance.now() - startTime) / 1000;
+            if (duration > 0.2 && e.loaded > 0) {
+                finalSpeed = ((e.loaded * 8) / duration) / 1000000;
                 updateGauge(finalSpeed);
-                updateChart(finalSpeed, 'var(--color-ul)'); // تحديث الرسم البياني
             }
-        }, 250);
+        };
 
-        setTimeout(() => {
-            isRunning = false;
-            clearInterval(uiTimer);
+        const payload = new Blob([new Uint8Array(15 * 1024 * 1024)]); 
+
+        const timeout = setTimeout(() => {
+            isAborted = true;
+            xhr.abort(); 
             resolve(finalSpeed.toFixed(2));
         }, TEST_DURATION);
 
-        // وظيفة إرسال الحزم المستمرة
-        async function uploadWorker() {
-            while (isRunning) {
-                try {
-                    // استخدام fetch قياسي. بما أن الملف text/plain لن يتدخل نظام الحماية
-                    await fetch('https://speed.cloudflare.com/__up', {
-                        method: 'POST',
-                        body: chunkData,
-                        cache: 'no-store'
-                    });
-                    
-                    // إذا نجح الإرسال، نحتسب الحجم
-                    if (isRunning) totalSentBytes += CHUNK_SIZE;
-                } catch(e) {
-                    await sleep(50);
-                }
-            }
-        }
+        xhr.onload = () => { if(!isAborted) { clearTimeout(timeout); resolve(finalSpeed.toFixed(2)); }};
+        xhr.onerror = () => { if(!isAborted) { clearTimeout(timeout); resolve(finalSpeed.toFixed(2)); }};
 
-        // تشغيل 4 مسارات لضغط الخط بالكامل
-        for (let i = 0; i < 4; i++) {
-            uploadWorker();
-        }
+        xhr.send(payload);
     });
 }
