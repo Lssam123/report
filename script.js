@@ -4,6 +4,7 @@ const ui = {
     status: document.getElementById('statusText'),
     mainVal: document.getElementById('mainValue'),
     mainUnit: document.getElementById('mainUnit'),
+    gaugeLine: document.getElementById('gaugeProgress'), // السطر الذي كان مفقوداً وتمت إضافته!
     valUnloaded: document.getElementById('valUnloaded'),
     valDownload: document.getElementById('valDownload'),
     valLoaded: document.getElementById('valLoaded'),
@@ -95,19 +96,19 @@ function resetUI() {
 function resetGauge() {
     gaugeMaxSpeed = 100;
     ui.mainVal.innerText = "0.00";
-    ui.gaugeLine.style.strokeDashoffset = GAUGE_DASH;
+    if (ui.gaugeLine) ui.gaugeLine.style.strokeDashoffset = GAUGE_DASH;
 }
 
 function updateGauge(speed) {
     if (speed > gaugeMaxSpeed * 0.9) gaugeMaxSpeed = Math.ceil((speed + 50) / 100) * 100;
     ui.mainVal.innerText = speed.toFixed(2);
     let percent = Math.min(speed / gaugeMaxSpeed, 1);
-    ui.gaugeLine.style.strokeDashoffset = GAUGE_DASH - (percent * GAUGE_DASH);
+    if (ui.gaugeLine) ui.gaugeLine.style.strokeDashoffset = GAUGE_DASH - (percent * GAUGE_DASH);
 }
 
 function setActiveBox(boxName) {
     Object.values(ui.boxes).forEach(box => box.classList.remove('active'));
-    if (boxName) ui.boxes[boxName].classList.add('active');
+    if (boxName && ui.boxes[boxName]) ui.boxes[boxName].classList.add('active');
 }
 
 function calculateMedian(arr) {
@@ -117,10 +118,8 @@ function calculateMedian(arr) {
 }
 
 // --- محرك البنق العالمي (WebSocket Engine) ---
-// يعتمد على فتح قناة اتصال حية لضمان حساب زمن الرحلة (RTT) بدون تأخير المتصفح
 function measureGlobalPing() {
     return new Promise((resolve) => {
-        // نستخدم سيرفر صدى عام ومفتوح المصدر
         const ws = new WebSocket('wss://echo.websocket.events');
         let pings = [];
         let pingCount = 0;
@@ -135,7 +134,6 @@ function measureGlobalPing() {
             }
         };
 
-        // عند فتح الاتصال، نبدأ إرسال النبضات
         ws.onopen = () => {
             sendNextPing();
         };
@@ -145,27 +143,24 @@ function measureGlobalPing() {
                 finish(pings.length > 0 ? Math.round(Math.min(...pings)) : "--");
                 return;
             }
-            // إرسال الختم الزمني الحالي
             ws.send(performance.now().toString());
         }
 
-        // عند عودة النبضة من السيرفر
         ws.onmessage = (e) => {
             const sentTime = parseFloat(e.data);
-            const rtt = performance.now() - sentTime; // حساب الوقت الصافي
+            const rtt = performance.now() - sentTime;
             pings.push(rtt);
             pingCount++;
-            setTimeout(sendNextPing, 50); // إرسال النبضة التالية بعد 50 ملي ثانية
+            setTimeout(sendNextPing, 50);
         };
 
         ws.onerror = () => finish("--");
         
-        // قاطع زمني لضمان عدم تعليق الفحص إذا كان السيرفر محجوباً
         setTimeout(() => finish(pings.length > 0 ? Math.round(Math.min(...pings)) : "--"), 4000);
     });
 }
 
-// حلقة البنق المثقل (تستخدم Cloudflare Edge لضمان عدم حظرها بسبب كثرة الطلبات)
+// حلقة البنق المثقل
 async function startLoadedPingLoop() {
     const PING_URL = "https://1.1.1.1/cdn-cgi/trace";
     while (isTestingLoaded) {
@@ -213,7 +208,6 @@ function testDownload() {
 }
 
 // --- محرك الرفع ---
-// إرسال بيانات كتلية صامتة (no-cors) لتجاوز حماية GitHub Pages والمتصفحات
 function testUpload() {
     return new Promise((resolve) => {
         let isRunning = true;
@@ -224,7 +218,6 @@ function testUpload() {
         const CHUNK_SIZE = 1 * 1024 * 1024; // حزم بحجم 1 ميجابايت
         const chunkData = new Blob([new Uint8Array(CHUNK_SIZE)]);
 
-        // تحديث الواجهة اللحظي
         const uiTimer = setInterval(() => {
             if (!isRunning) return;
             const duration = (performance.now() - globalStartTime) / 1000;
@@ -256,7 +249,6 @@ function testUpload() {
             }
         }
 
-        // تشغيل 4 مسارات لضمان سحب أقصى سرعة
         for (let i = 0; i < 4; i++) {
             uploadWorker();
         }
