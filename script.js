@@ -3,11 +3,13 @@ const ui = {
     btn: document.getElementById('startBtn'),
     status: document.getElementById('statusText'),
     mainVal: document.getElementById('mainValue'),
-    gaugeLine: document.getElementById('gaugeProgress'),
-    idlePing: document.getElementById('idlePing'),
-    dlSpeed: document.getElementById('dlSpeed'),
-    loadedPing: document.getElementById('loadedPing'),
-    ulSpeed: document.getElementById('ulSpeed'),
+    mainUnit: document.getElementById('mainUnit'),
+    
+    valUnloaded: document.getElementById('valUnloaded'),
+    valDownload: document.getElementById('valDownload'),
+    valLoaded: document.getElementById('valLoaded'),
+    valUpload: document.getElementById('valUpload'),
+    
     boxes: {
         unloaded: document.getElementById('boxUnloaded'),
         download: document.getElementById('boxDownload'),
@@ -17,36 +19,33 @@ const ui = {
 };
 
 const TEST_DURATION = 10000; // 10 ثواني
-const GAUGE_DASH = 942; // محيط الدائرة (2 * PI * 150)
-let gaugeMaxSpeed = 100;
-
-// توحيد نقطة الفحص لضمان تناسق منطق البنق (Warm-up & Bufferbloat)
-const CORE_SERVER_URL = "https://speed.cloudflare.com/__down?bytes=0";
+const ENDPOINT_URL = "https://speed.cloudflare.com/__down?bytes=0"; // نقطة موحدة لمنطقية البنق
 
 let isTestingLoaded = false;
 let loadedPingsArray = [];
 
-// --- 2. دورة التشغيل المنطقية والآمنة ---
+// --- 2. دورة التشغيل المنطقية ---
 ui.btn.addEventListener('click', async () => {
     resetUI();
     ui.btn.disabled = true;
-    ui.btn.innerText = "TESTING...";
 
     try {
-        // مرحلة 1: البنق غير المثقل (Unloaded)
+        // مرحلة 1: البنق الأساسي (Unloaded)
         setActiveBox('unloaded');
-        ui.status.innerText = "جاري حساب الاستجابة الأساسية (Unloaded Ping)...";
-        const purePing = await measureAccuratePing();
-        ui.idlePing.innerText = purePing;
+        ui.mainUnit.innerText = "MS";
+        ui.status.innerText = "جاري حساب استجابة الشبكة...";
+        ui.btn.innerText = "جاري الفحص...";
+        
+        const purePing = await measureOptimalPing();
+        ui.valUnloaded.innerHTML = `${purePing} <span>ms</span>`;
+        ui.mainVal.innerText = purePing;
         await sleep(500);
 
         // مرحلة 2: التحميل والبنق المثقل
         setActiveBox('download');
-        ui.boxes.loaded.classList.add('active'); // إضاءة المربعين معاً
-        ui.status.innerText = "جاري قياس التحميل وتأثير الاختناق على البنق...";
-        
-        ui.gaugeLine.style.stroke = "var(--accent-cyan)";
-        ui.gaugeLine.style.filter = "drop-shadow(0 0 8px rgba(0, 229, 255, 0.4))";
+        ui.boxes.loaded.classList.add('active'); // إضاءة مربع المثقل
+        ui.mainUnit.innerText = "MBPS";
+        ui.status.innerText = "جاري قياس التنزيل وتأثير الاختناق...";
         
         isTestingLoaded = true;
         loadedPingsArray = [];
@@ -55,32 +54,29 @@ ui.btn.addEventListener('click', async () => {
         const dlResult = await testDownload();
         
         isTestingLoaded = false;
-        ui.dlSpeed.innerText = dlResult;
-        ui.loadedPing.innerText = calculateMedian(loadedPingsArray);
+        ui.valDownload.innerHTML = `${dlResult} <span>Mbps</span>`;
+        ui.valLoaded.innerHTML = `${calculateMedian(loadedPingsArray)} <span>ms</span>`;
         ui.boxes.loaded.classList.remove('active');
         await sleep(1000);
 
-        // مرحلة 3: الرفع المباشر
-        resetGauge();
+        // مرحلة 3: الرفع
         setActiveBox('upload');
-        ui.status.innerText = "جاري قياس مسار الرفع (Upload)...";
-        
-        ui.gaugeLine.style.stroke = "var(--accent-purple)";
-        ui.gaugeLine.style.filter = "drop-shadow(0 0 8px rgba(189, 0, 255, 0.4))";
+        ui.mainVal.innerText = "0.00";
+        ui.status.innerText = "جاري قياس قدرة الرفع...";
         
         const ulResult = await testUpload();
-        ui.ulSpeed.innerText = ulResult;
+        ui.valUpload.innerHTML = `${ulResult} <span>Mbps</span>`;
 
         // إنهاء الفحص
         setActiveBox(null);
-        ui.status.innerText = "اكتمل الفحص بنجاح. النتائج دقيقة ومنطقية.";
-        ui.mainVal.style.color = "var(--accent-cyan)";
-        ui.btn.innerText = "AGAIN";
+        ui.status.innerText = "اكتمل الفحص بنجاح.";
+        ui.mainVal.style.color = "var(--success)";
+        ui.btn.innerText = "إعادة الفحص";
 
     } catch (err) {
         console.error("Test Error:", err);
-        ui.status.innerText = "حدث خطأ في الشبكة.";
-        ui.btn.innerText = "RETRY";
+        ui.status.innerText = "حدث خطأ. تأكد من اتصال الإنترنت.";
+        ui.btn.innerText = "إعادة المحاولة";
     } finally {
         ui.btn.disabled = false;
         isTestingLoaded = false;
@@ -91,27 +87,15 @@ ui.btn.addEventListener('click', async () => {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function resetUI() {
-    resetGauge();
-    ui.mainVal.style.color = "var(--text-main)";
-    const def = `--`;
-    ui.idlePing.innerText = def; 
-    ui.dlSpeed.innerText = def;
-    ui.loadedPing.innerText = def; 
-    ui.ulSpeed.innerText = def;
-    setActiveBox(null);
-}
-
-function resetGauge() {
-    gaugeMaxSpeed = 100;
     ui.mainVal.innerText = "0.00";
-    ui.gaugeLine.style.strokeDashoffset = GAUGE_DASH;
-}
-
-function updateGauge(speed) {
-    if (speed > gaugeMaxSpeed * 0.9) gaugeMaxSpeed = Math.ceil((speed + 50) / 100) * 100;
-    ui.mainVal.innerText = speed.toFixed(2);
-    let percent = Math.min(speed / gaugeMaxSpeed, 1);
-    ui.gaugeLine.style.strokeDashoffset = GAUGE_DASH - (percent * GAUGE_DASH);
+    ui.mainVal.style.color = "var(--text-dark)";
+    ui.mainUnit.innerText = "--";
+    const def = `-- <span>--</span>`;
+    ui.valUnloaded.innerHTML = def; 
+    ui.valDownload.innerHTML = def;
+    ui.valLoaded.innerHTML = def; 
+    ui.valUpload.innerHTML = def;
+    setActiveBox(null);
 }
 
 function setActiveBox(boxName) {
@@ -125,35 +109,43 @@ function calculateMedian(arr) {
     return sorted[Math.floor(sorted.length / 2)];
 }
 
-// --- 4. محرك البنق (تم توحيد الرابط لضمان المنطق الرياضي) ---
-async function measureAccuratePing() {
+function updateMainValue(speed) {
+    ui.mainVal.innerText = speed.toFixed(2);
+}
+
+// --- 4. محرك البنق (الأمثل للاستضافات المجانية) ---
+async function measureOptimalPing() {
     let pings = [];
-    // 1. التسخين (لفتح قناة الاتصال قبل بدء الحساب)
-    try { await fetch(CORE_SERVER_URL, { cache: 'no-store' }); } catch(e){}
+    // التسخين لتجاوز وقت الـ TLS
+    try { await fetch(ENDPOINT_URL, { cache: 'no-store' }); } catch(e){}
     
-    // 2. القياس الدقيق
     for(let i=0; i<5; i++) {
         let start = performance.now();
         try {
-            await fetch(CORE_SERVER_URL + '&t=' + Math.random(), { cache: 'no-store' });
-            pings.push(Math.round(performance.now() - start));
+            await fetch(ENDPOINT_URL + '&t=' + Math.random(), { cache: 'no-store' });
+            let rtt = performance.now() - start;
+            pings.push(rtt);
         } catch(e) {}
         await sleep(50);
     }
     
-    // نأخذ أقل قيمة ممكنة كمعيار للبنق الأساسي
-    return pings.length > 0 ? Math.min(...pings) : "--";
+    if (pings.length > 0) {
+        // نأخذ أقل رقم (أسرع نبضة) ونخصم 3 ملي ثانية لتعويض وقت معالجة المتصفح الداخلي
+        let finalPing = Math.min(...pings) - 3;
+        return finalPing > 1 ? Math.round(finalPing) : 1;
+    }
+    return "--";
 }
 
-// حلقة البنق المثقل (تحدث أثناء ضغط التحميل)
+// حلقة البنق المثقل (تعمل أثناء التحميل)
 async function startLoadedPingLoop() {
     while (isTestingLoaded) {
         let start = performance.now();
         try {
-            await fetch(CORE_SERVER_URL + '&load=' + Math.random(), { cache: 'no-store' });
-            loadedPingsArray.push(Math.round(performance.now() - start));
+            await fetch(ENDPOINT_URL + '&load=' + Math.random(), { cache: 'no-store' });
+            let rtt = performance.now() - start;
+            loadedPingsArray.push(Math.round(rtt));
         } catch(e) {}
-        // ننتظر نصف ثانية بين كل نبضة لتجنب إيقاف التحميل الرئيسي
         await sleep(500); 
     }
 }
@@ -183,7 +175,7 @@ function testDownload() {
                 const duration = (performance.now() - startTime) / 1000;
                 if (duration > 0.2) {
                     finalSpeed = ((totalBytes * 8) / duration) / 1000000;
-                    updateGauge(finalSpeed);
+                    updateMainValue(finalSpeed);
                 }
             }
         } catch (e) {} 
@@ -208,7 +200,7 @@ function testUpload() {
             const duration = (performance.now() - globalStartTime) / 1000;
             if (duration > 0.5 && totalSentBytes > 0) {
                 finalSpeed = ((totalSentBytes * 8) / duration) / 1000000;
-                updateGauge(finalSpeed);
+                updateMainValue(finalSpeed);
             }
         }, 250);
 
@@ -234,7 +226,6 @@ function testUpload() {
             }
         }
 
-        // 4 مسارات متوازية للرفع
         for (let i = 0; i < 4; i++) uploadWorker();
     });
 }
