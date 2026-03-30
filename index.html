@@ -4,15 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>أداة تشخيص جودة الشبكة | مشروع تخرج</title>
+
+    <link rel="preconnect" href="https://speed.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="https://speed.cloudflare.com">
+    <link rel="preconnect" href="https://www.kau.edu.sa" crossorigin>
+    <link rel="preconnect" href="https://www.stc.com.sa" crossorigin>
+
     <style>
-        /* --- التصميم الأكاديمي/المؤسسي النظيف --- */
+        /* --- التصميم المؤسسي النظيف (Minimalist) --- */
         :root {
             --bg-body: #f8f9fa;
             --bg-surface: #ffffff;
             --text-dark: #202124;
             --text-gray: #5f6368;
             --border-color: #dadce0;
-            --primary: #1a73e8; /* أزرق مؤسسي */
+            --primary: #1a73e8; 
             --success: #1e8e3e; 
         }
 
@@ -74,6 +80,8 @@
             letter-spacing: -2px;
             color: var(--text-dark);
             transition: color 0.3s ease;
+            /* 2. تحسينات الأداء: نقل المعالجة لكرت الشاشة (GPU Acceleration) */
+            will-change: contents; 
         }
 
         .live-unit {
@@ -100,6 +108,8 @@
             padding: 20px 10px;
             text-align: center;
             transition: all 0.2s ease;
+            /* 2. تحسينات الأداء: سلاسة الحركات الانتقالية */
+            will-change: transform, border-color, background-color; 
         }
 
         .data-card.active {
@@ -211,6 +221,6 @@
 
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js" defer></script>
 </body>
 </html>
