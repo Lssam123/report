@@ -18,45 +18,42 @@ const ui = {
     }
 };
 
-const TEST_DURATION = 10000; // 10 ثواني
+const TEST_DURATION = 10000; // 10 ثواني للتحميل والرفع
 
-// مصفوفة سيرفرات السعودية للحصول على أقل بنق ممكن (KSA Sweep Array)
-const KSA_SERVERS = [
-    "https://speed.cloudflare.com/__down?bytes=0", // مسار كلاودفلير السريع
-    "https://www.stc.com.sa",                      // خوادم STC
-    "https://www.mobily.com.sa",                   // خوادم موبايلي
-    "https://sa.zain.com",                         // خوادم زين السعودية
-    "https://salam.sa",                            // خوادم شركة سلام
-    "https://www.ksu.edu.sa",                      // جامعة الملك سعود (الرياض)
-    "https://www.kau.edu.sa"                       // جامعة الملك عبدالعزيز (جدة)
+// خوادم مخصصة للحصول على أقل بنق (تشمل نقطة كلاودفلير وجامعة الملك عبدالعزيز كأقرب نقطة)
+const PING_TARGETS = [
+    "https://speed.cloudflare.com/__down?bytes=0",
+    "https://www.kau.edu.sa/favicon.ico", 
+    "https://www.stc.com.sa/favicon.ico"
 ];
 
 let isTestingLoaded = false;
 let loadedPingsArray = [];
 
-// --- 2. دورة التشغيل المنطقية ---
+// --- 2. دورة التشغيل الرئيسية ---
 ui.btn.addEventListener('click', async () => {
     resetUI();
     ui.btn.disabled = true;
 
     try {
-        // مرحلة 1: البنق الأساسي (تُعرض النتيجة في البطاقة فقط)
+        // --- مرحلة 1: البنق الأساسي ---
         setActiveBox('unloaded');
-        ui.mainVal.innerText = "---"; // إخفاء الرقم من الشاشة العلوية
-        ui.mainUnit.innerText = "PING";
-        ui.status.innerText = "جاري مسح سيرفرات السعودية (STC, Mobily, Zain)...";
+        ui.mainVal.innerText = "---";   // إخفاء الرقم من الشاشة الرئيسية
+        ui.mainUnit.innerText = "PING"; // تغيير الوحدة في الشاشة العلوية
+        ui.status.innerText = "جاري مسح الخوادم المحلية للبحث عن أقل استجابة...";
         ui.btn.innerText = "جاري الفحص...";
         
-        const purePing = await measureKSAPing();
+        const purePing = await measureLocalPing();
         ui.valUnloaded.innerHTML = `${purePing} <span>ms</span>`;
-        // لا نحدث الشاشة العلوية بناءً على طلبك
+        // لا نحدث الشاشة العلوية بالبنق
         await sleep(500);
 
-        // مرحلة 2: التحميل والبنق المثقل
+        // --- مرحلة 2: التحميل والبنق المثقل ---
         setActiveBox('download');
-        ui.boxes.loaded.classList.add('active'); // إضاءة مربع المثقل
-        ui.mainUnit.innerText = "MBPS";
-        ui.status.innerText = "جاري قياس التنزيل وتأثير الاختناق...";
+        ui.boxes.loaded.classList.add('active'); // إضاءة مربع البنق المثقل أيضاً
+        ui.mainVal.innerText = "0.00"; 
+        ui.mainUnit.innerText = "MBPS"; // إرجاع الوحدة للسرعة
+        ui.status.innerText = "جاري قياس التنزيل وتأثير الاختناق (Bufferbloat)...";
         
         isTestingLoaded = true;
         loadedPingsArray = [];
@@ -70,23 +67,25 @@ ui.btn.addEventListener('click', async () => {
         ui.boxes.loaded.classList.remove('active');
         await sleep(1000);
 
-        // مرحلة 3: الرفع (تم استرجاع الكود الناجح 100%)
+        // --- مرحلة 3: الرفع المباشر ---
         setActiveBox('upload');
         ui.mainVal.innerText = "0.00";
-        ui.status.innerText = "جاري قياس قدرة الرفع...";
+        ui.status.innerText = "جاري قياس قدرة الرفع عبر مسارات متوازية...";
         
         const ulResult = await testUpload();
         ui.valUpload.innerHTML = `${ulResult} <span>Mbps</span>`;
 
-        // إنهاء الفحص
+        // --- إنهاء الفحص ---
         setActiveBox(null);
         ui.status.innerText = "اكتمل الفحص بنجاح.";
+        ui.mainVal.innerText = "انتهى";
+        ui.mainUnit.innerText = "DONE";
         ui.mainVal.style.color = "var(--success)";
         ui.btn.innerText = "إعادة الفحص";
 
     } catch (err) {
         console.error("Test Error:", err);
-        ui.status.innerText = "حدث خطأ. تأكد من اتصال الإنترنت.";
+        ui.status.innerText = "حدث خطأ. يرجى التحقق من اتصال الإنترنت.";
         ui.btn.innerText = "إعادة المحاولة";
     } finally {
         ui.btn.disabled = false;
@@ -100,7 +99,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 function resetUI() {
     ui.mainVal.innerText = "0.00";
     ui.mainVal.style.color = "var(--text-dark)";
-    ui.mainUnit.innerText = "--";
+    ui.mainUnit.innerText = "MBPS";
     const def = `-- <span>--</span>`;
     ui.valUnloaded.innerHTML = def; 
     ui.valDownload.innerHTML = def;
@@ -124,50 +123,51 @@ function updateMainValue(speed) {
     ui.mainVal.innerText = speed.toFixed(2);
 }
 
-// --- 4. محرك البنق المحلي (KSA Server Sweep) ---
-async function measureKSAPing() {
+// --- 4. محرك البنق (مسح الخوادم المحلية) ---
+async function measureLocalPing() {
     let pings = [];
     
-    // 1. تسخين جميع السيرفرات في نفس الوقت
-    await Promise.allSettled(KSA_SERVERS.map(url => fetch(url, { mode: 'no-cors', cache: 'no-store' })));
-    
-    // 2. إطلاق 3 موجات فحص متوازية لاصطياد أسرع استجابة
-    for(let i=0; i<3; i++) {
-        let wave = KSA_SERVERS.map(async (url) => {
-            let start = performance.now();
-            try {
-                await fetch(url, { mode: 'no-cors', cache: 'no-store' });
-                pings.push(performance.now() - start);
-            } catch(e) {}
-        });
-        await Promise.allSettled(wave);
-        await sleep(50);
+    // تسخين جميع الروابط
+    for (const target of PING_TARGETS) {
+        try { await fetch(target, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
     }
     
+    // إرسال موجات فحص لاصطياد أسرع مسار فيزيائي
+    for(let i=0; i<4; i++) {
+        for (const target of PING_TARGETS) {
+            let start = performance.now();
+            fetch(target + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store' })
+            .then(() => {
+                pings.push(performance.now() - start);
+            }).catch(()=>{});
+        }
+        await sleep(100);
+    }
+    
+    await sleep(300); // انتظار تجميع القراءات
+    
     if (pings.length > 0) {
-        // نأخذ أسرع استجابة من بين كل السيرفرات السعودية، ونخصم 2ms لتعويض معالجة المتصفح
+        // نأخذ أقل بنق تم اصطياده، ونخصم 2ms كتعويض لمعالجة الجافاسكريبت
         let bestPing = Math.min(...pings) - 2;
         return bestPing > 1 ? Math.round(bestPing) : 1;
     }
     return "--";
 }
 
-// حلقة البنق المثقل (تعمل أثناء التحميل)
+// حلقة البنق المثقل (نقيس على سيرفر كلاودفلير أثناء التحميل)
 async function startLoadedPingLoop() {
-    // نستخدم مسار كلاودفلير الموثوق للبنق المثقل لضمان عدم حظرنا أثناء الضغط
-    const LOAD_URL = "https://speed.cloudflare.com/__down?bytes=0";
+    const LOAD_URL = PING_TARGETS[0];
     while (isTestingLoaded) {
         let start = performance.now();
         try {
             await fetch(LOAD_URL + '&load=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
-            let rtt = performance.now() - start;
-            loadedPingsArray.push(Math.round(rtt));
+            loadedPingsArray.push(Math.round(performance.now() - start));
         } catch(e) {}
         await sleep(500); 
     }
 }
 
-// --- 5. محرك التنزيل ---
+// --- 5. محرك التحميل ---
 function testDownload() {
     return new Promise(async (resolve) => {
         const controller = new AbortController();
@@ -201,36 +201,48 @@ function testDownload() {
     });
 }
 
-// --- 6. محرك الرفع (النسخة المستقرة التي عملت معك بنجاح) ---
+// --- 6. محرك الرفع (مضاد لـ CORS) ---
 function testUpload() {
-    return new Promise(async (resolve) => {
+    return new Promise((resolve) => {
+        let isRunning = true;
+        let totalSentBytes = 0;
         let finalSpeed = 0;
-        let totalSent = 0;
-        const startTime = performance.now();
-        const endTime = startTime + TEST_DURATION;
+        const globalStartTime = performance.now();
         
-        // استخدام Uint8Array كما كان في النسخة الناجحة تماماً وبدون no-cors
-        const payload = new Uint8Array(2 * 1024 * 1024);
+        // السر هنا: استخدام Blob كـ text/plain يجعله طلباً بسيطاً يمر من الحماية
+        const chunkData = new Blob([new Uint8Array(1024 * 1024)], { type: 'text/plain' });
 
-        while (performance.now() < endTime) {
-            try {
-                await fetch('https://speed.cloudflare.com/__up', {
-                    method: 'POST',
-                    body: payload,
-                    cache: 'no-store'
-                });
-                
-                totalSent += payload.length;
-                const duration = (performance.now() - startTime) / 1000;
-                finalSpeed = ((totalSent * 8) / duration) / 1000000;
+        const uiTimer = setInterval(() => {
+            if (!isRunning) return;
+            const duration = (performance.now() - globalStartTime) / 1000;
+            if (duration > 0.5 && totalSentBytes > 0) {
+                finalSpeed = ((totalSentBytes * 8) / duration) / 1000000;
                 updateMainValue(finalSpeed);
-                
-            } catch (e) {
-                if (totalSent === 0) return "Error";
-                break; 
+            }
+        }, 250);
+
+        setTimeout(() => {
+            isRunning = false;
+            clearInterval(uiTimer);
+            resolve(finalSpeed.toFixed(2));
+        }, TEST_DURATION);
+
+        async function uploadWorker() {
+            while (isRunning) {
+                try {
+                    await fetch('https://speed.cloudflare.com/__up', {
+                        method: 'POST',
+                        body: chunkData,
+                        cache: 'no-store'
+                    });
+                    if (isRunning) totalSentBytes += chunkData.size;
+                } catch(e) {
+                    await sleep(50); // استراحة قصيرة عند الفشل لتجنب إغراق الخط
+                }
             }
         }
-        
-        resolve(finalSpeed > 0 ? finalSpeed.toFixed(2) : "0.00");
+
+        // تشغيل 4 مسارات (عمال) متوازية لضمان أقصى سرعة رفع
+        for (let i = 0; i < 4; i++) uploadWorker();
     });
 }
