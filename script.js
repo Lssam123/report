@@ -25,7 +25,7 @@ const PING_TARGETS = [
     "https://www.stc.com.sa/favicon.ico"
 ];
 
-// تحسين الذاكرة: حزمة واحدة عامة وثابتة
+// تحسين الذاكرة: تعريف حزمة الرفع مرة واحدة عالمياً لمنع تسرب الذاكرة (Memory Leak)
 const UPLOAD_PAYLOAD = new Uint8Array(2 * 1024 * 1024);
 
 let isTestingLoaded = false;
@@ -41,7 +41,7 @@ ui.btn.addEventListener('click', async () => {
         setActiveBox('unloaded');
         ui.mainVal.innerText = "---";   
         ui.mainUnit.innerText = "PING"; 
-        ui.status.innerText = "جاري مسح الخوادم للبحث عن أقل استجابة...";
+        ui.status.innerText = "جاري مسح الخوادم المحلية للبحث عن أقل استجابة...";
         ui.btn.innerText = "جاري الفحص...";
         
         const purePing = await measureLocalPing();
@@ -53,7 +53,7 @@ ui.btn.addEventListener('click', async () => {
         ui.boxes.loaded.classList.add('active'); 
         ui.mainVal.innerText = "0.00"; 
         ui.mainUnit.innerText = "MBPS"; 
-        ui.status.innerText = "جاري قياس التنزيل باستهلاك منخفض للمعالج...";
+        ui.status.innerText = "جاري قياس التنزيل وتأثير الاختناق...";
         
         isTestingLoaded = true;
         loadedPingsArray = [];
@@ -70,14 +70,14 @@ ui.btn.addEventListener('click', async () => {
         // --- الرفع المباشر ---
         setActiveBox('upload');
         ui.mainVal.innerText = "0.00";
-        ui.status.innerText = "جاري قياس قدرة الرفع بأولوية شبكة قصوى...";
+        ui.status.innerText = "جاري قياس قدرة الرفع...";
         
         const ulResult = await testUpload();
         ui.valUpload.innerHTML = `${ulResult} <span>Mbps</span>`;
 
         // --- إنهاء الفحص ---
         setActiveBox(null);
-        ui.status.innerText = "اكتمل الفحص بنجاح. الأداء مستقر ومثالي.";
+        ui.status.innerText = "اكتمل الفحص بنجاح. الأداء مستقر وسلس.";
         ui.mainVal.innerText = "انتهى";
         ui.mainUnit.innerText = "DONE";
         ui.mainVal.style.color = "var(--success)";
@@ -119,14 +119,14 @@ function calculateMedian(arr) {
     return sorted[Math.floor(sorted.length / 2)];
 }
 
-// تحسين الأداء: خنق تحديث الواجهة (Throttling) لتقليل إجهاد الـ DOM
-let lastRenderTime = 0;
-function throttledUIUpdate(speed) {
-    const now = performance.now();
-    // نحدث الشاشة مرة واحدة فقط كل 100 ملي ثانية (10 إطارات في الثانية)
-    if (now - lastRenderTime > 100) {
-        ui.mainVal.innerText = speed.toFixed(2);
-        lastRenderTime = now;
+// تحسين الأداء: فصل تحديث الواجهة عن العمليات الحسابية
+let lastValue = "";
+function updateMainValue(speed) {
+    const newVal = speed.toFixed(2);
+    // منع تحديث الـ DOM (عملية ثقيلة) إذا كان الرقم لم يتغير
+    if (lastValue !== newVal) {
+        ui.mainVal.innerText = newVal;
+        lastValue = newVal;
     }
 }
 
@@ -135,14 +135,13 @@ async function measureLocalPing() {
     let pings = [];
     
     for (const target of PING_TARGETS) {
-        // إضافة priority: 'high' لإجبار المتصفح على سرعة الاتصال
-        try { await fetch(target, { mode: 'no-cors', cache: 'no-store', priority: 'high' }); } catch(e){}
+        try { await fetch(target, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
     }
     
     for(let i=0; i<4; i++) {
         for (const target of PING_TARGETS) {
             let start = performance.now();
-            fetch(target + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store', priority: 'high' })
+            fetch(target + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store' })
             .then(() => {
                 pings.push(performance.now() - start);
             }).catch(()=>{});
@@ -164,17 +163,14 @@ async function startLoadedPingLoop() {
     while (isTestingLoaded) {
         let start = performance.now();
         try {
-            await fetch(LOAD_URL + '&load=' + Math.random(), { mode: 'no-cors', cache: 'no-store', priority: 'high' });
+            await fetch(LOAD_URL + '&load=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
             loadedPingsArray.push(Math.round(performance.now() - start));
-            
-            // إدارة الذاكرة: منع المصفوفة من التضخم بشكل لانهائي
-            if (loadedPingsArray.length > 50) loadedPingsArray.shift();
         } catch(e) {}
         await sleep(500); 
     }
 }
 
-// --- 5. محرك التنزيل ---
+// --- 5. محرك التنزيل (محسن بـ requestAnimationFrame) ---
 function testDownload() {
     return new Promise(async (resolve) => {
         const controller = new AbortController();
@@ -184,29 +180,32 @@ function testDownload() {
         const startTime = performance.now();
         let isRunning = true;
 
+        // حلقة تحديث الواجهة المتوافقة مع كرت الشاشة (60 FPS)
+        function renderUI() {
+            if (!isRunning) return;
+            const duration = (performance.now() - startTime) / 1000;
+            if (duration > 0.1 && totalBytes > 0) {
+                finalSpeed = ((totalBytes * 8) / duration) / 1000000;
+                updateMainValue(finalSpeed);
+            }
+            requestAnimationFrame(renderUI);
+        }
+        requestAnimationFrame(renderUI);
+
         const timeout = setTimeout(() => {
             isRunning = false;
             controller.abort();
-            // التحديث النهائي لضمان عرض آخر رقم دقيق
-            ui.mainVal.innerText = finalSpeed.toFixed(2);
             resolve(finalSpeed.toFixed(2));
         }, TEST_DURATION);
 
         try {
-            const response = await fetch(url, { signal: controller.signal, cache: 'no-store', priority: 'high' });
+            const response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
             const reader = response.body.getReader();
             
             while (isRunning) {
                 const { done, value } = await reader.read();
                 if (done) break;
                 totalBytes += value.length;
-                
-                // حساب السرعة بأقصى طاقة في الخلفية، وإرسالها لدالة التحديث المخنوقة
-                const duration = (performance.now() - startTime) / 1000;
-                if (duration > 0.1) {
-                    finalSpeed = ((totalBytes * 8) / duration) / 1000000;
-                    throttledUIUpdate(finalSpeed);
-                }
             }
         } catch (e) {} 
         
@@ -216,7 +215,7 @@ function testDownload() {
     });
 }
 
-// --- 6. محرك الرفع ---
+// --- 6. محرك الرفع (محسن بالذاكرة المشتركة و requestAnimationFrame) ---
 async function testUpload() {
     return new Promise((resolve) => {
         let isRunning = true;
@@ -224,34 +223,40 @@ async function testUpload() {
         let finalSpeed = 0;
         const startTime = performance.now();
         
+        // حلقة تحديث الشاشة السلسة
+        function renderUI() {
+            if (!isRunning) return;
+            const duration = (performance.now() - startTime) / 1000;
+            if (duration > 0.2 && totalSent > 0) {
+                finalSpeed = ((totalSent * 8) / duration) / 1000000;
+                updateMainValue(finalSpeed);
+            }
+            requestAnimationFrame(renderUI);
+        }
+        requestAnimationFrame(renderUI);
+
         const timeout = setTimeout(() => {
             isRunning = false;
-            ui.mainVal.innerText = finalSpeed.toFixed(2);
             resolve(finalSpeed.toFixed(2));
         }, TEST_DURATION);
 
         async function uploadWorker() {
             while (isRunning) {
                 try {
+                    // نستخدم UPLOAD_PAYLOAD المعرفة عالمياً لتخفيف الضغط عن الـ RAM
                     await fetch('https://speed.cloudflare.com/__up', {
                         method: 'POST',
                         body: UPLOAD_PAYLOAD, 
-                        cache: 'no-store',
-                        priority: 'high' // إعطاء الأولوية لبيانات الرفع
+                        cache: 'no-store'
                     });
-                    
-                    if (isRunning) {
-                        totalSent += UPLOAD_PAYLOAD.length;
-                        const duration = (performance.now() - startTime) / 1000;
-                        finalSpeed = ((totalSent * 8) / duration) / 1000000;
-                        throttledUIUpdate(finalSpeed);
-                    }
+                    if (isRunning) totalSent += UPLOAD_PAYLOAD.length;
                 } catch (e) {
                     await sleep(50);
                 }
             }
         }
 
+        // تشغيل المسارات المتوازية
         for (let i = 0; i < 4; i++) uploadWorker();
     });
 }
