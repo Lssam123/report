@@ -1,4 +1,4 @@
-// --- 1. ربط الواجهة ---
+
 const ui = {
     btn: document.getElementById('startBtn'),
     status: document.getElementById('statusText'),
@@ -25,19 +25,19 @@ const PING_TARGETS = [
     "https://www.stc.com.sa/favicon.ico"
 ];
 
-// تحسين الذاكرة: تعريف حزمة الرفع مرة واحدة عالمياً لمنع تسرب الذاكرة (Memory Leak)
+ 
 const UPLOAD_PAYLOAD = new Uint8Array(2 * 1024 * 1024);
 
 let isTestingLoaded = false;
 let loadedPingsArray = [];
 
-// --- 2. دورة التشغيل الرئيسية ---
+
 ui.btn.addEventListener('click', async () => {
     resetUI();
     ui.btn.disabled = true;
 
     try {
-        // --- البنق الأساسي ---
+        
         setActiveBox('unloaded');
         ui.mainVal.innerText = "---";   
         ui.mainUnit.innerText = "PING"; 
@@ -48,7 +48,7 @@ ui.btn.addEventListener('click', async () => {
         ui.valUnloaded.innerHTML = `${purePing} <span>ms</span>`;
         await sleep(500);
 
-        // --- التحميل والبنق المثقل ---
+        
         setActiveBox('download');
         ui.boxes.loaded.classList.add('active'); 
         ui.mainVal.innerText = "0.00"; 
@@ -67,7 +67,7 @@ ui.btn.addEventListener('click', async () => {
         ui.boxes.loaded.classList.remove('active');
         await sleep(1000);
 
-        // --- الرفع المباشر ---
+        
         setActiveBox('upload');
         ui.mainVal.innerText = "0.00";
         ui.status.innerText = "جاري قياس قدرة الرفع...";
@@ -75,7 +75,7 @@ ui.btn.addEventListener('click', async () => {
         const ulResult = await testUpload();
         ui.valUpload.innerHTML = `${ulResult} <span>Mbps</span>`;
 
-        // --- إنهاء الفحص ---
+        
         setActiveBox(null);
         ui.status.innerText = "اكتمل الفحص بنجاح. الأداء مستقر وسلس.";
         ui.mainVal.innerText = "انتهى";
@@ -93,7 +93,7 @@ ui.btn.addEventListener('click', async () => {
     }
 });
 
-// --- 3. الدوال المساعدة ---
+
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function resetUI() {
@@ -119,18 +119,18 @@ function calculateMedian(arr) {
     return sorted[Math.floor(sorted.length / 2)];
 }
 
-// تحسين الأداء: فصل تحديث الواجهة عن العمليات الحسابية
+
 let lastValue = "";
 function updateMainValue(speed) {
     const newVal = speed.toFixed(2);
-    // منع تحديث الـ DOM (عملية ثقيلة) إذا كان الرقم لم يتغير
+    
     if (lastValue !== newVal) {
         ui.mainVal.innerText = newVal;
         lastValue = newVal;
     }
 }
 
-// --- 4. محرك البنق المحلي ---
+
 async function measureLocalPing() {
     let pings = [];
     
@@ -170,7 +170,7 @@ async function startLoadedPingLoop() {
     }
 }
 
-// --- 5. محرك التنزيل (محسن بـ requestAnimationFrame) ---
+
 function testDownload() {
     return new Promise(async (resolve) => {
         const controller = new AbortController();
@@ -180,7 +180,7 @@ function testDownload() {
         const startTime = performance.now();
         let isRunning = true;
 
-        // حلقة تحديث الواجهة المتوافقة مع كرت الشاشة (60 FPS)
+         
         function renderUI() {
             if (!isRunning) return;
             const duration = (performance.now() - startTime) / 1000;
@@ -215,7 +215,7 @@ function testDownload() {
     });
 }
 
-// --- 6. محرك الرفع (محسن بالذاكرة المشتركة و requestAnimationFrame) ---
+
 async function testUpload() {
     return new Promise((resolve) => {
         let isRunning = true;
@@ -223,7 +223,7 @@ async function testUpload() {
         let finalSpeed = 0;
         const startTime = performance.now();
         
-        // حلقة تحديث الشاشة السلسة
+        
         function renderUI() {
             if (!isRunning) return;
             const duration = (performance.now() - startTime) / 1000;
@@ -243,7 +243,7 @@ async function testUpload() {
         async function uploadWorker() {
             while (isRunning) {
                 try {
-                    // نستخدم UPLOAD_PAYLOAD المعرفة عالمياً لتخفيف الضغط عن الـ RAM
+                    
                     await fetch('https://speed.cloudflare.com/__up', {
                         method: 'POST',
                         body: UPLOAD_PAYLOAD, 
@@ -256,7 +256,7 @@ async function testUpload() {
             }
         }
 
-        // تشغيل المسارات المتوازية
+        
         for (let i = 0; i < 4; i++) uploadWorker();
     });
 }
