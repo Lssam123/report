@@ -28,7 +28,7 @@ const PING_TARGETS = [
     "https://sa.zain.com/favicon.ico",             // زين
     "https://salam.sa/favicon.ico",                // سلام
     "https://www.jawwy.sa/favicon.ico",            // جوي
-    "https://www.kau.edu.sa/favicon.ico"           // جامعة الملك عبدالعزيز بجدة
+ 
 ];
 
 let isTestingLoaded = false;
