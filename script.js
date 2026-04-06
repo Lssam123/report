@@ -204,7 +204,7 @@ function testDownload() {
     });
 }
 
-// --- 6. محرك الرفع (الخوارزمية الناجحة المستقرة 100%) ---
+// --- 6. محرك الرفع ---
 async function testUpload() {
     let finalSpeed = 0;
     let totalSent = 0;
