@@ -70,7 +70,7 @@ ui.btn.addEventListener('click', async () => {
         ui.boxes.loaded.classList.remove('active');
         await sleep(1000);
 
-        // --- مرحلة 3: الرفع المباشر (الخوارزمية الناجحة المستقرة) ---
+        // --- مرحلة 3: الرفع المباشر  ---
         setActiveBox('upload');
         ui.mainVal.innerText = "0.00";
         ui.status.innerText = "جاري قياس قدرة الرفع...";
@@ -80,7 +80,7 @@ ui.btn.addEventListener('click', async () => {
 
         // --- إنهاء الفحص ---
         setActiveBox(null);
-        ui.status.innerText = "اكتمل الفحص بنجاح. النظام يعكس المعايير الهندسية بدقة.";
+        ui.status.innerText = "اكتمل الفحص بنجاح.";
         ui.mainVal.innerText = "انتهى";
         ui.mainUnit.innerText = "DONE";
         ui.mainVal.style.color = "var(--success)";
@@ -126,11 +126,11 @@ function updateMainValue(speed) {
     ui.mainVal.innerText = speed.toFixed(2);
 }
 
-// --- 4. محرك البنق (مسح الخوادم المحلية في السعودية) ---
+// --- 4. محرك البنق  ---
 async function measureLocalPing() {
     let pings = [];
     
-    // تسخين جميع الروابط
+    
     for (const target of PING_TARGETS) {
         try { await fetch(target, { mode: 'no-cors', cache: 'no-store' }); } catch(e){}
     }
@@ -150,7 +150,7 @@ async function measureLocalPing() {
     await sleep(300); 
     
     if (pings.length > 0) {
-        // نأخذ أقل بنق تم اصطياده، ونخصم 2ms كتعويض لمعالجة الجافاسكريبت
+        // نأخذ أقل بنق تم اصطياده، ونخصم 2ms كتعويض لمعالجة 
         let bestPing = Math.min(...pings) - 2;
         return bestPing > 1 ? Math.round(bestPing) : 1;
     }
@@ -211,7 +211,7 @@ async function testUpload() {
     const startTime = performance.now();
     const endTime = startTime + TEST_DURATION;
     
-    // نرسل حزمة البيانات بصيغتها المباشرة التي لم يرفضها المتصفح في نسختك الناجحة
+    //  حزمة البيانات  
     const payload = new Uint8Array(2 * 1024 * 1024);
 
     while (performance.now() < endTime) {
