@@ -22,9 +22,13 @@ const TEST_DURATION = 10000; // 10 ثواني للتحميل والرفع
 
 // خوادم مسح البنق لاختيار الأقرب (KSA Server Sweep)
 const PING_TARGETS = [
-    "https://speed.cloudflare.com/__down?bytes=0",
-    "https://www.kau.edu.sa/favicon.ico", 
-    "https://www.stc.com.sa/favicon.ico"
+    "https://speed.cloudflare.com/__down?bytes=0", // مسار كلاودفلير السريع
+    "https://www.stc.com.sa/favicon.ico",          // STC
+    "https://www.mobily.com.sa/favicon.ico",       // موبايلي
+    "https://sa.zain.com/favicon.ico",             // زين
+    "https://salam.sa/favicon.ico",                // سلام
+    "https://www.jawwy.sa/favicon.ico",            // جوي
+    "https://www.kau.edu.sa/favicon.ico"           // جامعة الملك عبدالعزيز بجدة
 ];
 
 let isTestingLoaded = false;
@@ -155,7 +159,7 @@ async function measureLocalPing() {
 
 // حلقة البنق المثقل (نقيس أثناء التحميل)
 async function startLoadedPingLoop() {
-    const LOAD_URL = PING_TARGETS[0];
+    const LOAD_URL = PING_TARGETS[0]; // يبقى كلاودفلير لأنه الأفضل لتحمل ضغط التحميل
     while (isTestingLoaded) {
         let start = performance.now();
         try {
