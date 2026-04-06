@@ -3,15 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تشخيص جودة الشبكة|  </title>
+    <title>أداة تشخيص جودة الشبكة | مشروع تخرج</title>
 
     <link rel="preconnect" href="https://speed.cloudflare.com" crossorigin>
     <link rel="dns-prefetch" href="https://speed.cloudflare.com">
-    <link rel="preconnect" href="https://www.kau.edu.sa" crossorigin>
     <link rel="preconnect" href="https://www.stc.com.sa" crossorigin>
+    <link rel="preconnect" href="https://www.mobily.com.sa" crossorigin>
+    <link rel="preconnect" href="https://sa.zain.com" crossorigin>
+    <link rel="preconnect" href="https://salam.sa" crossorigin>
+    <link rel="preconnect" href="https://www.jawwy.sa" crossorigin>
+    <link rel="preconnect" href="https://www.kau.edu.sa" crossorigin>
 
     <style>
-        
+        /* --- التصميم المؤسسي النظيف (Minimalist) --- */
         :root {
             --bg-body: #f8f9fa;
             --bg-surface: #ffffff;
@@ -62,7 +66,7 @@
             margin: 0;
         }
 
-        
+        /* --- الشاشة العلوية --- */
         .live-monitor {
             text-align: center;
             padding: 40px 0;
@@ -80,7 +84,7 @@
             letter-spacing: -2px;
             color: var(--text-dark);
             transition: color 0.3s ease;
-            
+            /* 2. تحسينات الأداء: نقل المعالجة لكرت الشاشة (GPU Acceleration) */
             will-change: contents; 
         }
 
@@ -93,7 +97,7 @@
             letter-spacing: 1px;
         }
 
-        
+        /* --- البطاقات السفلية --- */
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -108,7 +112,7 @@
             padding: 20px 10px;
             text-align: center;
             transition: all 0.2s ease;
-            
+            /* 2. تحسينات الأداء: سلاسة الحركات الانتقالية */
             will-change: transform, border-color, background-color; 
         }
 
@@ -141,7 +145,7 @@
             color: var(--text-gray);
         }
 
-        
+        /* --- أزرار التحكم --- */
         .controls-wrapper {
             text-align: center;
         }
@@ -171,7 +175,7 @@
             font-weight: 500;
         }
 
-        
+        /* التجاوب مع الجوال */
         @media (max-width: 768px) {
             .cards-grid { grid-template-columns: repeat(2, 1fr); }
             .live-val { font-size: 60px; }
