@@ -20,14 +20,14 @@ const ui = {
 
 const TEST_DURATION = 10000; // 10 ثواني للتحميل والرفع
 
-// خوادم مسح البنق لاختيار الأقرب (KSA Server Sweep)
+
 const PING_TARGETS = [
-    "https://speed.cloudflare.com/__down?bytes=0", // مسار كلاودفلير السريع
-    "https://www.stc.com.sa/favicon.ico",          // STC
-    "https://www.mobily.com.sa/favicon.ico",       // موبايلي
-    "https://sa.zain.com/favicon.ico",             // زين
-    "https://salam.sa/favicon.ico",                // سلام
-    "https://www.jawwy.sa/favicon.ico",            // جوي
+    "https://speed.cloudflare.com/__down?bytes=0", 
+    "https://www.stc.com.sa/favicon.ico",           
+    "https://www.mobily.com.sa/favicon.ico",        
+    "https://sa.zain.com/favicon.ico",             
+    "https://salam.sa/favicon.ico",                 
+    "https://www.jawwy.sa/favicon.ico",            
  
 ];
 
