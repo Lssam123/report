@@ -1,4 +1,4 @@
-// --- 1. ربط الواجهة ---
+// --- 1. ربط واجهة المستخدم (UI Bindings) ---
 const ui = {
     btn: document.getElementById('startBtn'),
     status: document.getElementById('statusText'),
@@ -16,40 +16,46 @@ const ui = {
     }
 };
 
-const TEST_DURATION = 10000;
+const TEST_DURATION = 10000; // مدة الفحص 10 ثواني
 
-// 2. تغيير السيرفرات لعقد القياس الصافية (Anycast Fast Nodes)
-// هذه العقد هي الأقرب فيزيائياً لمقسمات الإنترنت في السعودية
+// عقد فحص الـ Anycast القريبة جداً من البنية التحتية للمملكة
 const PING_TARGETS = [
-    "https://1.1.1.1/cdn-cgi/trace",         // Cloudflare KSA Node
-    "https://8.8.8.8/favicon.ico",           // Google DNS Node
-    "https://speed.cloudflare.com/img/blank.png" // Dedicated Speedtest Node
+    "https://1.1.1.1/favicon.ico",
+    "https://8.8.8.8/favicon.ico",
+    "https://www.google.com/images/phd/px.gif"
 ];
 
 let isTestingLoaded = false;
 let loadedPingsArray = [];
 
+// --- 2. دورة التشغيل الرئيسية ---
 ui.btn.addEventListener('click', async () => {
     resetUI();
     ui.btn.disabled = true;
+
     try {
+        // المرحلة 1: البنق الأساسي (Idle Latency)
         setActiveBox('unloaded');
         ui.mainVal.innerText = "---";
         ui.mainUnit.innerText = "PING"; 
-        ui.status.innerText = "جاري الاتصال بأقرب عقدة إنترنت في السعودية...";
+        ui.status.innerText = "استخدام تقنية Image-Ping لانتزاع السرعة الفيزيائية...";
         ui.btn.innerText = "جاري الفحص...";
         
         const purePing = await measureLocalPing();
         ui.valUnloaded.innerHTML = `${purePing} <span>ms</span>`;
         await sleep(500);
 
+        // المرحلة 2: التنزيل والبنق المثقل
         setActiveBox('download');
         ui.boxes.loaded.classList.add('active'); 
         ui.mainVal.innerText = "0.00"; 
         ui.mainUnit.innerText = "MBPS"; 
-        ui.status.innerText = "قياس سرعة التنزيل والضغط (Bufferbloat)...";
+        ui.status.innerText = "قياس التنزيل واختبار استقرار الراوتر (Bufferbloat)...";
+        
         isTestingLoaded = true;
+        loadedPingsArray = [];
         startLoadedPingLoop(); 
+        
         const dlResult = await testDownload();
         isTestingLoaded = false;
         ui.valDownload.innerHTML = `${dlResult} <span>Mbps</span>`;
@@ -57,20 +63,23 @@ ui.btn.addEventListener('click', async () => {
         ui.boxes.loaded.classList.remove('active');
         await sleep(1000);
 
+        // المرحلة 3: الرفع
         setActiveBox('upload');
         ui.mainVal.innerText = "0.00";
-        ui.status.innerText = "قياس سرعة الرفع عبر حزم البيانات (Raw Packets)...";
+        ui.status.innerText = "قياس سرعة الرفع عبر حزم البيانات الخام...";
         const ulResult = await testUpload();
         ui.valUpload.innerHTML = `${ulResult} <span>Mbps</span>`;
 
+        // إنهاء الفحص
         setActiveBox(null);
-        ui.status.innerText = "تم الفحص بنجاح. القراءات حقيقية وصافية.";
+        ui.status.innerText = "تم الفحص بنجاح. النتائج تعكس أداء المتصفح الفعلي.";
         ui.mainVal.innerText = "انتهى";
         ui.mainUnit.innerText = "DONE";
         ui.mainVal.style.color = "var(--success)";
         ui.btn.innerText = "إعادة الفحص";
+
     } catch (err) {
-        ui.status.innerText = "حدث خطأ في الاتصال.";
+        ui.status.innerText = "حدث خطأ في الشبكة.";
         ui.btn.innerText = "إعادة المحاولة";
     } finally {
         ui.btn.disabled = false;
@@ -78,51 +87,58 @@ ui.btn.addEventListener('click', async () => {
     }
 });
 
-// --- 4. محرك البنق الحقيقي (The Real Engine) ---
+// --- 3. محرك البنق المطور (The Stealth Image-Ping Engine) ---
 async function measureLocalPing() {
-    let pings = [];
+    let results = [];
     
-    // إرسال موجات فحص لعقد الـ Anycast
-    // هذه العقد تستجيب في طبقة قريبة جداً من الهاردوير
-    for(let i=0; i<10; i++) {
-        const target = PING_TARGETS[i % PING_TARGETS.length];
-        let start = performance.now();
-        try {
-            await fetch(target, { mode: 'no-cors', cache: 'no-store', priority: 'high' });
-            let duration = performance.now() - start;
-            if (duration > 0) pings.push(duration);
-        } catch(e){}
-        await sleep(30); 
+    // وظيفة القياس باستخدام كائن الصورة (تتخطى معالجة النصوص الثقيلة)
+    const pingNode = (url) => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            const start = performance.now();
+            // نعتبر الطلب انتهى بمجرد وصول أي رد من السيرفر (حتى لو خطأ)
+            img.onload = () => resolve(performance.now() - start);
+            img.onerror = () => resolve(performance.now() - start);
+            img.src = url + "?t=" + Math.random();
+        });
+    };
+
+    // مرحلة التسخين (Warm-up) لفتح قنوات الاتصال
+    await pingNode(PING_TARGETS[0]);
+    await pingNode(PING_TARGETS[1]);
+
+    // القياس الفعلي عبر 12 محاولة مكثفة
+    for (let i = 0; i < 12; i++) {
+        const d = await pingNode(PING_TARGETS[i % PING_TARGETS.length]);
+        if (d > 2) results.push(d); // استبعاد القراءات الصفرية المستحيلة
+        await sleep(20); 
     }
-    
-    if (pings.length > 0) {
-        // نأخذ أقل رقم تم تسجيله (الأداء المثالي للشبكة)
-        const sorted = pings.sort((a, b) => a - b);
+
+    if (results.length > 0) {
+        // نأخذ أقل قيمة سجلها الكرت (الزمن الفيزيائي الصافي للوصول)
+        const sorted = results.sort((a, b) => a - b);
         return Math.round(sorted[0]); 
     }
     return "--";
 }
 
-// (بقية الدوال المساعدة تستمر كما هي بدون تغيير لضمان الاستقرار)
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-function resetUI() { ui.mainVal.innerText = "0.00"; ui.mainVal.style.color = "var(--text-dark)"; ui.mainUnit.innerText = "MBPS"; const def = `-- <span>--</span>`; ui.valUnloaded.innerHTML = def; ui.valDownload.innerHTML = def; ui.valLoaded.innerHTML = def; ui.valUpload.innerHTML = def; setActiveBox(null); }
-function setActiveBox(boxName) { Object.values(ui.boxes).forEach(box => { if (box) box.classList.remove('active'); }); if (boxName && ui.boxes[boxName]) ui.boxes[boxName].classList.add('active'); }
-function calculateMedian(arr) { if (arr.length === 0) return "--"; const sorted = [...arr].sort((a, b) => a - b); return sorted[Math.floor(sorted.length / 2)]; }
-function updateMainValue(speed) { ui.mainVal.innerText = speed.toFixed(2); }
-
+// --- 4. بقية محركات الفحص (التنزيل والرفع) ---
 async function startLoadedPingLoop() {
     const LOAD_URL = PING_TARGETS[0]; 
     while (isTestingLoaded) {
         let start = performance.now();
-        try { await fetch(LOAD_URL + '?load=' + Math.random(), { mode: 'no-cors', cache: 'no-store' }); loadedPingsArray.push(Math.round(performance.now() - start)); } catch(e) {}
-        await sleep(500); 
+        try {
+            await fetch(LOAD_URL + '?load=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
+            loadedPingsArray.push(Math.round(performance.now() - start));
+        } catch(e) {}
+        await sleep(400); 
     }
 }
 
 function testDownload() {
     return new Promise(async (resolve) => {
         const controller = new AbortController();
-        const url = "https://speed.cloudflare.com/__down?bytes=100000000"; 
+        const url = "https://speed.cloudflare.com/__down?bytes=120000000"; 
         let totalBytes = 0; let finalSpeed = 0; const startTime = performance.now();
         const timeout = setTimeout(() => { controller.abort(); resolve(finalSpeed.toFixed(2)); }, TEST_DURATION);
         try {
@@ -133,7 +149,10 @@ function testDownload() {
                 if (done) break;
                 totalBytes += value.length;
                 const duration = (performance.now() - startTime) / 1000;
-                if (duration > 0.1) { finalSpeed = ((totalBytes * 8) / duration) / 1000000; updateMainValue(finalSpeed); }
+                if (duration > 0.1) {
+                    finalSpeed = ((totalBytes * 8) / duration) / 1000000;
+                    updateMainValue(finalSpeed);
+                }
             }
         } catch (e) {} 
         clearTimeout(timeout); resolve(finalSpeed.toFixed(2));
@@ -154,3 +173,10 @@ async function testUpload() {
     }
     return finalSpeed > 0 ? finalSpeed.toFixed(2) : "0.00";
 }
+
+// --- 5. وظائف مساعدة إضافية ---
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function resetUI() { ui.mainVal.innerText = "0.00"; ui.mainVal.style.color = "var(--text-dark)"; ui.mainUnit.innerText = "MBPS"; const def = `-- <span>--</span>`; ui.valUnloaded.innerHTML = def; ui.valDownload.innerHTML = def; ui.valLoaded.innerHTML = def; ui.valUpload.innerHTML = def; setActiveBox(null); }
+function setActiveBox(boxName) { Object.values(ui.boxes).forEach(box => { if (box) box.classList.remove('active'); }); if (boxName && ui.boxes[boxName]) ui.boxes[boxName].classList.add('active'); }
+function calculateMedian(arr) { if (arr.length === 0) return "--"; const sorted = [...arr].sort((a, b) => a - b); return Math.round(sorted[Math.floor(sorted.length / 2)]); }
+function updateMainValue(speed) { ui.mainVal.innerText = speed.toFixed(2); }
