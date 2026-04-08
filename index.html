@@ -3,19 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أداة تشخيص جودة الشبكة |</title>
+    <title>أداة تشخيص جودة الشبكة | مشروع تخرج</title>
 
+    <link rel="preconnect" href="https://1.1.1.1" crossorigin>
+    <link rel="dns-prefetch" href="https://1.1.1.1">
+    <link rel="preconnect" href="https://8.8.8.8" crossorigin>
     <link rel="preconnect" href="https://speed.cloudflare.com" crossorigin>
-    <link rel="dns-prefetch" href="https://speed.cloudflare.com">
-    <link rel="preconnect" href="https://www.stc.com.sa" crossorigin>
-    <link rel="preconnect" href="https://www.mobily.com.sa" crossorigin>
-    <link rel="preconnect" href="https://sa.zain.com" crossorigin>
-    <link rel="preconnect" href="https://salam.sa" crossorigin>
-    <link rel="preconnect" href="https://www.jawwy.sa" crossorigin>
-    
 
     <style>
-        
+        /* --- التصميم المؤسسي النظيف (Minimalist) --- */
         :root {
             --bg-body: #f8f9fa;
             --bg-surface: #ffffff;
@@ -66,7 +62,7 @@
             margin: 0;
         }
 
-        /* --- الشاشة العلوية --- */
+        /* الشاشة العلوية */
         .live-monitor {
             text-align: center;
             padding: 40px 0;
@@ -84,8 +80,7 @@
             letter-spacing: -2px;
             color: var(--text-dark);
             transition: color 0.3s ease;
-            /* 2. تحسينات الأداء */
-            will-change: contents; 
+            will-change: contents; /* تسريع المعالجة عبر GPU */
         }
 
         .live-unit {
@@ -97,7 +92,7 @@
             letter-spacing: 1px;
         }
 
-        /* --- البطاقات السفلية --- */
+        /* شبكة البطاقات */
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -112,8 +107,6 @@
             padding: 20px 10px;
             text-align: center;
             transition: all 0.2s ease;
-            /* 2. تحسينات الأداء: سلاسة الحركات الانتقالية */
-            will-change: transform, border-color, background-color; 
         }
 
         .data-card.active {
@@ -145,7 +138,6 @@
             color: var(--text-gray);
         }
 
-        /* --- أزرار التحكم --- */
         .controls-wrapper {
             text-align: center;
         }
@@ -162,7 +154,6 @@
             transition: background 0.2s;
             width: 100%;
             max-width: 300px;
-            font-family: inherit;
         }
 
         .btn-start:hover { background-color: #1557b0; }
@@ -175,7 +166,6 @@
             font-weight: 500;
         }
 
-        /* التجاوب مع الجوال */
         @media (max-width: 768px) {
             .cards-grid { grid-template-columns: repeat(2, 1fr); }
             .live-val { font-size: 60px; }
@@ -185,10 +175,9 @@
 <body>
 
     <div class="dashboard-container">
-        
         <div class="header-titles">
-            <h1>اختبار سرعة النت </h1>
-            <p>القياس يتم عبر خوادم  (Edge Nodes)</p>
+            <h1>منصة تشخيص أداء الشبكة</h1>
+            <p>قياس فيزيائي حقيقي عبر عقد الـ Anycast</p>
         </div>
 
         <div class="live-monitor">
@@ -220,9 +209,8 @@
 
         <div class="controls-wrapper">
             <button class="btn-start" id="startBtn">بدء الفحص</button>
-            <div class="sys-status" id="statusText">جاهز لإجراء القياس </div>
+            <div class="sys-status" id="statusText">جاهز لبدء القياس المرجعي للشبكة</div>
         </div>
-
     </div>
 
     <script src="script.js" defer></script>
