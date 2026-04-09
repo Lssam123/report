@@ -18,15 +18,13 @@ const ui = {
 
 const TEST_DURATION = 10000;
 
-// 2. مصفوفة كافة خوادم الاتصالات السعودية والجهات الكبرى (KSA Edge Nodes)
+// 2. مصفوفة السيرفرات السعودية (بدون الجامعات)
 const KSA_SERVERS = [
     "https://www.stc.com.sa/favicon.ico",
     "https://www.mobily.com.sa/favicon.ico",
     "https://sa.zain.com/favicon.ico",
     "https://salam.sa/favicon.ico",
-    "https://www.jawwy.sa/favicon.ico",
-    "https://www.kau.edu.sa/favicon.ico",
-    "https://speed.cloudflare.com/img/blank.png" // عقدة الرياض/جدة
+    "https://www.jawwy.sa/favicon.ico"
 ];
 
 let isTestingLoaded = false;
@@ -36,17 +34,20 @@ ui.btn.addEventListener('click', async () => {
     resetUI();
     ui.btn.disabled = true;
     try {
+        // فحص البنق
         setActiveBox('unloaded');
         ui.mainVal.innerText = "---";
-        ui.status.innerText = "جاري اختيار أسرع مسار فيزيائي داخل المملكة...";
-        
+        ui.mainUnit.innerText = "PING"; 
+        ui.status.innerText = "جاري الاتصال بأقرب مقسم محلي...";
         const purePing = await measureKsaPing();
         ui.valUnloaded.innerHTML = `${purePing} <span>ms</span>`;
         await sleep(500);
 
+        // فحص التنزيل
         setActiveBox('download');
         ui.boxes.loaded.classList.add('active'); 
-        ui.status.innerText = "قياس التنزيل واختبار اختناق البيانات...";
+        ui.mainUnit.innerText = "MBPS"; 
+        ui.status.innerText = "قياس التنزيل واختبار استقرار المسار...";
         isTestingLoaded = true;
         startLoadedPingLoop(); 
         const dlResult = await testDownload();
@@ -56,73 +57,69 @@ ui.btn.addEventListener('click', async () => {
         ui.boxes.loaded.classList.remove('active');
         await sleep(1000);
 
+        // فحص الرفع
         setActiveBox('upload');
-        ui.status.innerText = "قياس الرفع...";
+        ui.status.innerText = "قياس سرعة الرفع...";
         const ulResult = await testUpload();
         ui.valUpload.innerHTML = `${ulResult} <span>Mbps</span>`;
 
         setActiveBox(null);
-        ui.status.innerText = "اكتمل الفحص وفق معايير شبكات المملكة.";
+        ui.status.innerText = "اكتمل الفحص بنجاح.";
         ui.mainVal.innerText = "انتهى";
         ui.mainVal.style.color = "var(--success)";
         ui.btn.innerText = "إعادة الفحص";
     } catch (err) {
-        ui.status.innerText = "حدث خطأ. يرجى إعادة المحاولة.";
+        ui.status.innerText = "حدث خطأ في الاتصال.";
     } finally {
         ui.btn.disabled = false;
     }
 });
 
-// --- 3. محرك البنق المماثل لـ Speedtest (The Multi-Server Engine) ---
+// --- 3. محرك البنق "الصحيح" (The Physical Path Method) ---
 async function measureKsaPing() {
     let pings = [];
     
-    // محاكاة سبيد تست: إرسال موجات متوازية لجميع السيرفرات في نفس اللحظة
-    // الهدف: المتصفح سيختار أسرع استجابة تصل (The Lowest RTT)
     const runWave = async () => {
         const promises = KSA_SERVERS.map(url => {
             const start = performance.now();
             return fetch(url + '?t=' + Math.random(), { 
+                method: 'HEAD', // أسرع نوع طلب في المتصفح
                 mode: 'no-cors', 
                 cache: 'no-store',
                 priority: 'high'
             }).then(() => {
-                let diff = performance.now() - start;
-                // إزالة زمن معالجة المتصفح (Browser Scripting Delay)
-                // في المتصفحات الحديثة، هذه القيمة تتراوح بين 15-20ms
-                pings.push(diff - 18); 
+                pings.push(performance.now() - start);
             }).catch(() => {});
         });
         await Promise.all(promises);
     };
 
-    // تنفيذ 5 موجات فحص لضمان الدقة الإحصائية
-    for(let i=0; i<5; i++) {
+    for(let i=0; i<8; i++) {
         await runWave();
-        await sleep(50);
+        await sleep(40);
     }
     
     if (pings.length > 0) {
-        // الفلترة: استبعاد القيم السالبة واختيار أفضل قراءة
-        const validPings = pings.filter(p => p > 1).sort((a, b) => a - b);
-        return Math.round(validPings[0]); // أسرع رد حقيقي وصل
+        // نأخذ أقل قيمة (الزمن الحقيقي الصافي) بدون أي خصم
+        const sorted = pings.sort((a, b) => a - b);
+        return Math.round(sorted[0]); 
     }
     return "--";
 }
 
-// --- بقية المحركات (تنزيل، رفع، دوال مساعدة) ---
+// الدوال المساعدة
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function resetUI() { ui.mainVal.innerText = "0.00"; ui.mainVal.style.color = "var(--text-dark)"; ui.valUnloaded.innerHTML = `-- <span>--</span>`; ui.valDownload.innerHTML = `-- <span>--</span>`; ui.valLoaded.innerHTML = `-- <span>--</span>`; ui.valUpload.innerHTML = `-- <span>--</span>`; setActiveBox(null); }
 function setActiveBox(boxName) { Object.values(ui.boxes).forEach(box => { if (box) box.classList.remove('active'); }); if (boxName && ui.boxes[boxName]) ui.boxes[boxName].classList.add('active'); }
-function calculateMedian(arr) { if (arr.length === 0) return "--"; const sorted = [...arr].sort((a, b) => a - b); return Math.round(sorted[Math.floor(sorted.length / 2)] - 15); }
+function calculateMedian(arr) { if (arr.length === 0) return "--"; const sorted = [...arr].sort((a, b) => a - b); return Math.round(sorted[0]); }
 function updateMainValue(speed) { ui.mainVal.innerText = speed.toFixed(2); }
 
 async function startLoadedPingLoop() {
     const target = KSA_SERVERS[0];
     while (isTestingLoaded) {
         let start = performance.now();
-        try { await fetch(target + '?l=' + Math.random(), { mode: 'no-cors', cache: 'no-store' }); loadedPingsArray.push(performance.now() - start); } catch(e) {}
-        await sleep(500);
+        try { await fetch(target + '?l=' + Math.random(), { method: 'HEAD', mode: 'no-cors', cache: 'no-store' }); loadedPingsArray.push(performance.now() - start); } catch(e) {}
+        await sleep(400);
     }
 }
 
