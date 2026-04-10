@@ -3,121 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أداة تشخيص جودة الشبكة | SpeedNet</title>
-
-    <link rel="preconnect" href="https://www.stc.com.sa">
-    <link rel="preconnect" href="https://www.mobily.com.sa">
-    <link rel="preconnect" href="https://sa.zain.com">
-    <link rel="preconnect" href="https://salam.sa">
-
+    <title>SpeedNet Pro | تشخيص الشبكة</title>
     <style>
-        :root {
-            --bg-body: #f8f9fa;
-            --bg-surface: #ffffff;
-            --text-dark: #202124;
-            --text-gray: #5f6368;
-            --border-color: #dadce0;
-            --primary: #1a73e8; 
-            --success: #1e8e3e; 
+        :root { --primary: #1a73e8; --text: #202124; --bg: #ffffff; --light: #f1f3f4; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        
+        .main-container { width: 100%; max-width: 600px; text-align: center; padding: 20px; }
+        
+        /* شريط الإحصائيات العلوي */
+        .stats-bar { 
+            display: flex; justify-content: space-around; 
+            background: var(--light); padding: 15px; border-radius: 50px; 
+            margin-bottom: 50px; border: 1px solid #dadce0;
         }
+        .stat-item { flex: 1; }
+        .stat-label { font-size: 11px; color: #5f6368; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
+        .stat-value { font-size: 18px; font-weight: bold; color: var(--primary); }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-dark);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+        /* العداد المركزي */
+        .gauge-zone { margin: 40px 0; position: relative; }
+        .live-display { font-size: 110px; font-weight: 200; color: var(--text); letter-spacing: -4px; }
+        .unit-display { font-size: 20px; color: #5f6368; font-weight: bold; margin-top: -10px; }
+
+        .btn-action { 
+            width: 200px; height: 200px; border-radius: 50%; border: 2px solid var(--primary);
+            background: transparent; color: var(--primary); font-size: 18px; font-weight: bold;
+            cursor: pointer; transition: all 0.3s; margin-top: 30px;
         }
+        .btn-action:hover { background: var(--primary); color: #fff; }
+        .btn-action:disabled { border-color: #ccc; color: #ccc; cursor: not-allowed; }
 
-        .dashboard-container {
-            width: 100%;
-            max-width: 750px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 40px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-
-        .header-titles { text-align: center; margin-bottom: 30px; }
-        .header-titles h1 { font-size: 24px; font-weight: 600; margin: 0; }
-        .header-titles p { font-size: 14px; color: var(--text-gray); }
-
-        .live-monitor {
-            text-align: center; padding: 40px 0; margin-bottom: 30px;
-            border-bottom: 1px solid var(--border-color);
-            border-top: 1px solid var(--border-color);
-            background-color: #f8f9fa; border-radius: 8px;
-        }
-
-        .live-val { font-size: 80px; font-weight: 300; line-height: 1; will-change: contents; }
-        .live-unit { font-size: 18px; font-weight: 600; color: var(--text-gray); margin-top: 5px; }
-
-        .cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 40px; }
-        .data-card {
-            background: var(--bg-surface); border: 1px solid var(--border-color);
-            border-radius: 8px; padding: 20px 10px; text-align: center; transition: all 0.2s ease;
-        }
-
-        .data-card.active { border-color: var(--primary); background: #e8f0fe; box-shadow: 0 2px 8px rgba(26, 115, 232, 0.15); }
-        .card-label { font-size: 13px; font-weight: 600; color: var(--text-gray); margin-bottom: 12px; }
-        .card-val { font-size: 24px; font-weight: 700; display: flex; justify-content: center; align-items: baseline; gap: 4px; }
-        .card-val span { font-size: 13px; color: var(--text-gray); }
-
-        .btn-start {
-            background-color: var(--primary); color: #ffffff; border: none;
-            padding: 16px 48px; border-radius: 8px; font-size: 18px; font-weight: 600;
-            cursor: pointer; width: 100%; max-width: 300px;
-        }
-
-        .btn-start:disabled { background-color: var(--border-color); cursor: not-allowed; }
-        .sys-status { margin-top: 15px; font-size: 14px; color: var(--text-gray); text-align: center; }
-
-        @media (max-width: 768px) { .cards-grid { grid-template-columns: repeat(2, 1fr); } }
+        .status-msg { margin-top: 25px; font-size: 14px; color: #5f6368; }
     </style>
 </head>
 <body>
 
-    <div class="dashboard-container">
-        <div class="header-titles">
-            <h1>منصة تشخيص أداء الشبكة</h1>
-            <p>تحليل فيزيائي دقيق عبر السيرفرات المحلية</p>
-        </div>
-
-        <div class="live-monitor">
-            <div class="live-val" id="mainValue">0.00</div>
-            <div class="live-unit" id="mainUnit">Mbps</div>
-        </div>
-
-        <div class="cards-grid">
-            <div class="data-card" id="boxUnloaded">
-                <div class="card-label">البنق الأساسي</div>
-                <div class="card-val" id="valUnloaded">-- <span>ms</span></div>
+    <div class="main-container">
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-label">البنق</div>
+                <div id="valUnloaded" class="stat-value">--</div>
             </div>
-            <div class="data-card" id="boxDownload">
-                <div class="card-label">التنزيل</div>
-                <div class="card-val" id="valDownload">-- <span>Mbps</span></div>
+            <div class="stat-item">
+                <div class="stat-label">المثقل</div>
+                <div id="valLoaded" class="stat-value">--</div>
             </div>
-            <div class="data-card" id="boxLoaded">
-                <div class="card-label">البنق المثقل</div>
-                <div class="card-val" id="valLoaded">-- <span>ms</span></div>
+            <div class="stat-item">
+                <div class="stat-label">التنزيل</div>
+                <div id="valDownload" class="stat-value">--</div>
             </div>
-            <div class="data-card" id="boxUpload">
-                <div class="card-label">الرفع</div>
-                <div class="card-val" id="valUpload">-- <span>Mbps</span></div>
+            <div class="stat-item">
+                <div class="stat-label">الرفع</div>
+                <div id="valUpload" class="stat-value">--</div>
             </div>
         </div>
 
-        <div style="text-align: center;">
-            <button class="btn-start" id="startBtn">بدء الفحص</button>
-            <div class="sys-status" id="statusText">جاهز لإجراء القياس</div>
+        <div class="gauge-zone">
+            <div id="mainValue" class="live-display">0.00</div>
+            <div id="mainUnit" class="unit-display">Mbps</div>
         </div>
+
+        <button id="startBtn" class="btn-action">فحص الشبكة</button>
+        <div id="statusText" class="status-msg">نظام القياس جاهز</div>
     </div>
 
-    <script src="script.js" defer></script>
+    <script src="script.js"></script>
 </body>
 </html>
