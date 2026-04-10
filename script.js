@@ -4,6 +4,7 @@ const ui = {
     status: document.getElementById('statusText'),
     mainVal: document.getElementById('mainValue'),
     mainUnit: document.getElementById('mainUnit'),
+    needle: document.getElementById('needle'),
     gauge: document.getElementById('gaugeProgress'),
     valUnloaded: document.getElementById('valUnloaded'),
     valDownload: document.getElementById('valDownload'),
@@ -21,10 +22,17 @@ const KSA_SERVERS = [
 let isTestingLoaded = false;
 let loadedPingsArray = [];
 
-// تحريك العداد (Max 100 Mbps للتوضيح ويمكن رفعه)
-function setGauge(val) {
-    const max = 100; 
-    const percent = Math.min(val / max, 1);
+// تحديث الإبرة والعداد (Max 100 Mbps للتوضيح)
+function updateGaugeDisplay(val) {
+    const maxMbps = 100;
+    const speed = Math.min(val, maxMbps);
+    const percent = speed / maxMbps;
+
+    // 1. تحديث الإبرة الثري دي (زاوية الحركة من -135deg إلى +135deg)
+    const angle = -135 + (270 * percent);
+    ui.needle.style.transform = `rotate(${angle}deg)`;
+
+    // 2. تحديث شريط النيون الدائري
     const offset = 754 - (754 * percent);
     ui.gauge.style.strokeDashoffset = offset;
 }
@@ -38,13 +46,14 @@ async function startTest() {
     ui.resetBtn.disabled = true;
     try {
         ui.mainUnit.innerText = "PINGING";
-        ui.status.innerText = "جاري استخلاص زمن الاستجابة الصافي...";
+        ui.status.innerText = "جاري استخلاص البنق الفيزيائي عبر تقنية الـ Zero-Downtime...";
         
+        // تطوير البنق (Pre-Warmed RTT Extraction)
         const purePing = await measureKsaPing();
         ui.valUnloaded.innerText = purePing + " ms";
         
         ui.mainUnit.innerText = "MBPS";
-        ui.status.innerText = "جاري قياس التنزيل...";
+        ui.status.innerText = "جاري قياس التنزيل واختبار اختناق المسار...";
         isTestingLoaded = true;
         startLoadedPingLoop();
         const dlResult = await testDownload();
@@ -57,15 +66,20 @@ async function startTest() {
         ui.valUpload.innerText = ulResult + " Mbps";
 
         ui.status.innerText = "اكتمل الفحص.";
-        ui.mainValue.innerText = "100";
-        setGauge(100);
+        ui.mainValue.innerText = Math.round(dlResult);
         ui.mainUnit.innerText = "COMPLETE";
-    } catch (e) { ui.status.innerText = "حدث خطأ."; } 
+    } catch (e) { ui.status.innerText = "حدث خطأ في النظام."; } 
     finally { ui.btn.disabled = false; ui.resetBtn.disabled = false; }
 }
 
-// تحسين البنق (بدون خصم - تركيز على أقل زمن وصول فيزيائي)
+// تطوير قوي للبنق (بدون خصم - تركيز على كفاءة المسار الفيزيائي)
 async function measureKsaPing() {
+    // أ- مرحلة الـ Pre-Warming صامتة لفتح قنوات الـ TCP
+    for (const url of KSA_SERVERS) {
+        try { await fetch(url, { method: 'HEAD', mode: 'no-cors' }); } catch(e){}
+    }
+
+    // ب- مرحلة القياس الإحصائي المكثف عبر موجات متوازية
     let pings = [];
     const runWave = async () => {
         const promises = KSA_SERVERS.map(url => {
@@ -79,19 +93,19 @@ async function measureKsaPing() {
         await Promise.all(promises);
     };
 
-    for(let i=0; i<15; i++) { // زيادة العينات لرفع الدقة الإحصائية
+    for(let i=0; i<20; i++) { // زيادة العينات لـ 20 لضمان الدقة المثالية
         await runWave();
         await sleep(15);
     }
-    const sorted = pings.filter(p => p > 0).sort((a, b) => a - b);
-    return Math.round(sorted[0]); 
+    const sorted = pings.filter(p => p > 0.1).sort((a, b) => a - b);
+    return Math.round(sorted[0]); // أسرع حزمة وصلت فعلياً
 }
 
-// محركات الرفع والتنزيل (كما هي تماماً لضمان الدقة)
+// محركات الرفع والتنزيل (كما هي لضمان الدقة)
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function resetUI() { 
     ui.mainValue.innerText = "0"; 
-    setGauge(0);
+    updateGaugeDisplay(0);
     ui.valUnloaded.innerText = "--"; 
     ui.valDownload.innerText = "--"; 
     ui.valLoaded.innerText = "--"; 
@@ -106,13 +120,14 @@ function calculateMedian(arr) {
 
 function updateMainValue(speed) { 
     ui.mainValue.innerText = Math.round(speed); 
-    setGauge(speed);
+    updateGaugeDisplay(speed);
 }
 
 async function startLoadedPingLoop() {
+    const LOAD_URL = KSA_SERVERS[0];
     while (isTestingLoaded) {
         let start = performance.now();
-        try { await fetch(KSA_SERVERS[0]+'?l='+Math.random(), { method: 'HEAD', mode: 'no-cors' }); loadedPingsArray.push(performance.now()-start); } catch(e){}
+        try { await fetch(LOAD_URL+'?l='+Math.random(), { method: 'HEAD', mode: 'no-cors' }); loadedPingsArray.push(performance.now()-start); } catch(e){}
         await sleep(400);
     }
 }
