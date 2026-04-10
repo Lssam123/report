@@ -1,113 +1,242 @@
+// --- 1. ربط الواجهة ---
 const ui = {
-    btn: document.getElementById('actionBtn'),
-    status: document.getElementById('status'),
+    btn: document.getElementById('startBtn'),
+    status: document.getElementById('statusText'),
     mainVal: document.getElementById('mainValue'),
-    needle: document.getElementById('needle'),
-    progress: document.getElementById('progress'),
-    v1: document.getElementById('v1'), v2: document.getElementById('v2'),
-    v3: document.getElementById('v3'), v4: document.getElementById('v4')
+    mainUnit: document.getElementById('mainUnit'),
+    
+    valUnloaded: document.getElementById('valUnloaded'),
+    valDownload: document.getElementById('valDownload'),
+    valLoaded: document.getElementById('valLoaded'),
+    valUpload: document.getElementById('valUpload'),
+    
+    boxes: {
+        unloaded: document.getElementById('boxUnloaded'),
+        download: document.getElementById('boxDownload'),
+        loaded: document.getElementById('boxLoaded'),
+        upload: document.getElementById('boxUpload')
+    }
 };
 
-// استخدام عقد Edge VPS القريبة (Cloudflare Saudi Arabia)
-const VPS_EDGE = "https://1.1.1.1/cdn-cgi/trace"; 
-let targetSpeed = 0, currentSpeed = 0, isRunning = false;
-let loadedPings = [];
+const TEST_DURATION = 10000;
 
-function render() {
-    if (!isRunning && Math.abs(currentSpeed - targetSpeed) < 0.1) return;
-    currentSpeed += (targetSpeed - currentSpeed) * 0.15;
-    const percent = Math.min(currentSpeed / 100, 1);
-    
-    ui.needle.style.transform = `rotate(${-130 + (260 * percent)}deg)`;
-    ui.progress.style.strokeDashoffset = 535 - (535 * percent);
-    ui.mainVal.innerText = Math.round(currentSpeed);
-    
-    document.querySelectorAll('.num').forEach(n => {
-        n.classList.toggle('active', currentSpeed >= parseInt(n.innerText));
-    });
-    
-    requestAnimationFrame(render);
-}
+// 🔥 سيرفر البنق الجديد الجاهز
+const WS_SERVER = "wss://ping-network-server.com/echo";
 
-ui.btn.addEventListener('click', () => {
-    if (ui.btn.classList.contains('reset')) return location.reload();
-    runTest();
+let isTestingLoaded = false;
+let loadedPingsArray = [];
+
+// --- 2. دورة التشغيل ---
+ui.btn.addEventListener('click', async () => {
+    resetUI();
+    ui.btn.disabled = true;
+
+    try {
+        // البنق الأساسي
+        setActiveBox('unloaded');
+        ui.mainVal.innerText = "---";
+        ui.mainUnit.innerText = "PING";
+        ui.status.innerText = "جاري قياس البنق...";
+        ui.btn.innerText = "جاري الفحص...";
+
+        const purePing = await measureLocalPing();
+        ui.valUnloaded.innerHTML = `${purePing} <span>ms</span>`;
+        await sleep(500);
+
+        // التنزيل + البنق المثقل
+        setActiveBox('download');
+        ui.boxes.loaded.classList.add('active');
+        ui.mainVal.innerText = "0.00";
+        ui.mainUnit.innerText = "MBPS";
+        ui.status.innerText = "جاري قياس التنزيل...";
+
+        isTestingLoaded = true;
+        loadedPingsArray = [];
+        startLoadedPingLoop();
+
+        const dlResult = await testDownload();
+
+        isTestingLoaded = false;
+        ui.valDownload.innerHTML = `${dlResult} <span>Mbps</span>`;
+        ui.valLoaded.innerHTML = `${calculateMedian(loadedPingsArray)} <span>ms</span>`;
+        ui.boxes.loaded.classList.remove('active');
+        await sleep(1000);
+
+        // الرفع
+        setActiveBox('upload');
+        ui.mainVal.innerText = "0.00";
+        ui.status.innerText = "جاري قياس الرفع...";
+
+        const ulResult = await testUpload();
+        ui.valUpload.innerHTML = `${ulResult} <span>Mbps</span>`;
+
+        // النهاية
+        setActiveBox(null);
+        ui.status.innerText = "اكتمل الفحص بنجاح.";
+        ui.mainVal.innerText = "انتهى";
+        ui.mainUnit.innerText = "DONE";
+        ui.mainVal.style.color = "var(--success)";
+        ui.btn.innerText = "إعادة الفحص";
+
+    } catch (err) {
+        ui.status.innerText = "حدث خطأ أثناء الفحص.";
+        ui.btn.innerText = "إعادة المحاولة";
+    } finally {
+        ui.btn.disabled = false;
+        isTestingLoaded = false;
+    }
 });
 
-async function runTest() {
-    isRunning = true; ui.btn.disabled = true; render();
-    try {
-        ui.status.innerText = "قياس البنق الخام (Jeddah/Riyadh Edge)...";
-        ui.v1.innerText = await getRawPing() + " ms";
+// --- 3. دوال مساعدة ---
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-        ui.status.innerText = "فحص التنزيل والبنق المثقل...";
-        loadedPings = [];
-        const pingInt = setInterval(async () => {
-            const s = performance.now();
-            try { await fetch(VPS_EDGE, {mode:'no-cors', cache:'no-store'}); loadedPings.push(performance.now()-s); } catch(e){}
-        }, 350);
-
-        const dl = await startDownload();
-        clearInterval(pingInt);
-        ui.v3.innerText = dl + " Mbps";
-        ui.v2.innerText = (loadedPings.length ? Math.round(Math.min(...loadedPings)) : "--") + " ms";
-
-        ui.status.innerText = "قياس الرفع (المحرك الأصلي)...";
-        const ul = await startUpload();
-        ui.v4.innerText = ul + " Mbps";
-
-        ui.status.innerText = "اكتمل الفحص بنجاح.";
-        targetSpeed = 0; ui.btn.innerText = "إعادة الفحص"; ui.btn.classList.add('reset');
-    } catch(e) { ui.status.innerText = "خطأ في الشبكة."; }
-    finally { isRunning = false; ui.btn.disabled = false; }
+function resetUI() {
+    ui.mainVal.innerText = "0.00";
+    ui.mainVal.style.color = "var(--text-dark)";
+    ui.mainUnit.innerText = "MBPS";
+    const def = `-- <span>--</span>`;
+    ui.valUnloaded.innerHTML = def;
+    ui.valDownload.innerHTML = def;
+    ui.valLoaded.innerHTML = def;
+    ui.valUpload.innerHTML = def;
+    setActiveBox(null);
 }
 
-async function getRawPing() {
-    let pings = [];
-    for(let i=0; i<15; i++){
-        const s = performance.now();
-        try {
-            await fetch(VPS_EDGE + '?v=' + Math.random(), {
-                method: 'HEAD', mode: 'no-cors', cache: 'no-store', priority: 'high'
-            });
-            pings.push(performance.now() - s);
-        } catch(e){}
-        await new Promise(r => setTimeout(r, 30));
-    }
-    const filtered = pings.filter(p => p > 3).sort((a,b)=>a-b);
-    return filtered.length ? Math.round(filtered[0]) : "--";
+function setActiveBox(boxName) {
+    Object.values(ui.boxes).forEach(box => box.classList.remove('active'));
+    if (boxName && ui.boxes[boxName]) ui.boxes[boxName].classList.add('active');
 }
 
-function startDownload() {
-    return new Promise(async (resolve) => {
-        const start = performance.now();
-        let bytes = 0, speed = 0;
-        const ctrl = new AbortController();
-        setTimeout(() => { ctrl.abort(); resolve(speed.toFixed(1)); }, 10000);
-        try {
-            const res = await fetch("https://speed.cloudflare.com/__down?bytes=50000000", { signal: ctrl.signal });
-            const reader = res.body.getReader();
-            while(true) {
-                const {done, value} = await reader.read();
-                if(done) break;
-                bytes += value.length;
-                speed = (bytes * 8 / ((performance.now()-start)/1000)) / 1000000;
-                targetSpeed = speed;
-            }
-        } catch(e){}
+function calculateMedian(arr) {
+    if (arr.length === 0) return "--";
+    const sorted = [...arr].sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
+}
+
+function updateMainValue(speed) {
+    ui.mainVal.innerText = speed.toFixed(2);
+}
+
+// --- 4. 🔥 محرك البنق الجديد (WebSocket Echo) ---
+async function measureLocalPing() {
+    return new Promise((resolve) => {
+        const ws = new WebSocket(WS_SERVER);
+        let samples = [];
+
+        ws.onopen = () => {
+            let count = 0;
+
+            const sendPing = () => {
+                const start = performance.now();
+                ws.send("ping");
+
+                ws.onmessage = () => {
+                    const rtt = performance.now() - start;
+                    samples.push(rtt);
+
+                    count++;
+                    if (count < 10) {
+                        sendPing();
+                    } else {
+                        ws.close();
+                        resolve(Math.round(calculateMedian(samples)));
+                    }
+                };
+            };
+
+            sendPing();
+        };
+
+        ws.onerror = () => resolve("--");
     });
 }
 
-async function startUpload() {
-    let bytes = 0, speed = 0; const start = performance.now();
-    const data = new Uint8Array(1024 * 1024);
-    while(performance.now() < start + 10000) {
+// البنق المثقل
+async function startLoadedPingLoop() {
+    const ws = new WebSocket(WS_SERVER);
+
+    ws.onopen = () => {
+        const loop = () => {
+            if (!isTestingLoaded) {
+                ws.close();
+                return;
+            }
+
+            const start = performance.now();
+            ws.send("load");
+
+            ws.onmessage = () => {
+                const rtt = Math.round(performance.now() - start);
+                loadedPingsArray.push(rtt);
+                setTimeout(loop, 300);
+            };
+        };
+
+        loop();
+    };
+}
+
+// --- 5. التنزيل (بدون تغيير) ---
+function testDownload() {
+    return new Promise(async (resolve) => {
+        const controller = new AbortController();
+        const url = "https://speed.cloudflare.com/__down?bytes=150000000";
+        let totalBytes = 0;
+        let finalSpeed = 0;
+        const startTime = performance.now();
+
+        const timeout = setTimeout(() => {
+            controller.abort();
+            resolve(finalSpeed.toFixed(2));
+        }, TEST_DURATION);
+
         try {
-            await fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: data, mode: 'no-cors' });
-            bytes += data.length;
-            speed = (bytes * 8 / ((performance.now()-start)/1000)) / 1000000;
-            targetSpeed = speed;
-        } catch(e){ break; }
+            const response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+            const reader = response.body.getReader();
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                totalBytes += value.length;
+                const duration = (performance.now() - startTime) / 1000;
+                if (duration > 0.2) {
+                    finalSpeed = ((totalBytes * 8) / duration) / 1000000;
+                    updateMainValue(finalSpeed);
+                }
+            }
+        } catch (e) {}
+        clearTimeout(timeout);
+        resolve(finalSpeed.toFixed(2));
+    });
+}
+
+// --- 6. الرفع (بدون تغيير) ---
+async function testUpload() {
+    let finalSpeed = 0;
+    let totalSent = 0;
+    const startTime = performance.now();
+    const endTime = startTime + TEST_DURATION;
+    
+    const payload = new Uint8Array(2 * 1024 * 1024);
+
+    while (performance.now() < endTime) {
+        try {
+            await fetch('https://speed.cloudflare.com/__up', {
+                method: 'POST',
+                body: payload,
+                cache: 'no-store'
+            });
+            
+            totalSent += payload.length;
+            const duration = (performance.now() - startTime) / 1000;
+            finalSpeed = ((totalSent * 8) / duration) / 1000000;
+            updateMainValue(finalSpeed);
+            
+        } catch (e) {
+            if (totalSent === 0) return "Error";
+            break;
+        }
     }
-    return speed.toFixed(1);
+    
+    return finalSpeed > 0 ? finalSpeed.toFixed(2) : "0.00";
 }
