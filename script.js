@@ -1,8 +1,10 @@
 const ui = {
     btn: document.getElementById('startBtn'),
+    resetBtn: document.getElementById('resetBtn'),
     status: document.getElementById('statusText'),
     mainVal: document.getElementById('mainValue'),
     mainUnit: document.getElementById('mainUnit'),
+    gauge: document.getElementById('gaugeProgress'),
     valUnloaded: document.getElementById('valUnloaded'),
     valDownload: document.getElementById('valDownload'),
     valLoaded: document.getElementById('valLoaded'),
@@ -19,17 +21,29 @@ const KSA_SERVERS = [
 let isTestingLoaded = false;
 let loadedPingsArray = [];
 
-ui.btn.addEventListener('click', async () => {
+// تحريك العداد (Max 100 Mbps للتوضيح ويمكن رفعه)
+function setGauge(val) {
+    const max = 100; 
+    const percent = Math.min(val / max, 1);
+    const offset = 754 - (754 * percent);
+    ui.gauge.style.strokeDashoffset = offset;
+}
+
+ui.btn.addEventListener('click', startTest);
+ui.resetBtn.addEventListener('click', startTest);
+
+async function startTest() {
     resetUI();
     ui.btn.disabled = true;
+    ui.resetBtn.disabled = true;
     try {
-        ui.mainVal.innerText = "---";
-        ui.status.innerText = "جاري معايرة زمن الاستجابة...";
+        ui.mainUnit.innerText = "PINGING";
+        ui.status.innerText = "جاري استخلاص زمن الاستجابة الصافي...";
         
-        // تعديل البنق المطور
         const purePing = await measureKsaPing();
         ui.valUnloaded.innerText = purePing + " ms";
         
+        ui.mainUnit.innerText = "MBPS";
         ui.status.innerText = "جاري قياس التنزيل...";
         isTestingLoaded = true;
         startLoadedPingLoop();
@@ -42,16 +56,17 @@ ui.btn.addEventListener('click', async () => {
         const ulResult = await testUpload();
         ui.valUpload.innerText = ulResult + " Mbps";
 
-        ui.status.innerText = "تم اكتمال التشخيص.";
-        ui.mainVal.innerText = "100%";
-        ui.mainUnit.innerText = "النتيجة النهائية";
-    } catch (e) { ui.status.innerText = "حدث خطأ."; } finally { ui.btn.disabled = false; }
-});
+        ui.status.innerText = "اكتمل الفحص.";
+        ui.mainValue.innerText = "100";
+        setGauge(100);
+        ui.mainUnit.innerText = "COMPLETE";
+    } catch (e) { ui.status.innerText = "حدث خطأ."; } 
+    finally { ui.btn.disabled = false; ui.resetBtn.disabled = false; }
+}
 
-// --- التعديل المطلوب على البنق فقط ---
+// تحسين البنق (بدون خصم - تركيز على أقل زمن وصول فيزيائي)
 async function measureKsaPing() {
     let pings = [];
-    // تقنية الـ Parallel Head Burst لإيجاد أسرع مسار فيزيائي
     const runWave = async () => {
         const promises = KSA_SERVERS.map(url => {
             const start = performance.now();
@@ -64,20 +79,35 @@ async function measureKsaPing() {
         await Promise.all(promises);
     };
 
-    for(let i=0; i<12; i++) { // زيادة العينات لرفع الدقة
+    for(let i=0; i<15; i++) { // زيادة العينات لرفع الدقة الإحصائية
         await runWave();
-        await sleep(20);
+        await sleep(15);
     }
-    
     const sorted = pings.filter(p => p > 0).sort((a, b) => a - b);
-    return Math.round(sorted[0]); // القيمة الحقيقية الأسرع
+    return Math.round(sorted[0]); 
 }
 
-// --- بقية الدوال (بدون أي تعديل كما طلبت) ---
+// محركات الرفع والتنزيل (كما هي تماماً لضمان الدقة)
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-function resetUI() { ui.mainVal.innerText = "0.00"; ui.valUnloaded.innerText = "--"; ui.valDownload.innerText = "--"; ui.valLoaded.innerText = "--"; ui.valUpload.innerText = "--"; }
-function calculateMedian(arr) { if (!arr.length) return "--"; const sorted = [...arr].sort((a,b)=>a-b); return Math.round(sorted[0]); }
-function updateMainValue(speed) { ui.mainVal.innerText = speed.toFixed(2); }
+function resetUI() { 
+    ui.mainValue.innerText = "0"; 
+    setGauge(0);
+    ui.valUnloaded.innerText = "--"; 
+    ui.valDownload.innerText = "--"; 
+    ui.valLoaded.innerText = "--"; 
+    ui.valUpload.innerText = "--"; 
+}
+
+function calculateMedian(arr) { 
+    if (!arr.length) return "--"; 
+    const sorted = [...arr].sort((a,b)=>a-b); 
+    return Math.round(sorted[0]); 
+}
+
+function updateMainValue(speed) { 
+    ui.mainValue.innerText = Math.round(speed); 
+    setGauge(speed);
+}
 
 async function startLoadedPingLoop() {
     while (isTestingLoaded) {
