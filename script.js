@@ -23,142 +23,118 @@ let loadedPingsArray = [];
 let targetValue = 0;
 let currentVal = 0;
 
-// محرك الحركة الفيزيائي (High Performance Physics Animation)
 function smoothRender() {
     if (!isRunning && currentVal === targetValue) return;
-    
-    // معادلة التخميد الفيزيائي لحركة الإبرة
-    currentVal += (targetValue - currentVal) * 0.12;
-    
+    currentVal += (targetValue - currentVal) * 0.15;
     if (Math.abs(currentVal - targetValue) < 0.05) currentVal = targetValue;
-
     const percent = Math.min(currentVal / 100, 1);
-    
-    // تحديث الإبرة والقوس
     ui.needle.style.transform = `rotate(${-135 + (270 * percent)}deg)`;
     ui.gauge.style.strokeDashoffset = 565 - (565 * percent);
     ui.mainVal.innerText = Math.round(currentVal);
-
-    // تلوين الأرقام حسب سرعة الإبرة
     document.querySelectorAll('.num').forEach(num => {
-        const val = parseInt(num.innerText);
-        num.classList.toggle('active', currentVal >= val);
+        num.classList.toggle('active', currentVal >= parseInt(num.innerText));
     });
-
     requestAnimationFrame(smoothRender);
 }
 
-ui.btn.addEventListener('click', async () => {
-    if (ui.btn.classList.contains('reset-mode')) {
-        location.reload(); // إعادة الفحص عبر تصفير النظام
-        return;
-    }
-    
+ui.btn.addEventListener('click', () => {
+    if (ui.btn.classList.contains('reset-mode')) { location.reload(); return; }
     startFullProcess();
 });
 
 async function startFullProcess() {
-    isRunning = true;
-    ui.btn.disabled = true;
-    smoothRender();
-    
+    isRunning = true; ui.btn.disabled = true; smoothRender();
     try {
-        // 1. البنق الأساسي (تحسين: 20 عينة مع فلترة Jitter)
-        ui.status.innerText = "معايرة البنق الفيزيائي...";
-        const purePing = await measureAdvancedPing();
+        ui.status.innerText = "قياس البنق الفيزيائي...";
+        const purePing = await measureKsaPing();
         ui.valUnloaded.innerText = purePing + " ms";
         
-        // 2. التنزيل والبنق المثقل
-        ui.status.innerText = "فحص التنزيل واختناق المسار...";
+        ui.status.innerText = "فحص التنزيل والبنق المثقل...";
         isTestingLoaded = true;
         startLoadedPingLoop();
-        const dl = await runDataTest("https://speed.cloudflare.com/__down?bytes=50000000");
+        const dl = await testDownload();
         isTestingLoaded = false;
         ui.valDownload.innerText = dl + " Mbps";
-        ui.valLoaded.innerText = calculatePrecisePing(loadedPingsArray) + " ms";
+        ui.valLoaded.innerText = calculateMedian(loadedPingsArray) + " ms";
         
-        // 3. الرفع
         ui.status.innerText = "فحص الرفع...";
-        const ul = await runUploadTest();
+        const ul = await testUpload();
         ui.valUpload.innerText = ul + " Mbps";
 
-        // نهاية الفحص
-        ui.status.innerText = "تم اكتمال التشخيص بنجاح.";
-        targetValue = 0;
-        ui.btn.innerText = "إعادة الفحص";
-        ui.btn.classList.add('reset-mode');
-        ui.btn.disabled = false;
-    } catch (e) {
-        ui.status.innerText = "خطأ في الاتصال بالسيرفرات.";
-        ui.btn.disabled = false;
-    } finally { isRunning = false; }
+        ui.status.innerText = "اكتمل الفحص.";
+        targetValue = 0; ui.btn.innerText = "إعادة الفحص";
+        ui.btn.classList.add('reset-mode'); ui.btn.disabled = false;
+    } catch (e) { ui.status.innerText = "خطأ في الشبكة."; ui.btn.disabled = false; } finally { isRunning = false; }
 }
 
-// تحسين البنق: تقنية الـ RTT Extraction
-async function measureAdvancedPing() {
-    let results = [];
-    for(let i=0; i<15; i++) {
+async function measureKsaPing() {
+    let pings = [];
+    for(let i=0; i<12; i++) {
         const t0 = performance.now();
         try {
-            await fetch(KSA_SERVERS[i % 3] + '?cache=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
-            results.push(performance.now() - t0);
+            // استخدام HEAD وتغيير الرابط لإجبار السيرفر على الرد الحقيقي
+            await fetch(KSA_SERVERS[i % 3] + '?nocache=' + Math.random(), { 
+                method: 'HEAD', mode: 'no-cors', cache: 'no-store' 
+            });
+            pings.push(performance.now() - t0);
         } catch(e){}
         await new Promise(r => setTimeout(r, 40));
     }
-    // خوارزمية فلترة: استبعاد القيم المتطرفة لضمان رقم "موزون"
-    const sorted = results.sort((a,b)=>a-b);
-    return sorted.length ? Math.round(sorted[Math.floor(sorted.length * 0.1)]) : "--";
+    const sorted = pings.filter(p => p > 5).sort((a,b)=>a-b); // فلترة الأرقام المستحيلة (أقل من 5ms)
+    return sorted.length ? Math.round(sorted[0]) : "--";
 }
 
-async function runDataTest(url) {
-    const start = performance.now();
-    let bytes = 0;
-    let speed = 0;
-    const ctrl = new AbortController();
-    setTimeout(() => ctrl.abort(), 8000);
-    
-    try {
-        const res = await fetch(url, { signal: ctrl.signal });
-        const reader = res.body.getReader();
-        while(true) {
-            const {done, value} = await reader.read();
-            if(done) break;
-            bytes += value.length;
-            const sec = (performance.now() - start) / 1000;
-            speed = (bytes * 8 / sec) / 1000000;
-            targetValue = speed;
-        }
-    } catch(e){}
-    return speed.toFixed(1);
-}
-
-async function runUploadTest() {
-    let speed = 0;
-    const start = performance.now();
-    const data = new Uint8Array(1024 * 1024);
-    while(performance.now() < start + 8000) {
+// محرك التنزيل الأصلي
+function testDownload() {
+    return new Promise(async (resolve) => {
+        const startTime = performance.now();
+        let totalBytes = 0; let finalSpeed = 0;
+        const controller = new AbortController();
+        setTimeout(() => { controller.abort(); resolve(finalSpeed.toFixed(2)); }, 10000);
         try {
-            await fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: data, mode: 'no-cors' });
-            speed = ( (totalSent+=data.length) * 8 / ((performance.now()-start)/1000) ) / 1000000;
-            targetValue = speed;
+            const response = await fetch("https://speed.cloudflare.com/__down?bytes=50000000", { signal: controller.signal });
+            const reader = response.body.getReader();
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                totalBytes += value.length;
+                const duration = (performance.now()-startTime)/1000;
+                finalSpeed = ((totalBytes * 8) / duration) / 1000000;
+                targetValue = finalSpeed;
+            }
+        } catch(e){}
+    });
+}
+
+// محرك الرفع الأصلي (تم استرجاعه بالكامل)
+async function testUpload() {
+    let totalSent = 0; let finalSpeed = 0; const startTime = performance.now();
+    const payload = new Uint8Array(1024 * 1024);
+    while (performance.now() < startTime + 10000) {
+        try {
+            await fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: payload, mode: 'no-cors' });
+            totalSent += payload.length;
+            finalSpeed = ((totalSent*8)/((performance.now()-startTime)/1000))/1000000;
+            targetValue = finalSpeed;
         } catch(e){ break; }
     }
-    var totalSent = 0; // Fix for scope
-    return targetValue.toFixed(1);
-}
-
-function calculatePrecisePing(arr) { 
-    if(!arr.length) return "--";
-    // البنق المثقل دائماً يميل ليكون أعلى بقليل بسبب ضغط البيانات
-    return Math.round(arr.sort((a,b)=>a-b)[0]); 
+    return finalSpeed.toFixed(2);
 }
 
 async function startLoadedPingLoop() {
     while(isTestingLoaded) {
         const s = performance.now();
-        try { await fetch(KSA_SERVERS[0], { mode: 'no-cors' }); loadedPingsArray.push(performance.now() - s); } catch(e){}
-        await new Promise(r => setTimeout(r, 300));
+        try { 
+            await fetch(KSA_SERVERS[0] + '?ping=' + Math.random(), { method: 'HEAD', mode: 'no-cors', cache: 'no-store' }); 
+            const diff = performance.now() - s;
+            if (diff > 5) loadedPingsArray.push(diff);
+        } catch(e){}
+        await new Promise(r => setTimeout(r, 400));
     }
 }
 
-function resetUI() { targetValue = 0; currentVal = 0; loadedPingsArray = []; }
+function calculateMedian(arr) { 
+    if(!arr.length) return "--";
+    const sorted = arr.sort((a,b)=>a-b);
+    return Math.round(sorted[Math.floor(sorted.length / 2)]); 
+}
