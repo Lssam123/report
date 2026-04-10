@@ -3,97 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Precision SpeedNet | 2026</title>
+    <title>أداة تشخيص جودة الشبكة |</title>
+
+    <link rel="preconnect" href="https://speed.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="https://speed.cloudflare.com">
+    <link rel="preconnect" href="https://www.stc.com.sa" crossorigin>
+    <link rel="preconnect" href="https://www.mobily.com.sa" crossorigin>
+    <link rel="preconnect" href="https://sa.zain.com" crossorigin>
+    <link rel="preconnect" href="https://salam.sa" crossorigin>
+    <link rel="preconnect" href="https://www.jawwy.sa" crossorigin>
+
     <style>
-        :root { --bg: #000; --primary: #9d4edd; --text: #fff; }
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; min-height: 100vh; align-items: center; }
-        
-        .stats-bar { 
-            display: flex; width: 90%; max-width: 600px; justify-content: space-around; 
-            margin: 30px 0; background: #080808; padding: 20px; border-radius: 15px;
-            border: 1px solid #1a1a1a; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .stat-item { text-align: center; }
-        .stat-label { font-size: 10px; color: #555; font-weight: 800; letter-spacing: 1px; }
-        .stat-value { font-size: 20px; font-weight: bold; color: var(--primary); text-shadow: 0 0 10px rgba(157, 78, 221, 0.5); }
-
-        .gauge-wrapper { position: relative; width: 320px; height: 320px; display: flex; justify-content: center; align-items: center; }
-        
-        .gauge-svg { transform: rotate(-220deg); width: 100%; height: 100%; }
-        .gauge-track { fill: none; stroke: #0a0a0a; stroke-width: 14; stroke-linecap: round; }
-        .gauge-progress { 
-            fill: none; stroke: var(--primary); stroke-width: 14; 
-            stroke-dasharray: 535; stroke-dashoffset: 535; 
-            stroke-linecap: round; transition: stroke-dashoffset 0.08s linear;
-            filter: drop-shadow(0 0 8px var(--primary));
+        /* نفس التنسيقات التي أرسلتها */
+        :root {
+            --bg-body: #f8f9fa;
+            --bg-surface: #ffffff;
+            --text-dark: #202124;
+            --text-gray: #5f6368;
+            --border-color: #dadce0;
+            --primary: #1a73e8; 
+            --success: #1e8e3e; 
         }
 
-        .needle {
-            position: absolute; width: 3px; height: 115px;
-            background: linear-gradient(to bottom, #c77dff, transparent);
-            bottom: 50%; left: 50%;
-            transform-origin: bottom center; transform: rotate(-130deg);
-            box-shadow: 0 0 15px var(--primary); z-index: 5;
-            will-change: transform;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
 
-        .numbers-overlay { position: absolute; width: 100%; height: 100%; font-size: 12px; font-weight: 900; color: #222; }
-        .num { position: absolute; transform: translate(-50%, -50%); transition: color 0.2s; }
-        .num.active { color: var(--primary); text-shadow: 0 0 5px var(--primary); }
-        .n0   { top: 82%; left: 24%; }
-        .n20  { top: 48%; left: 12%; }
-        .n40  { top: 18%; left: 28%; }
-        .n60  { top: 18%; left: 72%; }
-        .n80  { top: 48%; left: 88%; }
-        .n100 { top: 82%; left: 76%; }
-
-        .readout { position: absolute; text-align: center; top: 60%; }
-        .readout .val { font-size: 60px; font-weight: 100; line-height: 1; letter-spacing: -2px; }
-        .readout .unit { font-size: 14px; color: #444; font-weight: 900; }
-
-        .main-btn {
-            margin-top: 50px; padding: 18px 70px; border-radius: 50px;
-            background: var(--primary); color: #fff; border: none;
-            font-size: 18px; font-weight: bold; cursor: pointer;
-            box-shadow: 0 10px 25px rgba(157, 78, 221, 0.3); transition: 0.3s;
+        .dashboard-container {
+            width: 100%;
+            max-width: 750px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
-        .main-btn:hover { transform: scale(1.05); }
-        .main-btn.reset { background: #000; border: 1px solid var(--primary); color: var(--primary); }
-        .main-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        footer { margin-top: auto; padding: 25px; font-size: 11px; color: #222; letter-spacing: 1px; }
+        .header-titles {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header-titles h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 5px 0;
+            color: var(--text-dark);
+        }
+
+        .header-titles p {
+            font-size: 14px;
+            color: var(--text-gray);
+            margin: 0;
+        }
+
+        .live-monitor {
+            text-align: center;
+            padding: 40px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border-color);
+            border-top: 1px solid var(--border-color);
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .live-val {
+            font-size: 80px;
+            font-weight: 300;
+            line-height: 1;
+            letter-spacing: -2px;
+            color: var(--text-dark);
+            transition: color 0.3s ease;
+            will-change: contents; 
+        }
+
+        .live-unit {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .data-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px 10px;
+            text-align: center;
+            transition: all 0.2s ease;
+            will-change: transform, border-color, background-color; 
+        }
+
+        .data-card.active {
+            border-color: var(--primary);
+            background: #e8f0fe;
+            box-shadow: 0 2px 8px rgba(26, 115, 232, 0.15);
+        }
+
+        .card-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-gray);
+            margin-bottom: 12px;
+        }
+
+        .card-val {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .card-val span {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-gray);
+        }
+
+        .controls-wrapper {
+            text-align: center;
+        }
+
+        .btn-start {
+            background-color: var(--primary);
+            color: #ffffff;
+            border: none;
+            padding: 16px 48px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+            max-width: 300px;
+            font-family: inherit;
+        }
+
+        .btn-start:hover { background-color: #1557b0; }
+        .btn-start:disabled { background-color: var(--border-color); color: var(--text-gray); cursor: not-allowed; }
+
+        .sys-status {
+            margin-top: 15px;
+            font-size: 14px;
+            color: var(--text-gray);
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .cards-grid { grid-template-columns: repeat(2, 1fr); }
+            .live-val { font-size: 60px; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="stats-bar">
-        <div class="stat-item"><div class="stat-label">البنق الخام</div><div id="v1" class="stat-value">--</div></div>
-        <div class="stat-item"><div class="stat-label">المثقل</div><div id="v2" class="stat-value">--</div></div>
-        <div class="stat-item"><div class="stat-label">التنزيل</div><div id="v3" class="stat-value">--</div></div>
-        <div class="stat-item"><div class="stat-label">الرفع</div><div id="v4" class="stat-value">--</div></div>
+    <div class="dashboard-container">
+        
+        <div class="header-titles">
+            <h1>اختبار سرعة النت </h1>
+            <p>القياس يتم عبر خوادم  (Edge Nodes)</p>
+        </div>
+
+        <div class="live-monitor">
+            <div class="live-val" id="mainValue">0.00</div>
+            <div class="live-unit" id="mainUnit">Mbps</div>
+        </div>
+
+        <div class="cards-grid">
+            <div class="data-card" id="boxUnloaded">
+                <div class="card-label">البنق الأساسي</div>
+                <div class="card-val" id="valUnloaded">-- <span>ms</span></div>
+            </div>
+            
+            <div class="data-card" id="boxDownload">
+                <div class="card-label">التنزيل</div>
+                <div class="card-val" id="valDownload">-- <span>Mbps</span></div>
+            </div>
+
+            <div class="data-card" id="boxLoaded">
+                <div class="card-label">البنق المثقل</div>
+                <div class="card-val" id="valLoaded">-- <span>ms</span></div>
+            </div>
+
+            <div class="data-card" id="boxUpload">
+                <div class="card-label">الرفع</div>
+                <div class="card-val" id="valUpload">-- <span>Mbps</span></div>
+            </div>
+        </div>
+
+        <div class="controls-wrapper">
+            <button class="btn-start" id="startBtn">بدء الفحص</button>
+            <div class="sys-status" id="statusText">جاهز لإجراء القياس </div>
+        </div>
+
     </div>
 
-    <div class="gauge-wrapper">
-        <div class="numbers-overlay" id="nums">
-            <span class="num n0">0</span><span class="num n20">20</span><span class="num n40">40</span>
-            <span class="num n60">60</span><span class="num n80">80</span><span class="num n100">100</span>
-        </div>
-        <svg class="gauge-svg" viewBox="0 0 240 240">
-            <circle class="gauge-track" cx="120" cy="120" r="85"></circle>
-            <circle id="progress" class="gauge-progress" cx="120" cy="120" r="85"></circle>
-        </svg>
-        <div id="needle" class="needle"></div>
-        <div class="readout">
-            <div id="mainValue" class="val">0</div>
-            <div class="unit">MBPS</div>
-        </div>
-    </div>
-
-    <button id="actionBtn" class="main-btn">بدء الفحص</button>
-    <div id="status" style="margin-top:15px; font-size:12px; color:#333; font-weight:bold;">Precision Diagnostic System 2026.X</div>
-
-    <footer>Network Systems Management Technology © 2026</footer>
-
-    <script src="script.js"></script>
+    <script src="script.js" defer></script>
 </body>
 </html>
