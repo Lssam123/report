@@ -1,100 +1,87 @@
 const ui = {
-    btn: document.getElementById('mainBtn'),
-    status: document.getElementById('statusText'),
+    btn: document.getElementById('actionBtn'),
+    status: document.getElementById('status'),
     mainVal: document.getElementById('mainValue'),
-    needleWrap: document.getElementById('needleWrapper'),
-    gauge: document.getElementById('gaugeProgress'),
-    valUnloaded: document.getElementById('valUnloaded'),
-    valDownload: document.getElementById('valDownload'),
-    valLoaded: document.getElementById('valLoaded'),
-    valUpload: document.getElementById('valUpload')
+    needle: document.getElementById('needle'),
+    progress: document.getElementById('progress'),
+    v1: document.getElementById('v1'), v2: document.getElementById('v2'),
+    v3: document.getElementById('v3'), v4: document.getElementById('v4')
 };
 
-const KSA_SERVERS = [
-    "https://www.stc.com.sa/favicon.ico",
-    "https://www.mobily.com.sa/favicon.ico",
-    "https://sa.zain.com/favicon.ico"
-];
+// استخدام عقد Edge VPS القريبة (Cloudflare Saudi Arabia)
+const VPS_EDGE = "https://1.1.1.1/cdn-cgi/trace"; 
+let targetSpeed = 0, currentSpeed = 0, isRunning = false;
+let loadedPings = [];
 
-let isRunning = false;
-let isTestingLoaded = false;
-let loadedPingsArray = [];
-let targetValue = 0;
-let currentVal = 0;
-
-// محرك الحركة فائق السلاسة (120fps Optimization)
-function smoothRender() {
-    if (!isRunning && Math.abs(currentVal - targetValue) < 0.01) return;
+function render() {
+    if (!isRunning && Math.abs(currentSpeed - targetSpeed) < 0.1) return;
+    currentSpeed += (targetSpeed - currentSpeed) * 0.15;
+    const percent = Math.min(currentSpeed / 100, 1);
     
-    // محاكاة الوزن الفيزيائي للإبرة
-    currentVal += (targetValue - currentVal) * 0.15;
+    ui.needle.style.transform = `rotate(${-130 + (260 * percent)}deg)`;
+    ui.progress.style.strokeDashoffset = 535 - (535 * percent);
+    ui.mainVal.innerText = Math.round(currentSpeed);
     
-    const percent = Math.min(currentVal / 100, 1);
-    
-    // محاذاة الإبرة بدقة الصفر مع خط التقدم
-    const angle = -135 + (270 * percent);
-    ui.needleWrap.style.transform = `rotate(${angle}deg)`;
-    ui.gauge.style.strokeDashoffset = 565 - (565 * percent);
-    
-    ui.mainVal.innerText = Math.round(currentVal);
-
-    // تفعيل توهج الأرقام
-    document.querySelectorAll('.gauge-num-text').forEach(num => {
-        const val = parseInt(num.textContent);
-        num.classList.toggle('active', currentVal >= val);
+    document.querySelectorAll('.num').forEach(n => {
+        n.classList.toggle('active', currentSpeed >= parseInt(n.innerText));
     });
-
-    requestAnimationFrame(smoothRender);
+    
+    requestAnimationFrame(render);
 }
 
 ui.btn.addEventListener('click', () => {
-    if (ui.btn.classList.contains('reset')) { location.reload(); return; }
-    executeTest();
+    if (ui.btn.classList.contains('reset')) return location.reload();
+    runTest();
 });
 
-async function executeTest() {
-    isRunning = true; ui.btn.disabled = true; smoothRender();
+async function runTest() {
+    isRunning = true; ui.btn.disabled = true; render();
     try {
-        ui.status.innerText = "فحص البنق الفيزيائي المستقر...";
-        const ping = await measurePing();
-        ui.valUnloaded.innerText = ping + " ms";
-        
-        ui.status.innerText = "فحص التنزيل والبنق المثقل...";
-        isTestingLoaded = true;
-        startLoadedPingLoop();
-        const dl = await testDownload();
-        isTestingLoaded = false;
-        ui.valDownload.innerText = dl + " Mbps";
-        ui.valLoaded.innerText = calculateMedian(loadedPingsArray) + " ms";
-        
-        ui.status.innerText = "فحص الرفع (محرك أصلي)...";
-        const ul = await testUpload();
-        ui.valUpload.innerText = ul + " Mbps";
+        ui.status.innerText = "قياس البنق الخام (Jeddah/Riyadh Edge)...";
+        ui.v1.innerText = await getRawPing() + " ms";
 
-        ui.status.innerText = "اكتمل الفحص.";
-        targetValue = 0; ui.btn.innerText = "إعادة الفحص"; ui.btn.classList.add('reset');
-    } catch (e) { ui.status.innerText = "خطأ في الاتصال."; }
-    finally { ui.btn.disabled = false; isRunning = false; }
+        ui.status.innerText = "فحص التنزيل والبنق المثقل...";
+        loadedPings = [];
+        const pingInt = setInterval(async () => {
+            const s = performance.now();
+            try { await fetch(VPS_EDGE, {mode:'no-cors', cache:'no-store'}); loadedPings.push(performance.now()-s); } catch(e){}
+        }, 350);
+
+        const dl = await startDownload();
+        clearInterval(pingInt);
+        ui.v3.innerText = dl + " Mbps";
+        ui.v2.innerText = (loadedPings.length ? Math.round(Math.min(...loadedPings)) : "--") + " ms";
+
+        ui.status.innerText = "قياس الرفع (المحرك الأصلي)...";
+        const ul = await startUpload();
+        ui.v4.innerText = ul + " Mbps";
+
+        ui.status.innerText = "اكتمل الفحص بنجاح.";
+        targetSpeed = 0; ui.btn.innerText = "إعادة الفحص"; ui.btn.classList.add('reset');
+    } catch(e) { ui.status.innerText = "خطأ في الشبكة."; }
+    finally { isRunning = false; ui.btn.disabled = false; }
 }
 
-async function measurePing() {
-    let results = [];
-    for(let i=0; i<15; i++) {
-        const t0 = performance.now();
+async function getRawPing() {
+    let pings = [];
+    for(let i=0; i<15; i++){
+        const s = performance.now();
         try {
-            await fetch(KSA_SERVERS[i % 3] + '?v=' + Math.random(), { method: 'HEAD', mode: 'no-cors', cache: 'no-store' });
-            const rtt = performance.now() - t0;
-            if (rtt > 5) results.push(rtt);
+            await fetch(VPS_EDGE + '?v=' + Math.random(), {
+                method: 'HEAD', mode: 'no-cors', cache: 'no-store', priority: 'high'
+            });
+            pings.push(performance.now() - s);
         } catch(e){}
         await new Promise(r => setTimeout(r, 30));
     }
-    return results.length ? Math.round(results.sort((a,b)=>a-b)[0]) : "--";
+    const filtered = pings.filter(p => p > 3).sort((a,b)=>a-b);
+    return filtered.length ? Math.round(filtered[0]) : "--";
 }
 
-function testDownload() {
+function startDownload() {
     return new Promise(async (resolve) => {
         const start = performance.now();
-        let bytes = 0; let speed = 0;
+        let bytes = 0, speed = 0;
         const ctrl = new AbortController();
         setTimeout(() => { ctrl.abort(); resolve(speed.toFixed(1)); }, 10000);
         try {
@@ -105,34 +92,22 @@ function testDownload() {
                 if(done) break;
                 bytes += value.length;
                 speed = (bytes * 8 / ((performance.now()-start)/1000)) / 1000000;
-                targetValue = speed;
+                targetSpeed = speed;
             }
         } catch(e){}
     });
 }
 
-// محرك الرفع الأصلي المستقر
-async function testUpload() {
-    let totalSent = 0; let speed = 0; const start = performance.now();
+async function startUpload() {
+    let bytes = 0, speed = 0; const start = performance.now();
     const data = new Uint8Array(1024 * 1024);
     while(performance.now() < start + 10000) {
         try {
             await fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: data, mode: 'no-cors' });
-            totalSent += data.length;
-            speed = (totalSent * 8 / ((performance.now()-start)/1000)) / 1000000;
-            targetValue = speed;
+            bytes += data.length;
+            speed = (bytes * 8 / ((performance.now()-start)/1000)) / 1000000;
+            targetSpeed = speed;
         } catch(e){ break; }
     }
     return speed.toFixed(1);
 }
-
-async function startLoadedPingLoop() {
-    while(isTestingLoaded) {
-        const s = performance.now();
-        try { await fetch(KSA_SERVERS[0] + '?p=' + Math.random(), { method: 'HEAD', mode: 'no-cors', cache: 'no-store' });
-        const d = performance.now() - s; if(d > 5) loadedPingsArray.push(d); } catch(e){}
-        await new Promise(r => setTimeout(r, 350));
-    }
-}
-
-function calculateMedian(arr) { return arr.length ? Math.round(arr.sort((a,b)=>a-b)[Math.floor(arr.length/2)]) : "--"; }
