@@ -21,7 +21,8 @@ const ui = {
 const TEST_DURATION = 10000;
 
 // 🔥 سيرفر البنق الجديد الجاهز
-const WS_SERVER = "wss://ping-network-server.com/echo";
+const WS_SERVER = const WS_SERVER = "wss://ping-network-server.com/echo";
+
 
 let isTestingLoaded = false;
 let loadedPingsArray = [];
