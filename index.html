@@ -3,133 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpeedNet Precision X | 2026</title>
+    <title>Precision SpeedNet | 2026</title>
     <style>
-        :root { 
-            --bg: #000000;
-            --surface: #050505;
-            --primary: #9d4edd; 
-            --accent: #c77dff;
-            --glow: 0 0 20px rgba(157, 78, 221, 0.6);
-        }
-
-        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; overflow: hidden; display: flex; flex-direction: column; min-height: 100vh; }
+        :root { --bg: #000; --primary: #9d4edd; --text: #fff; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; min-height: 100vh; align-items: center; }
         
-        /* شريط الإحصائيات الاحترافي */
         .stats-bar { 
             display: flex; width: 90%; max-width: 600px; justify-content: space-around; 
-            background: rgba(10, 10, 10, 0.8); padding: 20px; border-radius: 20px; 
-            margin: 20px auto; border: 1px solid rgba(157, 78, 221, 0.2);
-            backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin: 30px 0; background: #080808; padding: 20px; border-radius: 15px;
+            border: 1px solid #1a1a1a; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         .stat-item { text-align: center; }
-        .stat-label { font-size: 10px; color: #666; font-weight: 800; letter-spacing: 1px; margin-bottom: 5px; }
-        .stat-value { font-size: 18px; font-weight: 700; color: var(--primary); text-shadow: var(--glow); }
+        .stat-label { font-size: 10px; color: #555; font-weight: 800; letter-spacing: 1px; }
+        .stat-value { font-size: 20px; font-weight: bold; color: var(--primary); text-shadow: 0 0 10px rgba(157, 78, 221, 0.5); }
 
-        .gauge-container { 
-            position: relative; width: 380px; height: 380px; 
-            margin: auto; display: flex; justify-content: center; align-items: center; 
-        }
-
-        /* شريط الأرقام الدائري */
-        .gauge-numbers-svg {
-            position: absolute; width: 100%; height: 100%;
-            transform: rotate(-225deg); pointer-events: none;
-        }
-        .gauge-num-text {
-            fill: #333; font-size: 12px; font-weight: 900;
-            transition: fill 0.2s, filter 0.2s;
-        }
-        .gauge-num-text.active { fill: var(--primary); filter: drop-shadow(0 0 5px var(--primary)); }
-
-        .gauge-main-svg { transform: rotate(-225deg); width: 320px; height: 320px; }
-        .gauge-track { fill: none; stroke: #0a0a0a; stroke-width: 15; stroke-linecap: round; }
+        .gauge-wrapper { position: relative; width: 320px; height: 320px; display: flex; justify-content: center; align-items: center; }
+        
+        .gauge-svg { transform: rotate(-220deg); width: 100%; height: 100%; }
+        .gauge-track { fill: none; stroke: #0a0a0a; stroke-width: 14; stroke-linecap: round; }
         .gauge-progress { 
-            fill: none; stroke: var(--primary); stroke-width: 15; 
-            stroke-dasharray: 565; stroke-dashoffset: 565; 
-            stroke-linecap: round; filter: drop-shadow(0 0 12px var(--primary));
-            transition: stroke-dashoffset 0.05s linear;
+            fill: none; stroke: var(--primary); stroke-width: 14; 
+            stroke-dasharray: 535; stroke-dashoffset: 535; 
+            stroke-linecap: round; transition: stroke-dashoffset 0.08s linear;
+            filter: drop-shadow(0 0 8px var(--primary));
         }
 
-        /* الإبرة المحاذية بدقة */
-        .needle-wrapper {
-            position: absolute; width: 100%; height: 100%;
-            display: flex; justify-content: center; align-items: center;
-            transition: transform 0.05s linear; will-change: transform;
-        }
         .needle {
-            width: 3px; height: 130px;
-            background: linear-gradient(to bottom, var(--accent), transparent);
-            box-shadow: 0 0 15px var(--primary);
-            transform: translateY(-65px); /* موازنة الإبرة على المحور */
-            border-radius: 2px;
-        }
-        .center-node {
-            position: absolute; width: 20px; height: 20px; background: #000;
-            border: 2px solid var(--primary); border-radius: 50%; box-shadow: var(--glow);
+            position: absolute; width: 3px; height: 115px;
+            background: linear-gradient(to bottom, #c77dff, transparent);
+            bottom: 50%; left: 50%;
+            transform-origin: bottom center; transform: rotate(-130deg);
+            box-shadow: 0 0 15px var(--primary); z-index: 5;
+            will-change: transform;
         }
 
-        .readout { position: absolute; bottom: 80px; text-align: center; }
-        .readout .val { font-size: 60px; font-weight: 100; letter-spacing: -3px; }
-        .readout .unit { font-size: 14px; color: #444; font-weight: 900; margin-top: -10px; }
+        .numbers-overlay { position: absolute; width: 100%; height: 100%; font-size: 12px; font-weight: 900; color: #222; }
+        .num { position: absolute; transform: translate(-50%, -50%); transition: color 0.2s; }
+        .num.active { color: var(--primary); text-shadow: 0 0 5px var(--primary); }
+        .n0   { top: 82%; left: 24%; }
+        .n20  { top: 48%; left: 12%; }
+        .n40  { top: 18%; left: 28%; }
+        .n60  { top: 18%; left: 72%; }
+        .n80  { top: 48%; left: 88%; }
+        .n100 { top: 82%; left: 76%; }
 
-        .btn-main {
-            margin: 40px auto; padding: 18px 70px; border-radius: 50px; border: none;
-            background: linear-gradient(135deg, var(--primary), #5a189a);
-            color: #fff; font-size: 18px; font-weight: 800; cursor: pointer;
+        .readout { position: absolute; text-align: center; top: 60%; }
+        .readout .val { font-size: 60px; font-weight: 100; line-height: 1; letter-spacing: -2px; }
+        .readout .unit { font-size: 14px; color: #444; font-weight: 900; }
+
+        .main-btn {
+            margin-top: 50px; padding: 18px 70px; border-radius: 50px;
+            background: var(--primary); color: #fff; border: none;
+            font-size: 18px; font-weight: bold; cursor: pointer;
             box-shadow: 0 10px 25px rgba(157, 78, 221, 0.3); transition: 0.3s;
         }
-        .btn-main:hover { transform: scale(1.05); box-shadow: 0 15px 35px rgba(157, 78, 221, 0.5); }
-        .btn-main.reset { background: #000; border: 2px solid var(--primary); color: var(--primary); }
-        .btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
+        .main-btn:hover { transform: scale(1.05); }
+        .main-btn.reset { background: #000; border: 1px solid var(--primary); color: var(--primary); }
+        .main-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        footer { padding: 15px; text-align: center; font-size: 11px; color: #222; }
+        footer { margin-top: auto; padding: 25px; font-size: 11px; color: #222; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
     <div class="stats-bar">
-        <div class="stat-item"><div class="stat-label">البنق</div><div id="valUnloaded" class="stat-value">--</div></div>
-        <div class="stat-item"><div class="stat-label">المثقل</div><div id="valLoaded" class="stat-value">--</div></div>
-        <div class="stat-item"><div class="stat-label">التنزيل</div><div id="valDownload" class="stat-value">--</div></div>
-        <div class="stat-item"><div class="stat-label">الرفع</div><div id="valUpload" class="stat-value">--</div></div>
+        <div class="stat-item"><div class="stat-label">البنق الخام</div><div id="v1" class="stat-value">--</div></div>
+        <div class="stat-item"><div class="stat-label">المثقل</div><div id="v2" class="stat-value">--</div></div>
+        <div class="stat-item"><div class="stat-label">التنزيل</div><div id="v3" class="stat-value">--</div></div>
+        <div class="stat-item"><div class="stat-label">الرفع</div><div id="v4" class="stat-value">--</div></div>
     </div>
 
-    <div class="gauge-container">
-        <svg class="gauge-numbers-svg" viewBox="0 0 260 260">
-            <defs>
-                <path id="numberPath" d="M 40,130 A 90,90 0 1,1 220,130" fill="none" />
-            </defs>
-            <text class="gauge-num-text" x="35" y="200">0</text>
-            <text class="gauge-num-text" x="15" y="135">20</text>
-            <text class="gauge-num-text" x="55" y="55">40</text>
-            <text class="gauge-num-text" x="180" y="55">60</text>
-            <text class="gauge-num-text" x="225" y="135">80</text>
-            <text class="gauge-num-text" x="200" y="200">100</text>
-        </svg>
-
-        <svg class="gauge-main-svg" viewBox="0 0 260 260">
-            <circle class="gauge-track" cx="130" cy="130" r="90"></circle>
-            <circle id="gaugeProgress" class="gauge-progress" cx="130" cy="130" r="90"></circle>
-        </svg>
-
-        <div id="needleWrapper" class="needle-wrapper" style="transform: rotate(-135deg);">
-            <div class="needle"></div>
+    <div class="gauge-wrapper">
+        <div class="numbers-overlay" id="nums">
+            <span class="num n0">0</span><span class="num n20">20</span><span class="num n40">40</span>
+            <span class="num n60">60</span><span class="num n80">80</span><span class="num n100">100</span>
         </div>
-        <div class="center-node"></div>
-
+        <svg class="gauge-svg" viewBox="0 0 240 240">
+            <circle class="gauge-track" cx="120" cy="120" r="85"></circle>
+            <circle id="progress" class="gauge-progress" cx="120" cy="120" r="85"></circle>
+        </svg>
+        <div id="needle" class="needle"></div>
         <div class="readout">
             <div id="mainValue" class="val">0</div>
-            <div id="mainUnit" class="unit">MBPS</div>
+            <div class="unit">MBPS</div>
         </div>
     </div>
 
-    <div style="text-align: center;">
-        <button id="mainBtn" class="btn-main">بدء الفحص</button>
-        <div id="statusText" style="font-size: 12px; color: #444; margin-top: 10px;">إصدار الشبكات الاحترافي 2026.X</div>
-    </div>
+    <button id="actionBtn" class="main-btn">بدء الفحص</button>
+    <div id="status" style="margin-top:15px; font-size:12px; color:#333; font-weight:bold;">Precision Diagnostic System 2026.X</div>
 
-    <footer>متخصص إدارة أنظمة الشبكات © 2026</footer>
+    <footer>Network Systems Management Technology © 2026</footer>
 
     <script src="script.js"></script>
 </body>
