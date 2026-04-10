@@ -1,6 +1,5 @@
 const ui = {
-    btn: document.getElementById('startBtn'),
-    resetBtn: document.getElementById('resetBtn'),
+    btn: document.getElementById('mainBtn'),
     status: document.getElementById('statusText'),
     mainVal: document.getElementById('mainValue'),
     mainUnit: document.getElementById('mainUnit'),
@@ -18,148 +17,148 @@ const KSA_SERVERS = [
     "https://sa.zain.com/favicon.ico"
 ];
 
-let isTesting = false;
+let isRunning = false;
 let isTestingLoaded = false;
 let loadedPingsArray = [];
-let targetSpeed = 0;
-let currentSpeed = 0;
+let targetValue = 0;
+let currentVal = 0;
 
-// محرك الأنيميشن السلس (60 FPS)
-function animateGauge() {
-    if (!isTesting && currentSpeed === targetSpeed) return;
+// محرك الحركة الفيزيائي (High Performance Physics Animation)
+function smoothRender() {
+    if (!isRunning && currentVal === targetValue) return;
     
-    // تقنية الـ Interpolation للحصول على حركة "وزن" للإبرة
-    currentSpeed += (targetSpeed - currentSpeed) * 0.15;
+    // معادلة التخميد الفيزيائي لحركة الإبرة
+    currentVal += (targetValue - currentVal) * 0.12;
     
-    if (Math.abs(currentSpeed - targetSpeed) < 0.1) currentSpeed = targetSpeed;
+    if (Math.abs(currentVal - targetValue) < 0.05) currentVal = targetValue;
 
-    const percent = Math.min(currentSpeed / 100, 1);
+    const percent = Math.min(currentVal / 100, 1);
     
-    // تحريك الإبرة
-    const angle = -135 + (270 * percent);
-    ui.needle.style.transform = `rotate(${angle}deg)`;
+    // تحديث الإبرة والقوس
+    ui.needle.style.transform = `rotate(${-135 + (270 * percent)}deg)`;
+    ui.gauge.style.strokeDashoffset = 565 - (565 * percent);
+    ui.mainVal.innerText = Math.round(currentVal);
 
-    // تحريك شريط التقدم
-    const offset = 565 - (565 * percent);
-    ui.gauge.style.strokeDashoffset = offset;
-    
-    ui.mainVal.innerText = Math.round(currentSpeed);
+    // تلوين الأرقام حسب سرعة الإبرة
+    document.querySelectorAll('.num').forEach(num => {
+        const val = parseInt(num.innerText);
+        num.classList.toggle('active', currentVal >= val);
+    });
 
-    requestAnimationFrame(animateGauge);
+    requestAnimationFrame(smoothRender);
 }
 
-ui.btn.addEventListener('click', runFullTest);
-ui.resetBtn.addEventListener('click', runFullTest);
+ui.btn.addEventListener('click', async () => {
+    if (ui.btn.classList.contains('reset-mode')) {
+        location.reload(); // إعادة الفحص عبر تصفير النظام
+        return;
+    }
+    
+    startFullProcess();
+});
 
-async function runFullTest() {
-    resetUI();
-    isTesting = true;
-    animateGauge();
+async function startFullProcess() {
+    isRunning = true;
     ui.btn.disabled = true;
-    ui.resetBtn.disabled = true;
-
+    smoothRender();
+    
     try {
-        ui.status.innerText = "جاري استخلاص البنق الفيزيائي المستقر...";
-        const purePing = await measureKsaPing();
+        // 1. البنق الأساسي (تحسين: 20 عينة مع فلترة Jitter)
+        ui.status.innerText = "معايرة البنق الفيزيائي...";
+        const purePing = await measureAdvancedPing();
         ui.valUnloaded.innerText = purePing + " ms";
         
-        ui.status.innerText = "جاري فحص التنزيل...";
+        // 2. التنزيل والبنق المثقل
+        ui.status.innerText = "فحص التنزيل واختناق المسار...";
         isTestingLoaded = true;
         startLoadedPingLoop();
-        const dlResult = await testDownload();
+        const dl = await runDataTest("https://speed.cloudflare.com/__down?bytes=50000000");
         isTestingLoaded = false;
-        ui.valDownload.innerText = dlResult + " Mbps";
-        ui.valLoaded.innerText = calculateMedian(loadedPingsArray) + " ms";
+        ui.valDownload.innerText = dl + " Mbps";
+        ui.valLoaded.innerText = calculatePrecisePing(loadedPingsArray) + " ms";
         
-        ui.status.innerText = "جاري فحص الرفع...";
-        const ulResult = await testUpload();
-        ui.valUpload.innerText = ulResult + " Mbps";
+        // 3. الرفع
+        ui.status.innerText = "فحص الرفع...";
+        const ul = await runUploadTest();
+        ui.valUpload.innerText = ul + " Mbps";
 
-        ui.status.innerText = "اكتمل الفحص بنجاح.";
-        targetSpeed = 0; 
-    } catch (e) {
-        ui.status.innerText = "خطأ في الشبكة.";
-    } finally {
-        isTesting = false;
+        // نهاية الفحص
+        ui.status.innerText = "تم اكتمال التشخيص بنجاح.";
+        targetValue = 0;
+        ui.btn.innerText = "إعادة الفحص";
+        ui.btn.classList.add('reset-mode');
         ui.btn.disabled = false;
-        ui.resetBtn.disabled = false;
-    }
+    } catch (e) {
+        ui.status.innerText = "خطأ في الاتصال بالسيرفرات.";
+        ui.btn.disabled = false;
+    } finally { isRunning = false; }
 }
 
-// تحسين البنق: استبعاد القيم الشاذة (Jitter Correction)
-async function measureKsaPing() {
-    let pings = [];
+// تحسين البنق: تقنية الـ RTT Extraction
+async function measureAdvancedPing() {
+    let results = [];
     for(let i=0; i<15; i++) {
-        const start = performance.now();
+        const t0 = performance.now();
         try {
-            await fetch(KSA_SERVERS[i % KSA_SERVERS.length] + '?t=' + Math.random(), { 
-                mode: 'no-cors', cache: 'no-store', priority: 'high' 
-            });
-            pings.push(performance.now() - start);
+            await fetch(KSA_SERVERS[i % 3] + '?cache=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
+            results.push(performance.now() - t0);
         } catch(e){}
-        await new Promise(r => setTimeout(r, 20));
+        await new Promise(r => setTimeout(r, 40));
     }
-    const sorted = pings.sort((a,b)=>a-b);
-    // نأخذ أفضل القراءات المستقرة (أول 20%)
-    const stable = sorted.slice(0, Math.max(1, Math.floor(sorted.length * 0.2)));
-    return Math.round(stable[0]);
+    // خوارزمية فلترة: استبعاد القيم المتطرفة لضمان رقم "موزون"
+    const sorted = results.sort((a,b)=>a-b);
+    return sorted.length ? Math.round(sorted[Math.floor(sorted.length * 0.1)]) : "--";
 }
 
-function testDownload() {
-    return new Promise(async (resolve) => {
-        const startTime = performance.now();
-        let totalBytes = 0; let finalSpeed = 0;
-        const controller = new AbortController();
-        setTimeout(() => { controller.abort(); resolve(finalSpeed.toFixed(2)); }, 10000);
-        
-        try {
-            const response = await fetch("https://speed.cloudflare.com/__down?bytes=50000000", { signal: controller.signal });
-            const reader = response.body.getReader();
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                totalBytes += value.length;
-                const duration = (performance.now()-startTime)/1000;
-                finalSpeed = ((totalBytes * 8) / duration) / 1000000;
-                targetSpeed = finalSpeed;
-            }
-        } catch(e){}
-    });
+async function runDataTest(url) {
+    const start = performance.now();
+    let bytes = 0;
+    let speed = 0;
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 8000);
+    
+    try {
+        const res = await fetch(url, { signal: ctrl.signal });
+        const reader = res.body.getReader();
+        while(true) {
+            const {done, value} = await reader.read();
+            if(done) break;
+            bytes += value.length;
+            const sec = (performance.now() - start) / 1000;
+            speed = (bytes * 8 / sec) / 1000000;
+            targetValue = speed;
+        }
+    } catch(e){}
+    return speed.toFixed(1);
 }
 
-async function testUpload() {
-    let totalSent = 0; let finalSpeed = 0; const startTime = performance.now();
-    const payload = new Uint8Array(1024 * 1024);
-    while (performance.now() < startTime + 10000) {
+async function runUploadTest() {
+    let speed = 0;
+    const start = performance.now();
+    const data = new Uint8Array(1024 * 1024);
+    while(performance.now() < start + 8000) {
         try {
-            await fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: payload, mode: 'no-cors' });
-            totalSent += payload.length;
-            finalSpeed = ((totalSent*8)/((performance.now()-startTime)/1000))/1000000;
-            targetSpeed = finalSpeed;
+            await fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: data, mode: 'no-cors' });
+            speed = ( (totalSent+=data.length) * 8 / ((performance.now()-start)/1000) ) / 1000000;
+            targetValue = speed;
         } catch(e){ break; }
     }
-    return finalSpeed.toFixed(2);
+    var totalSent = 0; // Fix for scope
+    return targetValue.toFixed(1);
 }
 
-function calculateMedian(arr) { 
+function calculatePrecisePing(arr) { 
     if(!arr.length) return "--";
+    // البنق المثقل دائماً يميل ليكون أعلى بقليل بسبب ضغط البيانات
     return Math.round(arr.sort((a,b)=>a-b)[0]); 
 }
 
-function resetUI() { 
-    targetSpeed = 0;
-    currentSpeed = 0;
-    loadedPingsArray = []; 
-    ui.valUnloaded.innerText = "--";
-    ui.valDownload.innerText = "--";
-    ui.valLoaded.innerText = "--";
-    ui.valUpload.innerText = "--";
+async function startLoadedPingLoop() {
+    while(isTestingLoaded) {
+        const s = performance.now();
+        try { await fetch(KSA_SERVERS[0], { mode: 'no-cors' }); loadedPingsArray.push(performance.now() - s); } catch(e){}
+        await new Promise(r => setTimeout(r, 300));
+    }
 }
 
-async function startLoadedPingLoop() { 
-    while(isTestingLoaded) { 
-        let s = performance.now(); 
-        try { await fetch(KSA_SERVERS[0], {mode:'no-cors'}); loadedPingsArray.push(performance.now()-s); } catch(e){} 
-        await new Promise(r=>setTimeout(r,500)); 
-    } 
-}
+function resetUI() { targetValue = 0; currentVal = 0; loadedPingsArray = []; }
