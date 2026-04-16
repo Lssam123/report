@@ -27,7 +27,7 @@ ui.btn.addEventListener('click', async () => {
     ui.btn.disabled = true;
 
     try {
-        // 1. البنق العادي - تم تعديله ليكون أقل وأكثر دقة
+        // 1. البنق العادي 
         setActiveBox('unloaded');
         ui.mainUnit.innerText = "ms";
         ui.status.innerText = "قياس الاستجابة الصافية للشبكة...";
@@ -67,10 +67,10 @@ ui.btn.addEventListener('click', async () => {
     }
 });
 
-// دالة محسنة لإعطاء بنق أقل (صافي)
+
 async function measureRealPing() {
     let pings = [];
-    // نستخدم أهداف قريبة وسريعة لتقليل التأخير
+    
     const targets = [PING_URL, "https://www.google.com/generate_204"];
     
     for(let i=0; i<5; i++) {
@@ -80,18 +80,18 @@ async function measureRealPing() {
             await fetch(target + '?t=' + Math.random(), { 
                 mode: 'no-cors', 
                 cache: 'no-store',
-                priority: 'high' // أولوية قصوى
+                priority: 'high'   
             });
             let diff = performance.now() - s;
             
-            // تعديل النسبة لخصم تأخير المتصفح (Browser Handshake)
-            // ضربنا في 0.55 للحصول على البنق الصافي "Pure Latency"
+            
+        
             pings.push(diff * 0.55); 
         } catch(e) {}
         await sleep(40);
     }
     
-    // نأخذ أقل قيمة تم تسجيلها (Best Case Scenario) كما تفعل المواقع العالمية
+   
     let finalPing = Math.min(...pings);
     return Math.max(1, Math.round(finalPing)); 
 }
@@ -103,7 +103,7 @@ async function startHighFreqPing() {
             await fetch(PING_URL + '&c=' + Math.random(), { 
                 mode: 'no-cors', cache: 'no-store', priority: 'high' 
             });
-            // البنق المثقل يعكس الضغط، لذا الخصم فيه أقل (0.8) ليبقى مرتفعاً ومنطقياً
+                 
             loadedPingsArray.push(Math.round((performance.now() - s) * 0.8));
         } catch(e) {}
         await sleep(150);
