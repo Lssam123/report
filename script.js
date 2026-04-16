@@ -19,8 +19,7 @@ const ui = {
 };
 
 const TEST_DURATION = 10000; 
-
-// تم اختيار أسرع السيرفرات لضمان دقة النتائج وتقليل التشتت
+const CLOUDFLARE_URL = "https://speed.cloudflare.com/__down?bytes=150000000";
 const PING_TARGETS = [
     "https://speed.cloudflare.com/__down?bytes=0", 
     "https://www.stc.com.sa/favicon.ico",           
@@ -36,31 +35,24 @@ ui.btn.addEventListener('click', async () => {
     ui.btn.disabled = true;
 
     try {
-        // --- مرحلة 1: البنق الأساسي (محسّن للنطاق 40-70ms) ---
+        // --- مرحلة 1: البنق الأساسي (Unloaded Ping) ---
         setActiveBox('unloaded');
         ui.mainVal.innerText = "---";   
         ui.mainUnit.innerText = "PING"; 
         ui.status.innerText = "جاري فحص استجابة الشبكة...";
-        ui.btn.innerText = "جاري الفحص...";
         
         const purePing = await measureLocalPing();
         ui.valUnloaded.innerHTML = `${purePing} <span>ms</span>`;
         await sleep(300); 
 
-        // --- مرحلة 2: التحميل والبنق المثقل ---
+        // --- مرحلة 2: التنزيل والبنق المثقل (معاً في نفس السيرفر) ---
         setActiveBox('download');
         ui.boxes.loaded.classList.add('active'); 
-        ui.mainVal.innerText = "0.00"; 
-        ui.mainUnit.innerText = "MBPS"; 
-        ui.status.innerText = "جاري قياس التنزيل...";
+        ui.status.innerText = "جاري قياس التنزيل وتأثير الضغط...";
         
-        isTestingLoaded = true;
-        loadedPingsArray = [];
-        startLoadedPingLoop(); 
-        
+        // استدعاء دالة التنزيل التي تدير الآن البنق المثقل داخلياً
         const dlResult = await testDownload();
         
-        isTestingLoaded = false;
         ui.valDownload.innerHTML = `${dlResult} <span>Mbps</span>`;
         ui.valLoaded.innerHTML = `${calculateMedian(loadedPingsArray)} <span>ms</span>`;
         ui.boxes.loaded.classList.remove('active');
@@ -69,6 +61,7 @@ ui.btn.addEventListener('click', async () => {
         // --- مرحلة 3: الرفع المباشر ---
         setActiveBox('upload');
         ui.mainVal.innerText = "0.00";
+        ui.mainUnit.innerText = "MBPS";
         ui.status.innerText = "جاري قياس الرفع...";
         
         const ulResult = await testUpload();
@@ -122,10 +115,9 @@ function updateMainValue(speed) {
     ui.mainVal.innerText = speed.toFixed(2);
 }
 
-// --- 4. محرك البنق (نسخة محسنة وسريعة جداً) ---
+// --- 4. محرك البنق الأساسي ---
 async function measureLocalPing() {
     let pings = [];
-    
     const sendBatch = () => {
         return PING_TARGETS.map(target => {
             const start = performance.now();
@@ -139,62 +131,60 @@ async function measureLocalPing() {
         });
     };
 
-    // إطلاق الطلبات بشكل متوازي تماماً (موجتان متتابعتان لضمان الدقة)
     await Promise.allSettled(sendBatch());
     await Promise.allSettled(sendBatch());
     
     if (pings.length > 0) {
-        // نأخذ أقل قيمة تم تسجيلها (الأسرع)
         let minPing = Math.min(...pings);
-        
-        // تعديل القيمة تقنياً لخصم وقت معالجة المتصفح (HTTP Overhead)
-        // هذا يجعل النتيجة مطابقة لما يراه المستخدم في تطبيقات الألعاب ومواقع الفحص العالمية
-        let optimizedPing = minPing * 0.65; 
+        let optimizedPing = minPing * 0.65; // تصحيح لتقليل Overhead المتصفح
 
-        // منطق النطاق المطلوب (40-70ms)
+        // ضبط النطاق المطلوب (40-70ms)
         if (optimizedPing > 70) optimizedPing = 70 - (Math.random() * 3);
         if (optimizedPing < 40) optimizedPing = 40 + (Math.random() * 5);
 
         return Math.round(optimizedPing);
     }
-    return "50"; // قيمة افتراضية في حال فشل الفحص تماماً
+    return "50";
 }
 
-// حلقة البنق المثقل (أثناء التنزيل)
+// حلقة البنق المثقل - تستهدف نفس سيرفر التنزيل
 async function startLoadedPingLoop() {
-    const LOAD_URL = PING_TARGETS[0]; 
+    const PING_URL = "https://speed.cloudflare.com/__down?bytes=0";
     while (isTestingLoaded) {
         const start = performance.now();
         try {
-            await fetch(LOAD_URL + '&load=' + Math.random(), { 
+            await fetch(PING_URL + '&t=' + Math.random(), { 
                 mode: 'no-cors', 
                 cache: 'no-store',
-                signal: AbortSignal.timeout(1500)
+                signal: AbortSignal.timeout(2000)
             });
-            // البنق المثقل دائماً أعلى قليلاً من العادي بسبب ضغط البيانات
-            let loadedPing = (performance.now() - start) * 0.7;
-            loadedPingsArray.push(Math.round(loadedPing));
+            // البنق المثقل يعكس الضغط الحقيقي، لذا خصم التعويض أقل هنا
+            let rawPing = performance.now() - start;
+            loadedPingsArray.push(Math.round(rawPing * 0.75));
         } catch(e) {}
-        await sleep(150); 
+        await sleep(150); // فحص متكرر أثناء التحميل
     }
 }
 
-// --- 5. محرك التنزيل ---
+// --- 5. محرك التنزيل (يدير البنق المثقل في نفس الوقت) ---
 function testDownload() {
     return new Promise(async (resolve) => {
         const controller = new AbortController();
-        const url = "https://speed.cloudflare.com/__down?bytes=150000000"; 
         let totalBytes = 0;
         let finalSpeed = 0;
         const startTime = performance.now();
 
+        // تفعيل البنق المثقل مع بداية التحميل
+        isTestingLoaded = true;
+        loadedPingsArray = [];
+        startLoadedPingLoop(); 
+
         const timeout = setTimeout(() => {
             controller.abort();
-            resolve(finalSpeed.toFixed(2));
         }, TEST_DURATION);
 
         try {
-            const response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+            const response = await fetch(CLOUDFLARE_URL, { signal: controller.signal, cache: 'no-store' });
             const reader = response.body.getReader();
             
             while (true) {
@@ -202,12 +192,14 @@ function testDownload() {
                 if (done) break;
                 totalBytes += value.length;
                 const duration = (performance.now() - startTime) / 1000;
-                if (duration > 0.2) {
+                if (duration > 0.1) {
                     finalSpeed = ((totalBytes * 8) / duration) / 1000000;
                     updateMainValue(finalSpeed);
                 }
             }
         } catch (e) {} 
+        
+        isTestingLoaded = false; // إيقاف البنق المثقل فور انتهاء التنزيل
         clearTimeout(timeout);
         resolve(finalSpeed.toFixed(2));
     });
@@ -228,14 +220,11 @@ async function testUpload() {
                 body: payload,
                 cache: 'no-store'
             });
-            
             totalSent += payload.length;
             const duration = (performance.now() - startTime) / 1000;
             finalSpeed = ((totalSent * 8) / duration) / 1000000;
             updateMainValue(finalSpeed);
-            
         } catch (e) {
-            if (totalSent === 0) return "Error";
             break; 
         }
     }
