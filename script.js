@@ -30,7 +30,7 @@ ui.btn.addEventListener('click', async () => {
         // 1. البنق العادي 
         setActiveBox('unloaded');
         ui.mainUnit.innerText = "ms";
-        ui.status.innerText = "قياس البنق العادي...";
+        ui.status.innerText = "قياس البنق ...";
         const purePing = await measureRealPing();
         ui.valUnloaded.innerText = purePing;
         ui.mainVal.innerText = purePing;
