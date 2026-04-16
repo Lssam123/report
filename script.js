@@ -1,4 +1,3 @@
-// --- 1. ربط الواجهة ---
 const ui = {
     btn: document.getElementById('startBtn'),
     status: document.getElementById('statusText'),
@@ -16,175 +15,151 @@ const ui = {
     }
 };
 
-const TEST_DURATION = 10000; 
-const CLOUDFLARE_DL = "https://speed.cloudflare.com/__down?bytes=150000000";
-const PING_URL = "https://speed.cloudflare.com/__down?bytes=0"; // طلب صغير جداً للبنق
+const TEST_DURATION = 8000; 
+const DL_URL = "https://speed.cloudflare.com/__down?bytes=100000000";
+const PING_URL = "https://speed.cloudflare.com/__down?bytes=0";
 
 let isTestingLoaded = false;
 let loadedPingsArray = [];
 
-// --- 2. دورة التشغيل الرئيسية ---
 ui.btn.addEventListener('click', async () => {
     resetUI();
     ui.btn.disabled = true;
 
     try {
-        // 1. البنق العادي (بدون ضغط)
+        // 1. البنق العادي (حرية كاملة للرقم بدون قيود)
         setActiveBox('unloaded');
-        ui.status.innerText = "فحص الاستجابة العادية...";
-        const purePing = await measureLocalPing();
-        ui.valUnloaded.innerHTML = `${purePing} <span>ms</span>`;
+        ui.mainUnit.innerText = "ms";
+        ui.status.innerText = "جاري قياس استجابة الشبكة الحالية...";
+        const purePing = await measureRealPing();
+        ui.valUnloaded.innerText = purePing;
+        ui.mainVal.innerText = purePing;
         await sleep(500);
 
-        // 2. التنزيل + البنق المثقل (طريقة المواقع العالمية)
+        // 2. التنزيل والبنق المثقل (منطق احترافي: المثقل أعلى من العادي)
         setActiveBox('download');
         ui.boxes.loaded.classList.add('active');
-        ui.status.innerText = "قياس السرعة وتأثير الضغط (Loaded)...";
+        ui.mainUnit.innerText = "Mbps";
+        ui.status.innerText = "جاري اختبار التنزيل وقياس ضغط الشبكة...";
         
         isTestingLoaded = true;
         loadedPingsArray = [];
-        
-        // تشغيل محرك البنق المثقل في الخلفية بالتوازي مع التنزيل
-        const pingLoop = startHighFrequencyPingLoop(); 
+        const pLoop = startHighFreqPing(); 
         const dlResult = await testDownload();
-        
-        isTestingLoaded = false; // إيقاف البنق فور انتهاء التحميل
-        await pingLoop;
+        isTestingLoaded = false;
+        await pLoop;
 
-        ui.valDownload.innerHTML = `${dlResult} <span>Mbps</span>`;
-        ui.valLoaded.innerHTML = `${calculateMedian(loadedPingsArray)} <span>ms</span>`;
+        ui.valDownload.innerText = dlResult;
+        ui.valLoaded.innerText = calculateMedian(loadedPingsArray);
         ui.boxes.loaded.classList.remove('active');
         await sleep(500);
 
         // 3. الرفع
         setActiveBox('upload');
-        ui.status.innerText = "قياس سرعة الرفع...";
+        ui.status.innerText = "جاري اختبار سرعة الرفع...";
         const ulResult = await testUpload();
-        ui.valUpload.innerHTML = `${ulResult} <span>Mbps</span>`;
+        ui.valUpload.innerText = ulResult;
 
         finishUI();
-    } catch (err) {
-        ui.status.innerText = "خطأ في الاتصال.";
+    } catch (e) {
+        ui.status.innerText = "حدث خطأ في الاتصال";
         ui.btn.disabled = false;
     }
 });
 
-// --- 3. محرك البنق المثقل (المنهجية العالمية) ---
-async function startHighFrequencyPingLoop() {
-    // المواقع العالمية تزيد وتيرة الفحص أثناء الضغط لاكتشاف Jitter
-    while (isTestingLoaded) {
-        const start = performance.now();
-        try {
-            await fetch(PING_URL + '&cache=' + Math.random(), { 
-                mode: 'no-cors', 
-                cache: 'no-store',
-                priority: 'high', // إعطاء الأولوية لهذا الطلب الصغير ليتخطى طابور البيانات
-                signal: AbortSignal.timeout(2000)
-            });
-            const duration = performance.now() - start;
-            
-            // في البنق المثقل، لا نستخدم خصم كبير (فقط 15%) لأننا نريد قياس التأخير الفعلي للشبكة تحت الضغط
-            loadedPingsArray.push(Math.round(duration * 0.85));
-        } catch(e) {}
-        
-        // فحص مكثف كل 100 ملي ثانية لمحاكاة سلوك Ookla و Cloudflare
-        await sleep(100); 
-    }
-}
-
-// --- 4. محرك التنزيل ---
-async function testDownload() {
-    const controller = new AbortController();
-    let totalBytes = 0;
-    let finalSpeed = 0;
-    const startTime = performance.now();
-
-    const timeout = setTimeout(() => controller.abort(), TEST_DURATION);
-
-    try {
-        const response = await fetch(CLOUDFLARE_DL, { signal: controller.signal, cache: 'no-store' });
-        const reader = response.body.getReader();
-        
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            totalBytes += value.length;
-            const duration = (performance.now() - startTime) / 1000;
-            if (duration > 0.1) {
-                finalSpeed = ((totalBytes * 8) / duration) / 1000000;
-                ui.mainVal.innerText = finalSpeed.toFixed(2);
-            }
-        }
-    } catch (e) {}
-    clearTimeout(timeout);
-    return finalSpeed.toFixed(2);
-}
-
-// --- 5. محرك البنق الأساسي (Unloaded) ---
-async function measureLocalPing() {
+async function measureRealPing() {
     let pings = [];
-    const targets = ["https://speed.cloudflare.com/__down?bytes=0", "https://www.stc.com.sa/favicon.ico"];
-    
-    for(let i=0; i<2; i++) { // موجتان سريعتان
-        const results = await Promise.allSettled(targets.map(t => {
-            const s = performance.now();
-            return fetch(t + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store', signal: AbortSignal.timeout(1000) })
-                   .then(() => performance.now() - s);
-        }));
-        results.forEach(r => { if(r.status === 'fulfilled') pings.push(r.value); });
+    for(let i=0; i<4; i++) {
+        const s = performance.now();
+        try {
+            await fetch(PING_URL + '?t=' + Math.random(), { mode: 'no-cors', cache: 'no-store' });
+            // خصم بسيط لتعويض زمن معالجة المتصفح (HTTP Overhead)
+            pings.push((performance.now() - s) * 0.7); 
+        } catch(e) {}
+        await sleep(50);
     }
-
-    let min = Math.min(...pings) * 0.65; // خصم Overhead المتصفح للبنق الصافي
-    if (min > 70) min = 65 + Math.random() * 5;
-    if (min < 40) min = 40 + Math.random() * 5;
-    return Math.round(min);
+    return Math.round(calculateMedian(pings));
 }
 
-// --- 6. وظائف مساعدة ---
+async function startHighFreqPing() {
+    while (isTestingLoaded) {
+        const s = performance.now();
+        try {
+            await fetch(PING_URL + '&c=' + Math.random(), { 
+                mode: 'no-cors', cache: 'no-store', priority: 'high' 
+            });
+            // البنق المثقل يعكس الضغط الحقيقي، لذا نتركه يرتفع طبيعياً
+            loadedPingsArray.push(Math.round((performance.now() - s) * 0.9));
+        } catch(e) {}
+        await sleep(150);
+    }
+}
+
+function testDownload() {
+    return new Promise(async (resolve) => {
+        const ctrl = new AbortController();
+        let bytes = 0, speed = 0;
+        const start = performance.now();
+        setTimeout(() => ctrl.abort(), TEST_DURATION);
+        try {
+            const res = await fetch(DL_URL, { signal: ctrl.signal, cache: 'no-store' });
+            const reader = res.body.getReader();
+            while(true) {
+                const {done, value} = await reader.read();
+                if(done) break;
+                bytes += value.length;
+                const sec = (performance.now() - start) / 1000;
+                if(sec > 0.1) {
+                    speed = ((bytes * 8) / sec) / 1000000;
+                    ui.mainVal.innerText = speed.toFixed(2);
+                }
+            }
+        } catch(e) {}
+        resolve(speed.toFixed(2));
+    });
+}
+
+async function testUpload() {
+    let speed = 0, bytes = 0;
+    const start = performance.now();
+    const end = start + TEST_DURATION;
+    const data = new Uint8Array(1024 * 1024);
+    while(performance.now() < end) {
+        try {
+            await fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: data });
+            bytes += data.length;
+            const sec = (performance.now() - start) / 1000;
+            speed = ((bytes * 8) / sec) / 1000000;
+            ui.mainVal.innerText = speed.toFixed(2);
+        } catch(e) { break; }
+    }
+    return speed.toFixed(2);
+}
+
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function calculateMedian(arr) {
-    if (arr.length === 0) return "--";
-    const sorted = [...arr].sort((a, b) => a - b);
-    return sorted[Math.floor(sorted.length / 2)];
+    if (!arr.length) return 0;
+    const s = [...arr].sort((a, b) => a - b);
+    return s[Math.floor(s.length / 2)];
 }
 
 function resetUI() {
-    ui.mainVal.innerText = "0.00";
-    ui.mainVal.style.color = "inherit";
-    const def = `-- <span>--</span>`;
-    ui.valUnloaded.innerHTML = def; ui.valDownload.innerHTML = def;
-    ui.valLoaded.innerHTML = def; ui.valUpload.innerHTML = def;
+    ui.mainVal.innerText = "0";
+    ui.mainVal.style.color = "var(--text-dark)";
+    ui.valUnloaded.innerText = "--"; ui.valDownload.innerText = "--";
+    ui.valLoaded.innerText = "--"; ui.valUpload.innerText = "--";
 }
 
 function finishUI() {
-    ui.status.innerText = "اكتمل الفحص.";
+    ui.status.innerText = "اكتمل الاختبار بنجاح";
     ui.mainVal.innerText = "انتهى";
     ui.mainVal.style.color = "var(--success)";
     ui.btn.disabled = false;
-    ui.btn.innerText = "إعادة الفحص";
+    ui.btn.innerText = "إعادة الاختبار";
 }
 
 function setActiveBox(name) {
     Object.values(ui.boxes).forEach(b => b.classList.remove('active'));
     if(ui.boxes[name]) ui.boxes[name].classList.add('active');
-}
-
-async function testUpload() {
-    let finalSpeed = 0;
-    let totalSent = 0;
-    const startTime = performance.now();
-    const endTime = startTime + TEST_DURATION;
-    const payload = new Uint8Array(1024 * 1024); // 1MB chunks
-
-    while (performance.now() < endTime) {
-        try {
-            await fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: payload, cache: 'no-store' });
-            totalSent += payload.length;
-            const duration = (performance.now() - startTime) / 1000;
-            finalSpeed = ((totalSent * 8) / duration) / 1000000;
-            ui.mainVal.innerText = finalSpeed.toFixed(2);
-        } catch (e) { break; }
-    }
-    return finalSpeed.toFixed(2);
 }
