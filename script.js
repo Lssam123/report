@@ -18,60 +18,65 @@ const ui = {
     }
 };
 
-const TEST_DURATION = 10000;
+const TEST_DURATION = 10000; 
 
-// 🔥 سيرفر البنق الجديد الجاهز
-const WS_SERVER = const WS_SERVER = "wss://ping-network-server.com/echo";
-
+const PING_TARGETS = [
+    "https://speed.cloudflare.com/__down?bytes=0", 
+    "https://www.stc.com.sa/favicon.ico",           
+    "https://www.mobily.com.sa/favicon.ico",        
+    "https://sa.zain.com/favicon.ico",             
+    "https://salam.sa/favicon.ico",                 
+    "https://www.jawwy.sa/favicon.ico",            
+];
 
 let isTestingLoaded = false;
 let loadedPingsArray = [];
 
-// --- 2. دورة التشغيل ---
+// --- 2. دورة التشغيل الرئيسية ---
 ui.btn.addEventListener('click', async () => {
     resetUI();
     ui.btn.disabled = true;
 
     try {
-        // البنق الأساسي
+        // --- مرحلة 1: البنق الأساسي (محسّن ليكون أسرع) ---
         setActiveBox('unloaded');
-        ui.mainVal.innerText = "---";
-        ui.mainUnit.innerText = "PING";
-        ui.status.innerText = "جاري قياس البنق...";
+        ui.mainVal.innerText = "---";   
+        ui.mainUnit.innerText = "PING"; 
+        ui.status.innerText = "جاري فحص البنق السريع...";
         ui.btn.innerText = "جاري الفحص...";
-
+        
         const purePing = await measureLocalPing();
         ui.valUnloaded.innerHTML = `${purePing} <span>ms</span>`;
-        await sleep(500);
+        await sleep(300); // تقليل وقت الانتظار الانتقالي
 
-        // التنزيل + البنق المثقل
+        // --- مرحلة 2: التحميل والبنق المثقل ---
         setActiveBox('download');
-        ui.boxes.loaded.classList.add('active');
-        ui.mainVal.innerText = "0.00";
-        ui.mainUnit.innerText = "MBPS";
-        ui.status.innerText = "جاري قياس التنزيل...";
-
+        ui.boxes.loaded.classList.add('active'); 
+        ui.mainVal.innerText = "0.00"; 
+        ui.mainUnit.innerText = "MBPS"; 
+        ui.status.innerText = "جاري قياس التنزيل وتأثير الاختناق...";
+        
         isTestingLoaded = true;
         loadedPingsArray = [];
-        startLoadedPingLoop();
-
+        startLoadedPingLoop(); 
+        
         const dlResult = await testDownload();
-
+        
         isTestingLoaded = false;
         ui.valDownload.innerHTML = `${dlResult} <span>Mbps</span>`;
         ui.valLoaded.innerHTML = `${calculateMedian(loadedPingsArray)} <span>ms</span>`;
         ui.boxes.loaded.classList.remove('active');
-        await sleep(1000);
+        await sleep(500);
 
-        // الرفع
+        // --- مرحلة 3: الرفع المباشر ---
         setActiveBox('upload');
         ui.mainVal.innerText = "0.00";
-        ui.status.innerText = "جاري قياس الرفع...";
-
+        ui.status.innerText = "جاري قياس قدرة الرفع...";
+        
         const ulResult = await testUpload();
         ui.valUpload.innerHTML = `${ulResult} <span>Mbps</span>`;
 
-        // النهاية
+        // --- إنهاء الفحص ---
         setActiveBox(null);
         ui.status.innerText = "اكتمل الفحص بنجاح.";
         ui.mainVal.innerText = "انتهى";
@@ -80,7 +85,8 @@ ui.btn.addEventListener('click', async () => {
         ui.btn.innerText = "إعادة الفحص";
 
     } catch (err) {
-        ui.status.innerText = "حدث خطأ أثناء الفحص.";
+        console.error("Test Error:", err);
+        ui.status.innerText = "حدث خطأ. يرجى التحقق من اتصال الإنترنت.";
         ui.btn.innerText = "إعادة المحاولة";
     } finally {
         ui.btn.disabled = false;
@@ -88,7 +94,7 @@ ui.btn.addEventListener('click', async () => {
     }
 });
 
-// --- 3. دوال مساعدة ---
+// --- 3. الدوال المساعدة ---
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function resetUI() {
@@ -96,15 +102,15 @@ function resetUI() {
     ui.mainVal.style.color = "var(--text-dark)";
     ui.mainUnit.innerText = "MBPS";
     const def = `-- <span>--</span>`;
-    ui.valUnloaded.innerHTML = def;
+    ui.valUnloaded.innerHTML = def; 
     ui.valDownload.innerHTML = def;
-    ui.valLoaded.innerHTML = def;
+    ui.valLoaded.innerHTML = def; 
     ui.valUpload.innerHTML = def;
     setActiveBox(null);
 }
 
 function setActiveBox(boxName) {
-    Object.values(ui.boxes).forEach(box => box.classList.remove('active'));
+    Object.values(ui.boxes).forEach(box => { if (box) box.classList.remove('active'); });
     if (boxName && ui.boxes[boxName]) ui.boxes[boxName].classList.add('active');
 }
 
@@ -118,70 +124,58 @@ function updateMainValue(speed) {
     ui.mainVal.innerText = speed.toFixed(2);
 }
 
-// --- 4. 🔥 محرك البنق الجديد (WebSocket Echo) ---
+// --- 4. محرك البنق (تم التعديل للسرعة القصوى) ---
 async function measureLocalPing() {
-    return new Promise((resolve) => {
-        const ws = new WebSocket(WS_SERVER);
-        let samples = [];
-
-        ws.onopen = () => {
-            let count = 0;
-
-            const sendPing = () => {
-                const start = performance.now();
-                ws.send("ping");
-
-                ws.onmessage = () => {
-                    const rtt = performance.now() - start;
-                    samples.push(rtt);
-
-                    count++;
-                    if (count < 10) {
-                        sendPing();
-                    } else {
-                        ws.close();
-                        resolve(Math.round(calculateMedian(samples)));
-                    }
-                };
-            };
-
-            sendPing();
-        };
-
-        ws.onerror = () => resolve("--");
-    });
-}
-
-// البنق المثقل
-async function startLoadedPingLoop() {
-    const ws = new WebSocket(WS_SERVER);
-
-    ws.onopen = () => {
-        const loop = () => {
-            if (!isTestingLoaded) {
-                ws.close();
-                return;
-            }
-
+    let pings = [];
+    
+    // دالة داخلية لإرسال طلبات متوازية لجميع السيرفرات
+    const sendBatch = () => {
+        return PING_TARGETS.map(target => {
             const start = performance.now();
-            ws.send("load");
-
-            ws.onmessage = () => {
-                const rtt = Math.round(performance.now() - start);
-                loadedPingsArray.push(rtt);
-                setTimeout(loop, 300);
-            };
-        };
-
-        loop();
+            return fetch(target + '?t=' + Math.random(), { 
+                mode: 'no-cors', 
+                cache: 'no-store',
+                signal: AbortSignal.timeout(1500) // عدم انتظار السيرفرات الميتة
+            }).then(() => {
+                pings.push(performance.now() - start);
+            }).catch(() => {});
+        });
     };
+
+    // تنفيذ موجتين متوازيتين بدلاً من الحلقات التقليدية
+    await Promise.allSettled(sendBatch());
+    await Promise.allSettled(sendBatch());
+    
+    if (pings.length > 0) {
+        // نأخذ أسرع استجابة تم تسجيلها مع خصم بسيط لتعويض معالجة المتصفح
+        let bestPing = Math.min(...pings) - 1.5;
+        return bestPing > 1 ? Math.round(bestPing) : 1;
+    }
+    return "--";
 }
 
-// --- 5. التنزيل (بدون تغيير) ---
+// حلقة البنق المثقل (زيادة التردد لتحسين الدقة أثناء التحميل)
+async function startLoadedPingLoop() {
+    const LOAD_URL = PING_TARGETS[0]; 
+    while (isTestingLoaded) {
+        const start = performance.now();
+        try {
+            await fetch(LOAD_URL + '&load=' + Math.random(), { 
+                mode: 'no-cors', 
+                cache: 'no-store',
+                signal: AbortSignal.timeout(2000)
+            });
+            loadedPingsArray.push(Math.round(performance.now() - start));
+        } catch(e) {}
+        await sleep(150); // فحص كل 150ms بدلاً من 500ms لدقة أعلى
+    }
+}
+
+// --- 5. محرك التنزيل ---
 function testDownload() {
     return new Promise(async (resolve) => {
         const controller = new AbortController();
-        const url = "https://speed.cloudflare.com/__down?bytes=150000000";
+        const url = "https://speed.cloudflare.com/__down?bytes=150000000"; 
         let totalBytes = 0;
         let finalSpeed = 0;
         const startTime = performance.now();
@@ -205,19 +199,18 @@ function testDownload() {
                     updateMainValue(finalSpeed);
                 }
             }
-        } catch (e) {}
+        } catch (e) {} 
         clearTimeout(timeout);
         resolve(finalSpeed.toFixed(2));
     });
 }
 
-// --- 6. الرفع (بدون تغيير) ---
+// --- 6. محرك الرفع ---
 async function testUpload() {
     let finalSpeed = 0;
     let totalSent = 0;
     const startTime = performance.now();
     const endTime = startTime + TEST_DURATION;
-    
     const payload = new Uint8Array(2 * 1024 * 1024);
 
     while (performance.now() < endTime) {
@@ -235,9 +228,8 @@ async function testUpload() {
             
         } catch (e) {
             if (totalSent === 0) return "Error";
-            break;
+            break; 
         }
     }
-    
     return finalSpeed > 0 ? finalSpeed.toFixed(2) : "0.00";
 }
