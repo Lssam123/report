@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>مشروع التخرج | أداة قياس جودة الاتصال</title>
 
     <style>
@@ -12,7 +12,7 @@
             --text-dark: #202124;
             --text-gray: #5f6368;
             --border-color: #dadce0;
-            --primary: #00643c; /* أخضر الكلية التقنية */
+            --primary: #00643c; 
             --success: #1e8e3e; 
         }
 
@@ -27,152 +27,148 @@
             min-height: 100vh;
         }
 
-        /* الشريط العلوي النحيف (Top Bar) */
+        /* تكبير الشريط العلوي وتحسينه للجوال */
         .top-bar {
             width: 100%;
             background: white;
-            border-bottom: 1px solid var(--border-color);
-            padding: 8px 25px;
+            border-bottom: 2px solid var(--primary);
+            padding: 15px 25px; /* زيادة التعبئة ليكون الشريط أكبر */
             display: flex;
             align-items: center;
             justify-content: flex-start;
             box-sizing: border-box;
-            gap: 15px;
+            gap: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
-        /* مكان وضع الشعار */
         .top-bar img {
-            height: 50px; /* حجم الشعار */
+            height: 65px; /* زيادة حجم الشعار قليلاً */
             width: auto;
         }
 
         .top-bar-text {
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 18px; /* تكبير الخط */
+            font-weight: 700;
             color: var(--text-dark);
-            border-right: 2px solid var(--primary);
+            border-right: 3px solid var(--primary);
             padding-right: 15px;
-            line-height: 1;
+            line-height: 1.4;
         }
 
         .year-text {
             color: var(--primary);
             margin-right: 5px;
+            display: inline-block;
         }
 
-        /* حاوية الأداة - الواجهة الأصلية المعتمدة */
+        /* حاوية الأداة - محسنة للجوال */
         .dashboard-container {
-            width: 100%;
+            width: 92%; /* استغلال مساحة أكبر في الجوال */
             max-width: 800px;
             background: var(--bg-surface);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 40px;
-            margin-top: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-
-        .header-titles {
-            text-align: center;
-            margin-bottom: 30px;
+            border-radius: 15px;
+            padding: 30px 20px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            box-sizing: border-box;
         }
 
         .header-titles h1 {
-            font-size: 26px;
-            font-weight: 700;
-            margin: 0;
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 25px;
             color: var(--text-dark);
         }
 
         .live-monitor {
             text-align: center;
-            padding: 45px 0;
-            margin-bottom: 30px;
-            border-bottom: 1px solid var(--border-color);
-            border-top: 1px solid var(--border-color);
+            padding: 35px 0;
+            margin-bottom: 25px;
+            border-radius: 12px;
             background-color: #fcfcfc;
-            border-radius: 8px;
+            border: 1px solid #eee;
         }
 
         .live-val {
-            font-size: 90px;
+            font-size: clamp(50px, 15vw, 90px); /* حجم خط مرن يتغير حسب الشاشة */
             font-weight: 300;
             line-height: 1;
             color: var(--text-dark);
         }
 
         .live-unit {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
             color: var(--text-gray);
-            margin-top: 10px;
         }
 
+        /* تحسين شبكة البطاقات للجوال */
         .cards-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(2, 1fr); /* 2 في كل صف للجوال بشكل افتراضي */
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        /* في الشاشات الكبيرة نعود لـ 4 بطاقات */
+        @media (min-width: 600px) {
+            .cards-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 12px;
+            }
         }
 
         .data-card {
             background: var(--bg-surface);
             border: 1px solid var(--border-color);
             border-radius: 10px;
-            padding: 25px 5px;
+            padding: 20px 5px;
             text-align: center;
         }
 
-        .data-card.active {
-            border-color: var(--primary);
-            background: #f1f6fe;
-        }
-
         .card-label {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--text-gray);
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
-        /* الخط الكبير المعتمد */
         .card-val {
-            font-size: 32px; 
+            font-size: 28px; /* حجم مناسب للجوال والكمبيوتر */
             font-weight: 800;
             direction: ltr;
-            color: var(--text-dark);
         }
 
         .card-val span {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-gray);
+            font-size: 12px;
             margin-left: 2px;
+            color: var(--text-gray);
         }
 
         .btn-start {
             background-color: var(--primary);
             color: #ffffff;
             border: none;
-            padding: 18px 50px;
-            border-radius: 8px;
-            font-size: 20px;
+            padding: 16px 40px;
+            border-radius: 10px;
+            font-size: 19px;
             font-weight: 600;
             cursor: pointer;
             width: 100%;
-            max-width: 320px;
+            max-width: 300px;
             display: block;
             margin: 0 auto;
+            -webkit-tap-highlight-color: transparent; /* تحسين اللمس للجوال */
         }
 
-        .btn-start:disabled { background-color: #ccc; cursor: not-allowed; }
-
-        @media (max-width: 768px) {
-            .top-bar { flex-direction: row; justify-content: center; text-align: center; }
-            .cards-grid { grid-template-columns: repeat(2, 1fr); }
-            .live-val { font-size: 65px; }
-            .card-val { font-size: 28px; }
+        /* تعديلات الجوال الصغير جداً */
+        @media (max-width: 400px) {
+            .top-bar { padding: 10px 15px; gap: 10px; }
+            .top-bar img { height: 50px; }
+            .top-bar-text { font-size: 14px; }
+            .card-val { font-size: 24px; }
         }
     </style>
 </head>
@@ -180,7 +176,6 @@
 
     <div class="top-bar">
         <img src="logo.png" alt="Logo">
-        
         <div class="top-bar-text">
             مشروع تخرج متدربي الكلية التقنية <span class="year-text">2026م</span>
         </div>
@@ -218,10 +213,8 @@
             </div>
         </div>
 
-        <div style="text-align:center">
-            <button class="btn-start" id="startBtn">بدء الاختبار</button>
-            <div style="margin-top:15px; color:var(--text-gray)" id="statusText">جاهز للفحص</div>
-        </div>
+        <button class="btn-start" id="startBtn">بدء الاختبار</button>
+        <div style="text-align:center; margin-top:15px; color:var(--text-gray); font-size: 14px;" id="statusText">جاهز للفحص</div>
     </div>
 
     <script src="script.js"></script>
