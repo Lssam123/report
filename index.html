@@ -7,7 +7,7 @@
 
     <style>
         :root {
-            --bg-body: #f0f2f5;
+            --bg-body: #f4f7f6;
             --bg-surface: #ffffff;
             --text-dark: #202124;
             --text-gray: #5f6368;
@@ -15,12 +15,12 @@
             --primary: #00643c; 
         }
 
-        /* منع التمرير في الصفحة بالكامل */
+        /* ضبط الصفحة لتكون على مقاس الشاشة بالضبط بدون تمرير */
         html, body {
-            height: 100%;
-            overflow: hidden;
+            height: 100vh;
             margin: 0;
             padding: 0;
+            overflow: hidden; /* يمنع التمرير */
             font-family: 'Segoe UI', Tahoma, sans-serif;
             background-color: var(--bg-body);
         }
@@ -31,67 +31,67 @@
             align-items: center;
         }
 
-        /* 1. الشريط العلوي - نحيف ومرتب */
+        /* شريط علوي واضح وبحجم معقول */
         .top-bar {
             width: 100%;
             max-width: 900px;
             background: white;
             border-bottom: 2px solid var(--primary);
-            padding: 8px 20px;
+            padding: 12px 25px;
             display: flex;
             align-items: center;
-            justify-content: flex-start;
             box-sizing: border-box;
             gap: 15px;
         }
 
         .top-bar img {
-            height: 45px; /* تصغير الارتفاع قليلاً */
+            height: 55px; /* حجم متوسط وواضح للشعار */
             width: auto;
         }
 
         .top-bar-text {
-            font-size: 15px;
+            font-size: 17px;
             font-weight: 700;
             color: var(--text-dark);
-            border-right: 2px solid var(--primary);
-            padding-right: 12px;
-            line-height: 1.2;
+            border-right: 3px solid var(--primary);
+            padding-right: 15px;
+            line-height: 1.4;
         }
 
-        /* 2. مربع الاختبار - ملتصق ومختصر الطول */
+        /* حاوية الأداة - متصلة ومنسقة الطول */
         .dashboard-container {
             width: 100%;
             max-width: 900px;
+            flex: 1; /* تجعل المربع يأخذ المساحة المتبقية من الشاشة */
             background: var(--bg-surface);
             border: 1px solid var(--border-color);
             border-top: none;
-            padding: 15px 20px; /* تقليل المسافات الداخلية */
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            padding: 20px 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            justify-content: space-around; /* توزيع العناصر بشكل متساوي عمودياً */
         }
 
         .header-titles h1 {
-            font-size: 18px; /* تصغير العنوان */
+            font-size: 24px;
             text-align: center;
-            margin: 5px 0;
+            margin: 0;
             color: var(--text-dark);
         }
 
-        /* شاشة عرض السرعة - مضغوطة */
+        /* شاشة السرعة - حجم كبير وواضح */
         .live-monitor {
             text-align: center;
-            padding: 15px 0;
-            border-radius: 10px;
-            background-color: #fcfcfc;
+            padding: 30px 0;
+            background-color: #fafafa;
+            border-radius: 12px;
             border: 1px solid #eee;
         }
 
         .live-val {
-            font-size: clamp(50px, 10vw, 75px); /* تصغير الرقم الكبير */
+            font-size: clamp(70px, 12vw, 100px); /* حجم كبير ملحوظ */
             font-weight: 300;
             line-height: 1;
             color: var(--text-dark);
@@ -99,74 +99,77 @@
         }
 
         .live-unit {
-            font-size: 16px;
+            font-size: 20px;
             font-weight: 600;
             color: var(--text-gray);
+            margin-top: 5px;
         }
 
-        /* شبكة البطاقات - أصغر حجماً */
+        /* شبكة البطاقات - أرقام واضحة */
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
+            gap: 12px;
         }
 
         .data-card {
-            background: var(--bg-surface);
+            background: white;
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px 2px;
+            border-radius: 10px;
+            padding: 20px 5px;
             text-align: center;
         }
 
         .card-label {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 600;
             color: var(--text-gray);
-            margin-bottom: 5px;
+            margin-bottom: 10px;
         }
 
         .card-val {
-            font-size: 22px; /* تصغير الأرقام الجانبية */
+            font-size: 28px; /* حجم الرقم في البطاقات الصغير */
             font-weight: 800;
+            color: var(--text-dark);
             direction: ltr;
         }
 
         .card-val span {
-            font-size: 11px;
+            font-size: 13px;
             color: var(--text-gray);
-        }
-
-        /* الزر والحالة */
-        .footer-actions {
-            text-align: center;
-            margin-top: 5px;
+            margin-left: 2px;
         }
 
         .btn-start {
             background-color: var(--primary);
             color: #ffffff;
             border: none;
-            padding: 12px 40px;
-            border-radius: 8px;
-            font-size: 18px;
+            padding: 16px 50px;
+            border-radius: 10px;
+            font-size: 20px;
             font-weight: 600;
             cursor: pointer;
             width: 100%;
-            max-width: 280px;
+            max-width: 350px;
+            margin: 0 auto;
+            transition: 0.3s;
         }
+
+        .btn-start:active { transform: scale(0.98); }
 
         #statusText {
-            font-size: 13px;
+            text-align: center;
+            font-size: 15px;
             color: var(--text-gray);
-            margin-top: 8px;
+            margin-top: 10px;
         }
 
-        /* الجوال */
-        @media (max-width: 600px) {
+        /* تحسينات الجوال */
+        @media (max-width: 650px) {
             .cards-grid { grid-template-columns: repeat(2, 1fr); }
-            .top-bar, .dashboard-container { max-width: 100%; border-left: none; border-right: none; }
-            .top-bar-text { font-size: 13px; }
+            .top-bar-text { font-size: 14px; }
+            .top-bar img { height: 45px; }
+            .dashboard-container { padding: 15px; }
         }
     </style>
 </head>
@@ -211,7 +214,7 @@
             </div>
         </div>
 
-        <div class="footer-actions">
+        <div style="text-align: center;">
             <button class="btn-start" id="startBtn">بدء الاختبار</button>
             <div id="statusText">جاهز للفحص</div>
         </div>
