@@ -3,129 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مشروع التخرج | أداة قياس الجودة</title>
+    <title>مشروع التخرج | أداة قياس جودة الاتصال</title>
 
     <style>
         :root {
-            --primary: #00643c; 
+            --bg-body: #f8f9fa;
+            --bg-surface: #ffffff;
             --text-dark: #202124;
             --text-gray: #5f6368;
-            --border: #dadce0;
+            --border-color: #dadce0;
+            --primary: #00643c; /* أخضر الكلية التقنية */
+            --success: #1e8e3e; 
         }
 
         body {
             font-family: 'Segoe UI', Tahoma, sans-serif;
-            background-color: #f4f7f6;
+            background-color: var(--bg-body);
             margin: 0;
             padding: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
         }
 
-        /* شريط علوي نحيف ومنسق */
+        /* الشريط العلوي النحيف (Top Bar) */
         .top-bar {
             width: 100%;
             background: white;
-            border-bottom: 1px solid var(--border);
-            padding: 10px 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding: 8px 25px;
             display: flex;
             align-items: center;
-            justify-content: flex-start; /* الشعار يمين */
+            justify-content: flex-start;
             box-sizing: border-box;
+            gap: 15px;
         }
 
+        /* مكان وضع الشعار */
         .top-bar img {
-            height: 45px; /* حجم صغير ومنسق للشعار */
-            margin-left: 15px;
+            height: 50px; /* حجم الشعار */
+            width: auto;
         }
 
         .top-bar-text {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 600;
             color: var(--text-dark);
-            display: flex;
-            gap: 10px;
             border-right: 2px solid var(--primary);
             padding-right: 15px;
+            line-height: 1;
         }
 
-        .year-text { color: var(--primary); }
+        .year-text {
+            color: var(--primary);
+            margin-right: 5px;
+        }
 
-        /* حاوية الأداة - مختصرة الطول */
+        /* حاوية الأداة - الواجهة الأصلية المعتمدة */
         .dashboard-container {
-            width: 95%;
-            max-width: 750px;
-            background: white;
-            border: 1px solid var(--border);
+            width: 100%;
+            max-width: 800px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 25px;
+            padding: 40px;
             margin-top: 30px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .header-titles {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header-titles h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-dark);
         }
 
         .live-monitor {
             text-align: center;
-            padding: 20px 0;
-            margin-bottom: 20px;
+            padding: 45px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border-color);
+            border-top: 1px solid var(--border-color);
+            background-color: #fcfcfc;
+            border-radius: 8px;
         }
 
-        .live-val { font-size: 70px; font-weight: 300; line-height: 1; margin: 0; }
-        .live-unit { font-size: 18px; color: var(--text-gray); }
+        .live-val {
+            font-size: 90px;
+            font-weight: 300;
+            line-height: 1;
+            color: var(--text-dark);
+        }
+
+        .live-unit {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-gray);
+            margin-top: 10px;
+        }
 
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-bottom: 25px;
+            gap: 12px;
+            margin-bottom: 40px;
         }
 
         .data-card {
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 15px 5px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 25px 5px;
             text-align: center;
         }
 
-        .card-label { font-size: 13px; font-weight: 600; color: var(--text-gray); margin-bottom: 8px; }
-        .card-val { font-size: 26px; font-weight: 800; color: var(--primary); }
-        .card-val span { font-size: 12px; color: var(--text-gray); }
+        .data-card.active {
+            border-color: var(--primary);
+            background: #f1f6fe;
+        }
+
+        .card-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-gray);
+            margin-bottom: 15px;
+        }
+
+        /* الخط الكبير المعتمد */
+        .card-val {
+            font-size: 32px; 
+            font-weight: 800;
+            direction: ltr;
+            color: var(--text-dark);
+        }
+
+        .card-val span {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-gray);
+            margin-left: 2px;
+        }
 
         .btn-start {
             background-color: var(--primary);
-            color: white;
+            color: #ffffff;
             border: none;
-            padding: 15px 40px;
+            padding: 18px 50px;
             border-radius: 8px;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 600;
             cursor: pointer;
             width: 100%;
-            max-width: 250px;
+            max-width: 320px;
             display: block;
             margin: 0 auto;
         }
 
-        .btn-start:disabled { background-color: #ccc; }
+        .btn-start:disabled { background-color: #ccc; cursor: not-allowed; }
 
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
+            .top-bar { flex-direction: row; justify-content: center; text-align: center; }
             .cards-grid { grid-template-columns: repeat(2, 1fr); }
-            .top-bar-text { font-size: 13px; }
+            .live-val { font-size: 65px; }
+            .card-val { font-size: 28px; }
         }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
-        <img src="https://upload.wikimedia.org/wikipedia/ar/thumb/2/22/TVTC_Logo.svg/512px-TVTC_Logo.svg.png" alt="TVTC">
+        <img src="logo.png" alt="Logo">
         
         <div class="top-bar-text">
-            <span>مشروع تخرج متدربي الكلية التقنية</span>
-            <span class="year-text">2026م</span>
+            مشروع تخرج متدربي الكلية التقنية <span class="year-text">2026م</span>
         </div>
     </div>
 
     <div class="dashboard-container">
+        <div class="header-titles">
+            <h1>اختبار سرعة الإنترنت</h1>
+        </div>
+
         <div class="live-monitor">
             <div class="live-val" id="mainValue">0</div>
             <div class="live-unit" id="mainUnit">Mbps</div>
@@ -136,22 +201,27 @@
                 <div class="card-label">البنق العادي</div>
                 <div class="card-val"><span id="valUnloaded">--</span><span>ms</span></div>
             </div>
+            
             <div class="data-card" id="boxDownload">
                 <div class="card-label">التنزيل</div>
-                <div class="card-val"><span id="valDownload">--</span><span>Mb</span></div>
+                <div class="card-val"><span id="valDownload">--</span><span>Mbps</span></div>
             </div>
+
             <div class="data-card" id="boxLoaded">
                 <div class="card-label">البنق المثقل</div>
                 <div class="card-val"><span id="valLoaded">--</span><span>ms</span></div>
             </div>
+
             <div class="data-card" id="boxUpload">
                 <div class="card-label">الرفع</div>
-                <div class="card-val"><span id="valUpload">--</span><span>Mb</span></div>
+                <div class="card-val"><span id="valUpload">--</span><span>Mbps</span></div>
             </div>
         </div>
 
-        <button class="btn-start" id="startBtn">بدء الاختبار</button>
-        <p id="statusText" style="text-align:center; font-size:14px; color:var(--text-gray); margin-top:15px;">جاهز للفحص</p>
+        <div style="text-align:center">
+            <button class="btn-start" id="startBtn">بدء الاختبار</button>
+            <div style="margin-top:15px; color:var(--text-gray)" id="statusText">جاهز للفحص</div>
+        </div>
     </div>
 
     <script src="script.js"></script>
