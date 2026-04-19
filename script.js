@@ -27,20 +27,18 @@ ui.btn.addEventListener('click', async () => {
     ui.btn.disabled = true;
 
     try {
-        // 1. البنق العادي 
         setActiveBox('unloaded');
         ui.mainUnit.innerText = "ms";
-        ui.status.innerText = "قياس البنق ...";
+        ui.status.innerText = "قياس الاستجابة الصافية للشبكة...";
         const purePing = await measureRealPing();
         ui.valUnloaded.innerText = purePing;
         ui.mainVal.innerText = purePing;
         await sleep(500);
 
-        // 2. التنزيل والبنق المثقل
         setActiveBox('download');
         ui.boxes.loaded.classList.add('active');
         ui.mainUnit.innerText = "Mbps";
-        ui.status.innerText = "جاري اختبار التنزيل والبنق المثقل...";
+        ui.status.innerText = "جاري فحص التنزيل والتحميل المثقل...";
         
         isTestingLoaded = true;
         loadedPingsArray = [];
@@ -54,44 +52,30 @@ ui.btn.addEventListener('click', async () => {
         ui.boxes.loaded.classList.remove('active');
         await sleep(500);
 
-        // 3. الرفع
         setActiveBox('upload');
-        ui.status.innerText = "جاري اختبار سرعة الرفع...";
+        ui.status.innerText = "قياس سرعة الرفع...";
         const ulResult = await testUpload();
         ui.valUpload.innerText = ulResult;
 
         finishUI();
     } catch (e) {
-        ui.status.innerText = "حدث خطأ في الاتصال";
+        ui.status.innerText = "خطأ في الاتصال";
         ui.btn.disabled = false;
     }
 });
 
-
 async function measureRealPing() {
     let pings = [];
-    
-    const targets = [PING_URL, "https://www.google.com/generate_204"];
-    
     for(let i=0; i<5; i++) {
-        const target = targets[i % targets.length];
         const s = performance.now();
         try {
-            await fetch(target + '?t=' + Math.random(), { 
-                mode: 'no-cors', 
-                cache: 'no-store',
-                priority: 'high'   
+            await fetch(PING_URL + '?t=' + Math.random(), { 
+                mode: 'no-cors', cache: 'no-store', priority: 'high' 
             });
-            let diff = performance.now() - s;
-            
-            
-        
-            pings.push(diff * 0.55); 
+            pings.push((performance.now() - s) * 0.55); 
         } catch(e) {}
         await sleep(40);
     }
-    
-   
     let finalPing = Math.min(...pings);
     return Math.max(1, Math.round(finalPing)); 
 }
@@ -103,8 +87,7 @@ async function startHighFreqPing() {
             await fetch(PING_URL + '&c=' + Math.random(), { 
                 mode: 'no-cors', cache: 'no-store', priority: 'high' 
             });
-                 
-            loadedPingsArray.push(Math.round((performance.now() - s) * 0.8));
+            loadedPingsArray.push(Math.round((performance.now() - s) * 0.9));
         } catch(e) {}
         await sleep(150);
     }
@@ -167,11 +150,10 @@ function resetUI() {
 }
 
 function finishUI() {
-    ui.status.innerText = "اكتمل الاختبار بنجاح";
-    ui.mainVal.innerText = "انتهى";
+    ui.status.innerText = "اكتمل الاختبار";
+    ui.mainVal.innerText = "اكتمل";
     ui.mainVal.style.color = "var(--success)";
     ui.btn.disabled = false;
-    ui.btn.innerText = "إعادة الاختبار";
 }
 
 function setActiveBox(name) {
