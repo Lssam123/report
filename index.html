@@ -15,152 +15,158 @@
             --primary: #00643c; 
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            background-color: var(--bg-body);
+        /* منع التمرير في الصفحة بالكامل */
+        html, body {
+            height: 100%;
+            overflow: hidden;
             margin: 0;
             padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-body);
+        }
+
+        body {
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
         }
 
-        /* 1. الشريط العلوي */
+        /* 1. الشريط العلوي - نحيف ومرتب */
         .top-bar {
             width: 100%;
-            max-width: 900px; /* تحديد عرض ثابت متناسق */
+            max-width: 900px;
             background: white;
             border-bottom: 2px solid var(--primary);
-            padding: 15px 25px;
+            padding: 8px 20px;
             display: flex;
             align-items: center;
             justify-content: flex-start;
             box-sizing: border-box;
-            gap: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            z-index: 10;
+            gap: 15px;
         }
 
         .top-bar img {
-            height: 60px;
+            height: 45px; /* تصغير الارتفاع قليلاً */
             width: auto;
         }
 
         .top-bar-text {
-            font-size: 18px;
+            font-size: 15px;
             font-weight: 700;
             color: var(--text-dark);
-            border-right: 3px solid var(--primary);
-            padding-right: 15px;
-            line-height: 1.4;
+            border-right: 2px solid var(--primary);
+            padding-right: 12px;
+            line-height: 1.2;
         }
 
-        /* 2. مربع الاختبار - ملتصق تماماً ويفس العرض */
+        /* 2. مربع الاختبار - ملتصق ومختصر الطول */
         .dashboard-container {
             width: 100%;
-            max-width: 900px; /* نفس عرض الشريط العلوي */
+            max-width: 900px;
             background: var(--bg-surface);
             border: 1px solid var(--border-color);
-            border-top: none; /* إزالة الحدود العلوية للالتصاق */
-            padding: 40px 20px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            border-top: none;
+            padding: 15px 20px; /* تقليل المسافات الداخلية */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .header-titles h1 {
-            font-size: 24px;
+            font-size: 18px; /* تصغير العنوان */
             text-align: center;
-            margin-bottom: 30px;
+            margin: 5px 0;
             color: var(--text-dark);
         }
 
+        /* شاشة عرض السرعة - مضغوطة */
         .live-monitor {
             text-align: center;
-            padding: 40px 0;
-            margin-bottom: 30px;
-            border-radius: 12px;
+            padding: 15px 0;
+            border-radius: 10px;
             background-color: #fcfcfc;
             border: 1px solid #eee;
         }
 
         .live-val {
-            font-size: clamp(60px, 15vw, 100px);
+            font-size: clamp(50px, 10vw, 75px); /* تصغير الرقم الكبير */
             font-weight: 300;
             line-height: 1;
             color: var(--text-dark);
+            margin: 0;
         }
 
         .live-unit {
-            font-size: 20px;
+            font-size: 16px;
             font-weight: 600;
             color: var(--text-gray);
-            margin-top: 5px;
         }
 
+        /* شبكة البطاقات - أصغر حجماً */
         .cards-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 40px;
-        }
-
-        @media (min-width: 600px) {
-            .cards-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
         }
 
         .data-card {
             background: var(--bg-surface);
             border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 25px 5px;
+            border-radius: 8px;
+            padding: 10px 2px;
             text-align: center;
         }
 
         .card-label {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--text-gray);
-            margin-bottom: 12px;
+            margin-bottom: 5px;
         }
 
         .card-val {
-            font-size: 30px;
+            font-size: 22px; /* تصغير الأرقام الجانبية */
             font-weight: 800;
             direction: ltr;
         }
 
         .card-val span {
-            font-size: 13px;
+            font-size: 11px;
             color: var(--text-gray);
+        }
+
+        /* الزر والحالة */
+        .footer-actions {
+            text-align: center;
+            margin-top: 5px;
         }
 
         .btn-start {
             background-color: var(--primary);
             color: #ffffff;
             border: none;
-            padding: 18px 50px;
-            border-radius: 10px;
-            font-size: 20px;
+            padding: 12px 40px;
+            border-radius: 8px;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
             width: 100%;
-            max-width: 350px;
-            display: block;
-            margin: 0 auto;
+            max-width: 280px;
         }
 
-        @media (max-width: 900px) {
-            .top-bar, .dashboard-container {
-                max-width: 95%; /* في الجوال نترك مساحة بسيطة جداً */
-            }
+        #statusText {
+            font-size: 13px;
+            color: var(--text-gray);
+            margin-top: 8px;
         }
 
-        @media (max-width: 500px) {
-            .top-bar-text { font-size: 15px; }
-            .top-bar img { height: 50px; }
+        /* الجوال */
+        @media (max-width: 600px) {
+            .cards-grid { grid-template-columns: repeat(2, 1fr); }
+            .top-bar, .dashboard-container { max-width: 100%; border-left: none; border-right: none; }
+            .top-bar-text { font-size: 13px; }
         }
     </style>
 </head>
@@ -191,7 +197,7 @@
             
             <div class="data-card" id="boxDownload">
                 <div class="card-label">التنزيل</div>
-                <div class="card-val"><span id="valDownload">--</span><span>Mbps</span></div>
+                <div class="card-val"><span id="valDownload">--</span><span>Mb</span></div>
             </div>
 
             <div class="data-card" id="boxLoaded">
@@ -201,12 +207,14 @@
 
             <div class="data-card" id="boxUpload">
                 <div class="card-label">الرفع</div>
-                <div class="card-val"><span id="valUpload">--</span><span>Mbps</span></div>
+                <div class="card-val"><span id="valUpload">--</span><span>Mb</span></div>
             </div>
         </div>
 
-        <button class="btn-start" id="startBtn">بدء الاختبار</button>
-        <div style="text-align:center; margin-top:15px; color:var(--text-gray);" id="statusText">جاهز للفحص</div>
+        <div class="footer-actions">
+            <button class="btn-start" id="startBtn">بدء الاختبار</button>
+            <div id="statusText">جاهز للفحص</div>
+        </div>
     </div>
 
     <script src="script.js"></script>
